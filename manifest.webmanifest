@@ -1,0 +1,1 @@
+{"name": "Diego_OS", "short_name": "Diego_OS", "display": "standalone", "start_url": ".", "background_color": "#101216", "theme_color": "#101216", "icons": [{"src": "icona.svg", "sizes": "192x192", "type": "image/svg+xml"}]}
