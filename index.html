@@ -786,7 +786,7 @@ async function dosAccessoBio(){
     headers:{'content-type':'application/json'},
     body: JSON.stringify({ id_sfida, risposta, dispositivo: navigator.userAgent.slice(0,80) })});
   const d = await v.json();
-  if (d.token){ localStorage.setItem('dos_token', d.token); localStorage.setItem('app_token', d.token); return true; }
+  if (d.token){ DOS_TOKEN = d.token; localStorage.setItem('dos_token', d.token); localStorage.setItem('app_token', d.token); return true; }
   return false;
 }
 
@@ -813,6 +813,7 @@ async function dosAttivaBio(){
     body: JSON.stringify({ id_sfida, risposta, dispositivo: navigator.userAgent.slice(0,80) })});
   const d = await v.json();
   if (d.token){
+    DOS_TOKEN = d.token;
     localStorage.setItem('dos_token', d.token); localStorage.setItem('app_token', d.token);
     localStorage.setItem('dos_bio_attiva','1'); return true;
   }
@@ -821,6 +822,7 @@ async function dosAttivaBio(){
 
 window.fetch = (u, o) => {
   if (typeof u === 'string' && u.startsWith('/')){
+    if (!DOS_TOKEN) return new Promise(() => {}); // niente accesso: si aspetta l'overlay
     o = o || {};
     o.headers = Object.assign({}, o.headers || {}, {'x-app-token': DOS_TOKEN});
     u = DOS_API + u;
