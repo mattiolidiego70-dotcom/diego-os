@@ -853,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const eur  = v => v.toLocaleString('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 const eur2 = v => v.toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 const pct  = v => (v>0?'+':'') + v.toLocaleString('it-IT',{maximumFractionDigits:1}) + '%';
-const j = (u,o) => fetch(u,o).then(r=>r.json());
+const j = (u,o) => fetch(u,o).then(r => r.ok ? r.json() : new Promise(res => setTimeout(res, 1600)).then(() => fetch(u,o)).then(r2 => r2.json())); // avvio a freddo del motore: un fallimento isolato si ritenta da solo
 const SERIES_HEX = {FINECO:'#3987e5', INTESA:'#199e70'};
 const GRUPPI_HEX = {'Casa':'#3987e5','Vita':'#199e70','Tech & hobby':'#c98500',
                     'Lavoro & fisco':'#9085e9','Finanza':'#d55181','Da categorizzare':'#85837c'};
