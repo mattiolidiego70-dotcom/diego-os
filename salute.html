@@ -99,7 +99,47 @@
   #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
   .vista{display:none}.vista.on{display:block}
 
+  /* ── card semaforo: il punteggio del giorno, in cima ── */
+  .score{padding:18px 16px}
+  .score .livello{font:700 56px/1 var(--disp);letter-spacing:.06em;text-transform:uppercase}
+  .liv-verde{color:var(--good)} .liv-giallo{color:var(--warning)} .liv-rosso{color:var(--critical)}
+  .liv-sconosciuto{color:var(--muted);font-size:30px}
+  .score .racc{color:var(--ink-2);font-size:13.5px;margin-top:8px}
+  .contrib{margin-top:14px;display:flex;flex-direction:column;gap:7px}
+  .contrib .cr{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;font-size:12.5px}
+  .contrib .nome{color:var(--muted);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .contrib .barra2{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+  .contrib .barra2 i{display:block;height:100%;border-radius:3px}
+  .contrib .fuori i{background:var(--critical)}
+  .contrib .manca i{background:rgba(255,255,255,.13)}
+  .contrib .vs{color:var(--ink-2);white-space:nowrap}
+  .score .ritmo{margin-top:14px;padding-top:11px;border-top:1px solid var(--hairline);color:var(--ink-2);font-size:13px}
+  .score .ritmo b{color:var(--ink)}
+
+  /* ── rientro gentile: niente sensi di colpa ── */
+  .bentornato{border:1px solid rgba(166,226,46,.3);background:rgba(166,226,46,.07);border-radius:12px;
+      padding:10px 14px;margin-bottom:14px;color:var(--ink-2);font-size:13.5px}
+
+  /* ── heatmap costanza, stile GitHub ── */
+  .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);gap:3px;
+      overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .heat i{width:11px;height:11px;border-radius:3px;display:block}
+  .heat-legenda{display:flex;align-items:center;gap:4px;margin-top:8px;color:var(--muted);font-size:11px}
+  .heat-legenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* ── numeri grandi sempre tabulari: le cifre non ballano ── */
+  .hero .val,.kpi .v,.budget .num,.score .ritmo b,.contrib .vs{font-variant-numeric:tabular-nums}
+
   @media (max-width:720px){
+    /* niente zoom automatico iOS al focus */
+    input,select,textarea{font-size:16px}
+    /* l'item di griglia deve poter stringersi, e i canvas di Chart.js
+       non devono mai superare la card che li contiene */
+    main{min-width:0}
+    .chartbox,.scheda{min-width:0}
+    canvas{max-width:100%!important}
+    .score .livello{font-size:46px}
+    .liv-sconosciuto{font-size:26px}
     .shell{grid-template-columns:1fr}
     .dock{flex-direction:row;height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;z-index:20;
           border-right:0;border-top:1px solid var(--hairline);background:var(--surface);
@@ -146,6 +186,17 @@
 
     <!-- ============ OGGI ============ -->
     <div id="v-oggi" class="vista on">
+      <!-- rientro gentile: compare solo dopo 3 o piu giorni senza dati -->
+      <div id="bentornato" class="bentornato" style="display:none">Bentornato: si riparte da oggi, senza recuperi.</div>
+
+      <!-- il semaforo del giorno: una parola sola, poi il perche -->
+      <div class="scheda score" id="scoreCard">
+        <div class="livello liv-sconosciuto" id="scLiv">&hellip;</div>
+        <div class="racc" id="scRacc"></div>
+        <div class="contrib" id="scContrib"></div>
+        <div class="ritmo" id="scRitmo" style="display:none"></div>
+      </div>
+
       <div class="hero-row">
         <div class="hero">
           <div class="lbl">peso &middot; media 7 giorni</div>
@@ -162,6 +213,10 @@
       <div class="chartbox"><h3>Peso e media 7gg</h3><canvas id="gPeso"></canvas></div>
       <div class="chartbox"><h3>Calorie</h3><canvas id="gKcal"></canvas></div>
       <div class="chartbox"><h3>Sonno e recovery</h3><canvas id="gRec"></canvas></div>
+      <div class="scheda"><h3>Costanza &middot; 26 settimane</h3>
+        <div class="heat" id="heat"></div>
+        <div class="heat-legenda">meno <i style="background:rgba(166,226,46,.06)"></i><i style="background:rgba(166,226,46,.22)"></i><i style="background:rgba(166,226,46,.42)"></i><i style="background:rgba(166,226,46,.65)"></i><i style="background:#a6e22e"></i> pi&ugrave;</div>
+      </div>
       <div class="scheda"><h3>TDEE dinamico</h3><div id="tdee" class="spin">&hellip;</div></div>
       <div class="scheda"><h3>Pipeline dati</h3><div id="qualita" class="spin">&hellip;</div></div>
     </div>
@@ -232,7 +287,7 @@
 
 <script>
 var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
-var TOK = localStorage.getItem('app_token') || '';
+var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
 var grafici = {};
 var TARGET_KCAL = null;
 
@@ -244,7 +299,7 @@ function entra(){
   if(!t) return;
   TOK = t;
   api('/api/qualita').then(function(){
-    localStorage.setItem('app_token', t);
+    localStorage.setItem('app_token', t); localStorage.setItem('dos_token', t);
     document.getElementById('login').style.display='none';
     carica();
   }).catch(function(){ document.getElementById('loginErr').textContent='Codice sbagliato.'; });
@@ -266,11 +321,11 @@ function vista(nome, btn){
   btn.classList.add('on');
 }
 
-function fmt(n, dec){ return n==null ? '\\u2014' : Number(n).toFixed(dec==null?1:dec); }
+function fmt(n, dec){ return n==null ? '\u2014' : Number(n).toFixed(dec==null?1:dec); }
 
 function carica(){
   api('/api/contesto').then(function(c){
-    var m = String(c.kcal_target_die||'').match(/(\\d{3,5})/);
+    var m = String(c.kcal_target_die||'').match(/(\d{3,5})/);
     if(m) TARGET_KCAL = parseInt(m[1],10);
     aggiornaBudget();
   }).catch(function(){});
@@ -284,7 +339,7 @@ function carica(){
     if(ultimo){
       var mostra = ultimo.peso_ma7 != null ? ultimo.peso_ma7 : ultimo.weight_kg;
       document.getElementById('heroPeso').innerHTML =
-        (mostra!=null? fmt(mostra,1) : '\\u2014') + ' <small>kg</small>';
+        (mostra!=null? fmt(mostra,1) : '\u2014') + ' <small>kg</small>';
       var d7 = ultimo.delta_peso_ma7_su_7gg;
       document.getElementById('heroNota').textContent = d7==null
         ? 'servono pesate regolari per il trend'
@@ -293,15 +348,15 @@ function carica(){
 
       var k = document.getElementById('kpi');
       k.innerHTML =
-        kpi('Sonno 7gg', ultimo.sonno_ma7!=null? fmt(ultimo.sonno_ma7)+' h':'\\u2014',
+        kpi('Sonno 7gg', ultimo.sonno_ma7!=null? fmt(ultimo.sonno_ma7)+' h':'\u2014',
             (ultimo.sonno_ma7!=null && ultimo.sonno_ma7<6.5)?'sotto soglia':'', ultimo.sonno_ma7!=null && ultimo.sonno_ma7<6.5) +
-        kpi('Passi ieri/oggi', (oggi&&oggi.steps!=null)? fmt(oggi.steps,0):'\\u2014','') +
-        kpi('Battito medio', (oggi&&oggi.hr_media!=null)? fmt(oggi.hr_media,0)+' bpm':'\\u2014','') +
-        kpi('Recovery 7gg', ultimo.recovery_ma7!=null? fmt(ultimo.recovery_ma7,0)+'%':'\\u2014',
+        kpi('Passi ieri/oggi', (oggi&&oggi.steps!=null)? fmt(oggi.steps,0):'\u2014','') +
+        kpi('Battito medio', (oggi&&oggi.hr_media!=null)? fmt(oggi.hr_media,0)+' bpm':'\u2014','') +
+        kpi('Recovery 7gg', ultimo.recovery_ma7!=null? fmt(ultimo.recovery_ma7,0)+'%':'\u2014',
             ultimo.recovery_ma7==null?'non arriva da Whoop':'') +
-        kpi('Energia 7gg', ultimo.energia_ma7!=null? fmt(ultimo.energia_ma7)+'/5':'\\u2014',
+        kpi('Energia 7gg', ultimo.energia_ma7!=null? fmt(ultimo.energia_ma7)+'/5':'\u2014',
             ultimo.energia_ma7==null?'dilla al coach':'') +
-        kpi('Umore 7gg', ultimo.umore_ma7!=null? fmt(ultimo.umore_ma7)+'/5':'\\u2014','');
+        kpi('Umore 7gg', ultimo.umore_ma7!=null? fmt(ultimo.umore_ma7)+'/5':'\u2014','');
     }
     disegna(righe);
     document.getElementById('txtStato').textContent='sistema attivo';
@@ -320,7 +375,7 @@ function carica(){
     var fid=(t.affidabilita||'').split(':')[0];
     el.innerHTML = '<div class="kpi" style="border:0;padding:0"><div class="v">'+fmt(t.tdee_stimato,0)+' kcal</div>'+
       '<div class="d">bilancio '+fmt(t.bilancio_kcal_die,0)+' kcal/die &middot; '+fmt(t.kg_a_settimana,2)+' kg/sett</div>'+
-      '<div class="'+(fid==='BUONA'?'ok':'avviso')+'">affidabilit\\u00e0 '+t.affidabilita+' (r\\u00b2 '+fmt(t.r2,2)+')</div></div>';
+      '<div class="'+(fid==='BUONA'?'ok':'avviso')+'">affidabilit\u00e0 '+t.affidabilita+' (r\u00b2 '+fmt(t.r2,2)+')</div></div>';
   }).catch(function(){});
 
   api('/api/qualita').then(function(q){
@@ -334,18 +389,117 @@ function carica(){
   }).catch(function(){});
 
   caricaProm(); caricaDiario(); caricaChat();
+  caricaSemaforo(); caricaHeatmap();
+}
+
+/* ── numeri in stile italiano per la card semaforo ── */
+function numIt(v){
+  if(v==null) return '\u2014';
+  var n=Math.round(Number(v)*10)/10;
+  return String(n).replace('.',',');
+}
+
+/* ── card semaforo: GET /api/semaforo ── */
+function caricaSemaforo(){
+  api('/api/semaforo').then(function(r){
+    var s=(r&&r.semaforo)||{}, rit=(r&&r.ritmo)||null;
+    var liv=s.livello||'sconosciuto';
+    var el=document.getElementById('scLiv');
+    el.textContent=liv;
+    el.className='livello liv-'+liv;
+    document.getElementById('scRacc').textContent = liv==='sconosciuto'
+      ? 'Ancora niente dati oggi: appena arriva qualcosa, il semaforo si accende.'
+      : (s.raccomandazione||'');
+
+    /* barrette contributors: rosse se fuori soglia, grigie se il dato manca */
+    var righe='';
+    (s.marcatori||[]).forEach(function(m){
+      var pct=100;
+      if(m.valore!=null && m.soglia!=null && Number(m.soglia)!==0)
+        pct=Math.max(10,Math.min(100,Math.round(Number(m.valore)/Number(m.soglia)*100)));
+      righe+='<div class="cr fuori"><span class="nome">'+m.nome+'</span>'+
+        '<span class="barra2"><i style="width:'+pct+'%"></i></span>'+
+        '<span class="vs">'+numIt(m.valore)+' vs '+numIt(m.soglia)+'</span></div>';
+    });
+    (s.dati_mancanti||[]).forEach(function(n){
+      righe+='<div class="cr manca"><span class="nome">'+n+'</span>'+
+        '<span class="barra2"><i style="width:100%"></i></span>'+
+        '<span class="vs">manca</span></div>';
+    });
+    document.getElementById('scContrib').innerHTML=righe;
+
+    /* riga sul ritmo del peso */
+    if(rit && rit.ma7_oggi!=null){
+      var freccia = (rit.esito || (rit.delta_14g>0?'in_salita':(rit.delta_14g<0?'in_discesa':'stabile'))).replace(/_/g,' ');
+      var er=document.getElementById('scRitmo');
+      er.style.display='block';
+      er.innerHTML='media 7g: <b>'+numIt(rit.ma7_oggi)+'</b> \u2014 14 giorni fa: <b>'+
+        numIt(rit.ma7_14g_fa)+'</b> \u2192 '+freccia;
+    }
+  }).catch(function(){
+    document.getElementById('scLiv').textContent='sconosciuto';
+    document.getElementById('scRacc').textContent='Semaforo non raggiungibile in questo momento.';
+  });
+}
+
+/* ── data locale in formato AAAA-MM-GG, senza sorprese di fuso ── */
+function giornoIso(d){
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+
+/* ── heatmap costanza: 26 settimane, colonne = settimane, righe = lun-dom ── */
+function caricaHeatmap(){
+  api('/api/dati?giorni=182').then(function(righe){
+    var per={};
+    righe.forEach(function(r){ per[r.date]=r; });
+    /* 5 gradazioni del verde: da quasi invisibile a pieno. Mai rosso. */
+    var GRAD=['rgba(166,226,46,.06)','rgba(166,226,46,.22)','rgba(166,226,46,.42)','rgba(166,226,46,.65)','#a6e22e'];
+    var oggi=new Date(); oggi.setHours(12,0,0,0);
+    var dow=(oggi.getDay()+6)%7;                 /* 0 = lunedi */
+    var fine=new Date(oggi); fine.setDate(fine.getDate()+(6-dow));   /* domenica corrente */
+    var inizio=new Date(fine); inizio.setDate(inizio.getDate()-26*7+1);
+    var html='';
+    for(var d=new Date(inizio); d<=fine; d.setDate(d.getDate()+1)){
+      var iso=giornoIso(d), r=per[iso], n=0, cose=[];
+      if(r){
+        if(r.weight_kg!=null){ n++; cose.push('peso'); }
+        if(r.calories_in!=null){ n++; cose.push('kcal'); }
+        if(r.energia!=null || r.umore!=null){ n++; cose.push('diario'); }
+        if(r.whoop_strain!=null || r.allenamento!=null || r.workout!=null){ n++; cose.push('allenamento'); }
+      }
+      if(d>oggi){
+        html+='<i style="background:transparent"></i>';   /* giorni futuri: vuoti */
+      }else{
+        html+='<i title="'+iso+(cose.length?' \u00b7 '+cose.join(', '):' \u00b7 niente')+
+          '" style="background:'+GRAD[Math.min(n,4)]+'"></i>';
+      }
+    }
+    document.getElementById('heat').innerHTML=html;
+    var h=document.getElementById('heat'); h.scrollLeft=h.scrollWidth;  /* mostra le settimane recenti */
+
+    /* rientro gentile: 3 giorni senza nessun dato, tono caldo */
+    var vuoti=0;
+    for(var k=0;k<3;k++){
+      var dd=new Date(oggi); dd.setDate(dd.getDate()-k);
+      var r2=per[giornoIso(dd)];
+      var ha=r2 && (r2.weight_kg!=null||r2.calories_in!=null||r2.energia!=null||
+                    r2.umore!=null||r2.sleep_duration_hours!=null||r2.steps!=null);
+      if(!ha) vuoti++;
+    }
+    if(vuoti===3) document.getElementById('bentornato').style.display='block';
+  }).catch(function(){});
 }
 
 function aggiornaBudget(){
   var o = window.__oggi;
   var num=document.getElementById('budNum'), bar=document.getElementById('budBar'),
       sotto=document.getElementById('budSotto');
-  if(!TARGET_KCAL){ num.textContent='\\u2014'; sotto.textContent='target non ancora fissato: dillo al coach'; return; }
+  if(!TARGET_KCAL){ num.textContent='\u2014'; sotto.textContent='target non ancora fissato: dillo al coach'; return; }
   var mangiate = (o && o.calories_in!=null) ? Math.round(o.calories_in) : null;
   if(mangiate==null){
     num.textContent='0 / '+TARGET_KCAL;
     bar.style.width='0%';
-    sotto.textContent='oggi nessuna kcal registrata (FatSecret o dillo al coach) \\u00b7 target '+TARGET_KCAL;
+    sotto.textContent='oggi nessuna kcal registrata (FatSecret o dillo al coach) \u00b7 target '+TARGET_KCAL;
     return;
   }
   var pct = Math.min(100, Math.round(mangiate/TARGET_KCAL*100));
@@ -369,7 +523,7 @@ function disegna(righe){
           scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
                   y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
   grafico('gPeso',{type:'line',data:{labels:lab,datasets:[
-    {label:'peso',data:righe.map(function(r){return r.weight_kg;}),borderColor:'rgba(57,135,229,.4)',pointRadius:2,pointBackgroundColor:'#3987e5',borderWidth:1,spanGaps:true},
+    {label:'peso',data:righe.map(function(r){return r.weight_kg;}),borderColor:'rgba(57,135,229,.15)',pointRadius:1.5,pointBackgroundColor:'rgba(57,135,229,.35)',pointBorderWidth:0,borderWidth:1,spanGaps:true},
     {label:'media 7gg',data:righe.map(function(r){return r.peso_ma7;}),borderColor:'#a6e22e',pointRadius:0,borderWidth:2.5,spanGaps:true}]},options:op});
   grafico('gKcal',{type:'bar',data:{labels:lab,datasets:[
     {label:'kcal',data:righe.map(function(r){return r.calories_in;}),backgroundColor:'rgba(57,135,229,.45)'},
@@ -402,8 +556,8 @@ function caricaProm(){
     el.innerHTML=lista.map(function(p){
       var quando=new Date(p.quando).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       return '<div class="voce"><div>'+p.testo+'<small>'+quando+
-        (p.ricorrenza!=='nessuna'?' \\u00b7 '+p.ricorrenza:'')+
-        (p.nag_minuti?' \\u00b7 insiste ogni '+p.nag_minuti+' min':'')+'</small></div></div>';
+        (p.ricorrenza!=='nessuna'?' \u00b7 '+p.ricorrenza:'')+
+        (p.nag_minuti?' \u00b7 insiste ogni '+p.nag_minuti+' min':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
 }
@@ -428,16 +582,16 @@ function caricaDiario(){
     el.innerHTML=l.map(function(i){
       return '<div class="voce"><div>'+i.testo+'<small>'+
         (i.scadenza? 'scade '+new Date(i.scadenza).toLocaleDateString('it-IT'):'senza scadenza')+
-        (i.target? ' \\u00b7 target '+i.target:'')+'</small></div></div>';
+        (i.target? ' \u00b7 target '+i.target:'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
   api('/api/abitudini').then(function(l){
     var el=document.getElementById('dAbitudini');
-    if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea l\\u0027abitudine..."</span>'; return; }
+    if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea l\u0027abitudine..."</span>'; return; }
     el.innerHTML=l.map(function(a){
-      var oggi=a.fatta_oggi?'<span class="ok">oggi \\u2713</span>':'<span class="avviso">oggi \\u2717</span>';
+      var oggi=a.fatta_oggi?'<span class="ok">oggi \u2713</span>':'<span class="avviso">oggi \u2717</span>';
       return '<div class="voce"><div>'+a.nome+'<small>serie '+a.serie_corrente+
-        ' \\u00b7 7gg '+a.volte_ultimi_7gg+'/'+a.target_settimana+' \\u00b7 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
+        ' \u00b7 7gg '+a.volte_ultimi_7gg+'/'+a.target_settimana+' \u00b7 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
     }).join('');
   }).catch(function(){});
   api('/api/diario').then(function(l){
@@ -445,8 +599,8 @@ function caricaDiario(){
     if(!l.length){ el.innerHTML='<span class="spin">Vuoto. Racconta al coach come stai: annota lui.</span>'; return; }
     el.innerHTML=l.map(function(d){
       var quando=new Date(d.ts).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return '<div class="voce"><div>'+d.testo+'<small>'+quando+' \\u00b7 '+d.tipo+
-        (d.umore? ' \\u00b7 umore '+d.umore+'/5':'')+'</small></div></div>';
+      return '<div class="voce"><div>'+d.testo+'<small>'+quando+' \u00b7 '+d.tipo+
+        (d.umore? ' \u00b7 umore '+d.umore+'/5':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
   api('/api/contesto').then(function(c){
@@ -457,7 +611,7 @@ function caricaDiario(){
       var v=String(c[k]);
       var manca=v.indexOf('DA ')===0;
       return '<div class="voce"><div>'+(manca?'<span class="avviso">'+k+'</span>':k)+
-        '<small>'+v.slice(0,170)+(v.length>170?'\\u2026':'')+'</small></div></div>';
+        '<small>'+v.slice(0,170)+(v.length>170?'\u2026':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
 }
@@ -469,7 +623,7 @@ function caricaChat(){
     l.forEach(function(m){
       var d=document.createElement('div');
       d.className='msg '+(m.ruolo==='diego'?'io':'coach');
-      d.textContent=m.testo.replace(/^\\[[a-z]+\\]\\s*/i,'');
+      d.textContent=m.testo.replace(/^\[[a-z]+\]\s*/i,'');
       c.appendChild(d);
     });
     c.scrollTop=c.scrollHeight;
@@ -486,7 +640,7 @@ function chiedi(){
   var box=document.getElementById('dom'), q=box.value.trim();
   if(!q) return;
   box.value=''; aggiungi('io',q);
-  var attesa=aggiungi('coach','\\u2026');
+  var attesa=aggiungi('coach','\u2026');
   var btn=document.getElementById('btnChiedi'); btn.disabled=true;
   api('/api/chat',{domanda:q}).then(function(r){ attesa.textContent=r.risposta||'(vuoto)'; })
   .catch(function(e){ attesa.textContent='Errore: '+e.message; })

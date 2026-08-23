@@ -2,8 +2,11 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Diego · OS</title>
+<meta name="theme-color" content="#101216">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
 <style>
   /* ─────────────────────────  tokens  ───────────────────────── */
   :root{
@@ -50,7 +53,10 @@
   .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden}
   .scheda-head{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
   .scheda-head .titolo{font:600 13px/1 var(--disp);letter-spacing:.22em;color:var(--ink-2)}
-  nav.tabs{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
+  nav.tabs{margin-left:auto;display:flex;gap:2px;flex-wrap:nowrap;overflow-x:auto;
+     -webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs button{flex:none}
   nav.tabs button{background:none;border:0;color:var(--muted);font:500 13px var(--sans);padding:8px 13px;border-radius:8px;cursor:pointer;position:relative}
   nav.tabs button:hover{color:var(--ink-2);background:var(--surface-2)}
   nav.tabs button.on{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
@@ -209,13 +215,52 @@
   .period-grid td.mcol,.period-grid th.mcol{text-align:right;min-width:96px}
   .period-grid tr.sep td{border-top:1px solid var(--baseline)}
 
+  /* ───────────────────────── mobile ─────────────────────────
+     La dock diventa una tab bar fissa in basso, stile app nativa.
+     Tutto il resto si impila in colonna e niente sfora in orizzontale. */
   @media (max-width:760px){
     .shell{grid-template-columns:1fr}
-    .dock{flex-direction:row;height:auto;position:static;border-right:0;border-bottom:1px solid var(--hairline);padding:10px}
-    .dock .mark{writing-mode:horizontal-tb;transform:none;margin:0 10px 0 4px}
-    main{padding:16px 12px 40px}
-    .hero .val{font-size:36px}
+
+    /* dock: barra fissa in basso, icone distribuite, safe-area iOS */
+    .dock{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;min-height:58px;
+          flex-direction:row;justify-content:space-around;align-items:center;gap:0;
+          background:#16181d;border-right:0;border-top:1px solid var(--hairline);
+          padding:6px 8px calc(8px + env(safe-area-inset-bottom));z-index:80}
+    .dock .mark{display:none}                 /* logo verticale: via su mobile */
+    .dock>div{display:none}                   /* spacer flessibile inutile in riga */
+    .mod .tip{display:none}                   /* tooltip hover: non esistono al tocco */
+    .mod{width:46px;height:46px;font-size:17px}
+    .mod .lbl{font-size:7px}                  /* etichette sotto le icone: restano */
+    .mod.active::before{left:50%;top:-7px;transform:translateX(-50%);width:22px;height:3px}
+
+    /* il contenuto non deve finire sotto la barra; min-width:0 evita che
+       tabelle e controlli allarghino l'item di griglia oltre lo schermo */
+    main{padding:16px 12px calc(80px + env(safe-area-inset-bottom));max-width:none;min-width:0}
+    .scheda,.pane,nav.tabs,.chartbox,.colonne{min-width:0}
+    #mese-view{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+    /* testata scheda in colonna, tabs a tutta larghezza (scorrono, non vanno a capo) */
+    .scheda-head{flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px}
+    nav.tabs{margin-left:0;width:100%}
+
+    /* niente zoom automatico iOS al focus: 16px su tutti i campi */
+    input,select,textarea{font-size:16px}
+
+    /* KPI su due colonne, hero piu compatto, colonne impilate */
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .hero .val{font-size:34px}
+    .colonne{grid-template-columns:1fr!important}
     .inbox-row{grid-template-columns:1fr 90px;grid-auto-rows:auto}
+    .legend{position:static;margin-bottom:8px}
+
+    /* tabelle nude (fuori da .pivotwrap): scorrono da sole invece di sfondare */
+    .pane table:not(.pivotwrap table):not(.period-grid table),#scheda-track table{
+      display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+
+    /* Alfred: pannello a schermo intero, FAB sopra la dock */
+    #alfred-panel{inset:0;width:auto;height:auto;max-width:none;max-height:none;border-radius:0}
+    .ap-line{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+    #alfred-fab{right:16px;bottom:calc(74px + env(safe-area-inset-bottom))}
   }
 </style>
 </head>
@@ -683,15 +728,97 @@
 </div>
 
 <script>
-/* ── Diego_OS cloud: login + instradamento API ────────────────────── */
+/* ── Diego_OS cloud: accesso (passkey + codice) e instradamento API ── */
 const DOS_API = 'https://icsafmrkndgdksybagky.supabase.co/functions/v1/soldi-app';
+const DOS_PORTA = 'https://icsafmrkndgdksybagky.supabase.co/functions/v1/porta';
 let DOS_TOKEN = localStorage.getItem('dos_token') || '';
-function dosLogin(msg){
-  const t = prompt(msg || 'Codice di accesso Diego_OS:');
-  if (t){ localStorage.setItem('dos_token', t.trim()); location.reload(); }
-}
-if (!DOS_TOKEN) dosLogin();
 const _dosFetch = window.fetch.bind(window);
+const _b2u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const _u2b = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+const dosBioPossibile = () => location.protocol === 'https:' && !!window.PublicKeyCredential;
+
+function dosOverlay(msg){
+  let ov = document.getElementById('dos-login');
+  if (!ov){
+    ov = document.createElement('div');
+    ov.id = 'dos-login';
+    ov.style.cssText = 'position:fixed;inset:0;background:#101216;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:system-ui;padding:20px;text-align:center';
+    ov.innerHTML = '<div style="font:700 22px Futura,system-ui;letter-spacing:.18em;color:#a6e22e">DIEGO·OS</div>'
+      + '<div id="dos-msg" style="color:#b9b7ae;font-size:14px;max-width:320px"></div>'
+      + '<button id="dos-bio" style="display:none;background:#a6e22e;border:0;border-radius:10px;padding:13px 24px;font:600 15px system-ui;cursor:pointer">🔐 Entra con Face ID / impronta</button>'
+      + '<button id="dos-cod" style="background:none;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 24px;color:#f2f1ec;font:500 14px system-ui;cursor:pointer">Usa il codice</button>';
+    document.body.appendChild(ov);
+    document.getElementById('dos-cod').onclick = () => {
+      const t = prompt('Codice di accesso Diego_OS:');
+      if (t){ localStorage.setItem('dos_token', t.trim()); localStorage.setItem('app_token', t.trim()); location.reload(); }
+    };
+    document.getElementById('dos-bio').onclick = async () => {
+      try { if (await dosAccessoBio()) location.reload(); }
+      catch(e){ document.getElementById('dos-msg').textContent = 'Biometria non riuscita: usa il codice.'; }
+    };
+  }
+  document.getElementById('dos-msg').textContent = msg || '';
+  if (dosBioPossibile()){
+    _dosFetch(DOS_PORTA + '/accedi/opzioni', {method:'POST'}).then(r => {
+      if (r.ok) document.getElementById('dos-bio').style.display = 'block';
+    }).catch(()=>{});
+  }
+}
+
+async function dosAccessoBio(){
+  const r = await _dosFetch(DOS_PORTA + '/accedi/opzioni', {method:'POST'});
+  if (!r.ok) return false;
+  const { opzioni, id_sfida } = await r.json();
+  opzioni.challenge = _u2b(opzioni.challenge);
+  (opzioni.allowCredentials||[]).forEach(c => c.id = _u2b(c.id));
+  const cred = await navigator.credentials.get({ publicKey: opzioni });
+  const risposta = {
+    id: cred.id, rawId: _b2u(cred.rawId), type: cred.type,
+    clientExtensionResults: cred.getClientExtensionResults(),
+    response: {
+      authenticatorData: _b2u(cred.response.authenticatorData),
+      clientDataJSON: _b2u(cred.response.clientDataJSON),
+      signature: _b2u(cred.response.signature),
+      userHandle: cred.response.userHandle ? _b2u(cred.response.userHandle) : null,
+    },
+  };
+  const v = await _dosFetch(DOS_PORTA + '/accedi/verifica', { method:'POST',
+    headers:{'content-type':'application/json'},
+    body: JSON.stringify({ id_sfida, risposta, dispositivo: navigator.userAgent.slice(0,80) })});
+  const d = await v.json();
+  if (d.token){ localStorage.setItem('dos_token', d.token); localStorage.setItem('app_token', d.token); return true; }
+  return false;
+}
+
+async function dosAttivaBio(){
+  const r = await _dosFetch(DOS_PORTA + '/registra/opzioni', { method:'POST',
+    headers:{'content-type':'application/json','x-app-token':DOS_TOKEN}, body:'{}' });
+  if (!r.ok) throw new Error('serve il codice (non una sessione) per attivare');
+  const { opzioni, id_sfida } = await r.json();
+  opzioni.challenge = _u2b(opzioni.challenge);
+  opzioni.user.id = _u2b(opzioni.user.id);
+  (opzioni.excludeCredentials||[]).forEach(c => c.id = _u2b(c.id));
+  const cred = await navigator.credentials.create({ publicKey: opzioni });
+  const risposta = {
+    id: cred.id, rawId: _b2u(cred.rawId), type: cred.type,
+    clientExtensionResults: cred.getClientExtensionResults(),
+    response: {
+      attestationObject: _b2u(cred.response.attestationObject),
+      clientDataJSON: _b2u(cred.response.clientDataJSON),
+      transports: cred.response.getTransports ? cred.response.getTransports() : [],
+    },
+  };
+  const v = await _dosFetch(DOS_PORTA + '/registra/verifica', { method:'POST',
+    headers:{'content-type':'application/json','x-app-token':DOS_TOKEN},
+    body: JSON.stringify({ id_sfida, risposta, dispositivo: navigator.userAgent.slice(0,80) })});
+  const d = await v.json();
+  if (d.token){
+    localStorage.setItem('dos_token', d.token); localStorage.setItem('app_token', d.token);
+    localStorage.setItem('dos_bio_attiva','1'); return true;
+  }
+  throw new Error(d.errore || 'verifica fallita');
+}
+
 window.fetch = (u, o) => {
   if (typeof u === 'string' && u.startsWith('/')){
     o = o || {};
@@ -699,11 +826,25 @@ window.fetch = (u, o) => {
     u = DOS_API + u;
   }
   return _dosFetch(u, o).then(r => {
-    if (r.status === 401){ localStorage.removeItem('dos_token'); dosLogin('Codice non valido. Riprova:'); }
+    if (r.status === 401){ localStorage.removeItem('dos_token'); dosOverlay('Accesso scaduto: rientra.'); }
     return r;
   });
 };
-function dosLogout(){ localStorage.removeItem('dos_token'); location.reload(); }
+function dosLogout(){ localStorage.removeItem('dos_token'); localStorage.removeItem('app_token'); location.reload(); }
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!DOS_TOKEN){ dosOverlay(); return; }
+  // offerta una tantum: attivare la biometria dopo l'accesso col codice
+  if (dosBioPossibile() && !localStorage.getItem('dos_bio_attiva') && !localStorage.getItem('dos_bio_chiesta')){
+    setTimeout(async () => {
+      localStorage.setItem('dos_bio_chiesta','1');
+      if (confirm('Vuoi attivare Face ID / impronta su questo dispositivo per entrare senza codice?')){
+        try { await dosAttivaBio(); alert('Fatto: dal prossimo accesso niente codice.'); }
+        catch(e){ alert('Attivazione non riuscita: ' + e.message); }
+      }
+    }, 2500);
+  }
+});
 </script>
 <script>
 /* ───────── utils ───────── */
