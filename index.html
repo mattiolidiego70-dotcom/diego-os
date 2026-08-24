@@ -832,7 +832,14 @@ window.fetch = (u, o) => {
     return r;
   });
 };
-function dosLogout(){ localStorage.removeItem('dos_token'); localStorage.removeItem('app_token'); location.reload(); }
+function dosLogout(){
+  // revoca la sessione anche lato server (uscita vera, non solo locale)
+  const t = localStorage.getItem('dos_token');
+  const fine = () => { localStorage.removeItem('dos_token'); localStorage.removeItem('app_token'); location.reload(); };
+  if (t && t.length >= 24){
+    _dosFetch(DOS_PORTA + '/esci', {method:'POST', headers:{'x-app-token': t}}).catch(()=>{}).finally(fine);
+  } else fine();
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!DOS_TOKEN){ dosOverlay(); return; }
