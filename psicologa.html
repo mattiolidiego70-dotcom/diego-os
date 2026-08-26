@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Diego_OS · Psicologa</title>
+<style>
+  :root{
+    --page:#101216; --surface:#16181d; --surface-2:#1c1f25;
+    --ink:#f2f1ec; --ink-2:#b9b7ae; --muted:#85837c;
+    --hairline:rgba(255,255,255,.08);
+    --accent:#a6e22e; --accent-dim:#7ab510;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --blu:#3987e5; --viola:#9085e9; --rosa:#d55181;
+    --disp:"Futura","Avenir Next Condensed","Avenir Next",system-ui,sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+        display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
+  .dock .mark{font:700 15px/1 var(--disp);letter-spacing:.18em;color:var(--accent);
+              writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
+  .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
+       flex-direction:column;align-items:center;justify-content:center;gap:1px;
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
+  .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
+  .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
+  .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
+  main{padding:24px 22px 96px;max-width:900px;width:100%}
+  header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .saluto{font:600 24px/1.1 var(--disp)}
+  .data-oggi{color:var(--muted);font-size:13px}
+  .stato{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-2);font-size:12.5px}
+  .stato .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .stato .dot.warn{background:var(--warning)}
+  .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;margin-bottom:14px}
+  .scheda h3{margin:0 0 10px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
+  .scheda .sotto{color:var(--muted);font-size:11.5px;margin:-6px 0 10px}
+  input,select,textarea,button.azione{font:inherit;color:var(--ink);background:var(--page);
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;width:100%}
+  textarea{min-height:84px;resize:vertical}
+  button.azione{background:var(--accent);color:#101216;font-weight:700;border:0;cursor:pointer}
+  button.secondario{background:var(--surface-2);color:var(--ink);border:1px solid var(--hairline);
+    border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer}
+  .riga{display:flex;gap:8px;margin-bottom:8px}
+  .riga>*{flex:1}
+  .ok{color:var(--good);font-size:12px} .avviso{color:var(--warning);font-size:12px}
+  .spin{color:var(--muted);font-size:13px}
+  #login{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;
+         justify-content:center;padding:32px;gap:12px;z-index:10;max-width:420px;margin:0 auto}
+  #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
+
+  /* voce appunto */
+  .appunto{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--hairline);align-items:flex-start}
+  .appunto:last-child{border-bottom:0}
+  .appunto input[type=checkbox]{width:18px;height:18px;margin-top:3px;flex:none;accent-color:var(--accent)}
+  .appunto .corpo{flex:1;min-width:0}
+  .appunto .testo{white-space:pre-wrap;font-size:13.5px;line-height:1.5;word-break:break-word}
+  .appunto .meta{color:var(--muted);font-size:11.5px;margin-top:3px}
+  .badge{display:inline-block;font:700 9.5px var(--disp);letter-spacing:.12em;text-transform:uppercase;
+    border-radius:6px;padding:2px 7px;margin-right:7px;vertical-align:1px}
+  .b-sogno{background:rgba(144,133,233,.18);color:var(--viola)}
+  .b-pattern{background:rgba(213,81,129,.18);color:var(--rosa)}
+  .b-da_dire{background:rgba(57,135,229,.18);color:var(--blu)}
+  .b-pensiero{background:rgba(166,226,46,.15);color:var(--accent)}
+  .azioni-mini{display:flex;gap:4px;flex:none;flex-direction:column}
+  .azioni-mini button{background:none;border:1px solid var(--hairline);border-radius:7px;color:var(--muted);
+    width:28px;height:26px;cursor:pointer;font-size:12px;line-height:1}
+  .azioni-mini button:hover{color:var(--ink);background:var(--surface-2)}
+  .barra-azioni{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .barra-azioni button{flex:1;min-width:150px}
+  .gruppo-data{font:700 11px var(--disp);letter-spacing:.16em;color:var(--muted);text-transform:uppercase;
+    margin:14px 0 2px}
+  .gruppo-data:first-child{margin-top:0}
+
+  @media (max-width:720px){
+    input,select,textarea{font-size:16px}
+    main{min-width:0;padding:18px 14px 120px}
+    .shell{grid-template-columns:1fr}
+    .dock{flex-direction:row;height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;z-index:20;
+          border-right:0;border-top:1px solid var(--hairline);background:var(--surface);
+          padding:8px 10px calc(8px + env(safe-area-inset-bottom));justify-content:center}
+    .dock .mark{writing-mode:horizontal-tb;transform:none;margin:0 10px 0 0;font-size:12px;align-self:center}
+    .mod{width:46px;height:46px}
+    .mod.active::before{left:50%;top:-9px;transform:translateX(-50%);width:22px;height:3px}
+    .azioni-mini{flex-direction:row}
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="mark">DIEGO_OS</div>
+  <p class="spin">Codice di accesso. Resta salvato su questo dispositivo.</p>
+  <input id="tok" type="password" placeholder="codice" autocomplete="current-password">
+  <button class="azione" onclick="entra()">Entra</button>
+  <p id="loginErr" class="avviso"></p>
+</div>
+
+<div class="shell">
+  <aside class="dock">
+    <div class="mark">DIEGO_OS</div>
+    <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
+    <a class="mod" href="salute.html" title="Salute">&#10084;<span class="lbl">SALUTE</span></a>
+    <span class="mod active" title="Psicologa">&#129504;<span class="lbl">PSI</span></span>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="saluto">Psicologa</div>
+      <div class="data-oggi" id="dataOggi"></div>
+      <div class="stato"><span class="dot" id="dotStato"></span><span id="txtStato">appunti condivisi con Alfred</span></div>
+    </header>
+
+    <!-- ============ NUOVO APPUNTO ============ -->
+    <div class="scheda">
+      <h3>Nuovo blocco</h3>
+      <div class="sotto">Lo stesso posto dove scrive Alfred quando dici &laquo;segna per la psicologa&raquo;.</div>
+      <div class="riga">
+        <select id="nTipo">
+          <option value="pensiero">Un pensiero</option>
+          <option value="sogno">Sogno</option>
+          <option value="pattern">Pattern</option>
+          <option value="da_dire">Da dire in seduta</option>
+        </select>
+        <select id="nDove">
+          <option value="fondo">in fondo agli altri</option>
+          <option value="cima">prima degli altri</option>
+        </select>
+      </div>
+      <div class="riga"><textarea id="nTesto" placeholder="scrivi qui&hellip;"></textarea></div>
+      <button class="azione" id="btnNuovo" onclick="nuovo()">Salva</button>
+      <p id="nEsito"></p>
+    </div>
+
+    <!-- ============ CORRENTI ============ -->
+    <div class="scheda">
+      <h3>Da portare in seduta &middot; correnti</h3>
+      <div class="sotto">Spunta ci&ograve; che hai portato e premi &laquo;Portati in seduta&raquo;: finisce nello storico, per le tendenze.</div>
+      <div id="correnti" class="spin">&hellip;</div>
+      <div class="barra-azioni">
+        <button class="azione" onclick="portaSelezionati()">&#10003; Portati in seduta (selezionati)</button>
+        <button class="secondario" onclick="esporta('corrente', null)">&#8595; Esporta tutti i correnti</button>
+      </div>
+      <p id="cEsito"></p>
+    </div>
+
+    <!-- ============ STORICO ============ -->
+    <div class="scheda">
+      <h3>Storico &middot; gi&agrave; portati in seduta</h3>
+      <div class="sotto">Qui Alfred e Claude leggono le tendenze e i miglioramenti nel tempo.</div>
+      <div id="storico" class="spin">&hellip;</div>
+      <div class="barra-azioni">
+        <button class="secondario" onclick="esporta('storico', null)">&#8595; Esporta tutto lo storico</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
+var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
+var CORRENTI=[], STORICO=[];
+var TIPI={pensiero:'Un pensiero', sogno:'Sogno', pattern:'Pattern', da_dire:'Da dire'};
+
+document.getElementById('dataOggi').textContent =
+  new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+function entra(){
+  var t = document.getElementById('tok').value.trim();
+  if(!t) return;
+  TOK = t;
+  api('/api/psicologa').then(function(){
+    localStorage.setItem('app_token', t); localStorage.setItem('dos_token', t);
+    document.getElementById('login').style.display='none';
+    carica();
+  }).catch(function(){ document.getElementById('loginErr').textContent='Codice sbagliato.'; });
+}
+
+function api(percorso, corpo){
+  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' } };
+  if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
+  return fetch(API_BASE+percorso, opt).then(function(r){
+    if(r.status===401){
+      /* sessione scaduta: si torna alla login invece di restare bloccati */
+      document.getElementById('login').style.display='flex';
+      throw new Error('sessione scaduta: reinserisci il codice');
+    }
+    if(!r.ok) return r.json().then(function(e){ throw new Error(e.errore||r.status); });
+    return r.json();
+  });
+}
+
+function quando(v){
+  return new Date(v).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function badge(tipo){ return '<span class="badge b-'+tipo+'">'+(TIPI[tipo]||tipo)+'</span>'; }
+
+function carica(){
+  api('/api/psicologa?stato=corrente').then(function(l){
+    CORRENTI=l;
+    var el=document.getElementById('correnti');
+    if(!l.length){ el.innerHTML='<span class="spin">Niente da portare, per ora. Aggiungi un blocco qui sopra o dillo ad Alfred.</span>'; return; }
+    el.innerHTML=l.map(function(v,i){
+      return '<div class="appunto" id="app-'+v.id+'">'+
+        '<input type="checkbox" data-id="'+v.id+'">'+
+        '<div class="corpo"><div class="testo" id="testo-'+v.id+'"></div>'+
+        '<div class="meta">'+badge(v.tipo)+quando(v.ts)+(v.modificato_il?' &middot; modificato':'')+' &middot; '+v.origine+'</div></div>'+
+        '<div class="azioni-mini">'+
+          '<button title="sposta su" onclick="sposta('+v.id+',-1)">&#8593;</button>'+
+          '<button title="sposta giù" onclick="sposta('+v.id+',1)">&#8595;</button>'+
+          '<button title="modifica" onclick="modifica('+v.id+')">&#9998;</button>'+
+          '<button title="esporta questo" onclick="esporta(\'corrente\','+v.id+')">&#8595;&#775;</button>'+
+          '<button title="elimina" onclick="elimina('+v.id+')">&#215;</button>'+
+        '</div></div>';
+    }).join('');
+    l.forEach(function(v){ document.getElementById('testo-'+v.id).textContent=v.testo; });
+  }).catch(function(e){ err(e); });
+
+  api('/api/psicologa?stato=storico').then(function(l){
+    STORICO=l;
+    var el=document.getElementById('storico');
+    if(!l.length){ el.innerHTML='<span class="spin">Ancora vuoto: si riempie dopo le sedute.</span>'; return; }
+    var html='', ultima=null;
+    l.forEach(function(v){
+      var g=v.portato_il||'';
+      if(g!==ultima){ html+='<div class="gruppo-data">seduta del '+(g?quando(g):'?')+'</div>'; ultima=g; }
+      html+='<div class="appunto"><div class="corpo"><div class="testo" id="stesto-'+v.id+'"></div>'+
+        '<div class="meta">'+badge(v.tipo)+'scritto il '+quando(v.ts)+'</div></div>'+
+        '<div class="azioni-mini">'+
+          '<button title="modifica" onclick="modifica('+v.id+',true)">&#9998;</button>'+
+          '<button title="esporta questo" onclick="esporta(\'storico\','+v.id+')">&#8595;&#775;</button>'+
+        '</div></div>';
+    });
+    el.innerHTML=html;
+    l.forEach(function(v){ var n=document.getElementById('stesto-'+v.id); if(n) n.textContent=v.testo; });
+  }).catch(function(e){ err(e); });
+}
+
+function err(e){
+  document.getElementById('txtStato').textContent='errore: '+e.message;
+  document.getElementById('dotStato').className='dot warn';
+}
+
+function nuovo(){
+  var tipo=document.getElementById('nTipo').value,
+      dove=document.getElementById('nDove').value,
+      testo=document.getElementById('nTesto').value.trim(),
+      out=document.getElementById('nEsito'),
+      btn=document.getElementById('btnNuovo');
+  if(!testo){ out.className='avviso'; out.textContent='Manca il testo.'; return; }
+  var pos=null;
+  if(dove==='cima' && CORRENTI.length) pos=Number(CORRENTI[0].posizione)-1;
+  btn.disabled=true;
+  api('/api/psicologa',{tipo:tipo,testo:testo,posizione:pos}).then(function(){
+    out.className='ok'; out.textContent='Salvato.';
+    document.getElementById('nTesto').value='';
+    carica();
+  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; })
+  .finally(function(){ btn.disabled=false; });
+}
+
+/* modifica INLINE con textarea: i testi lunghi e multiriga (i sogni) restano
+   intatti — il prompt() del browser e a riga singola e li avrebbe appiattiti */
+function modifica(id, storico){
+  var lista=storico?STORICO:CORRENTI;
+  var v=lista.find(function(x){ return x.id===id; });
+  if(!v) return;
+  var nodo=document.getElementById((storico?'stesto-':'testo-')+id);
+  if(!nodo || nodo.getAttribute('data-editing')) return;
+  nodo.setAttribute('data-editing','1');
+  var ta=document.createElement('textarea');
+  ta.value=v.testo;
+  ta.rows=Math.min(14, Math.max(3, v.testo.split('\n').length+1));
+  var sv=document.createElement('button');
+  sv.className='azione'; sv.textContent='Salva modifica'; sv.style.marginTop='6px';
+  var an=document.createElement('button');
+  an.className='secondario'; an.textContent='Annulla'; an.style.marginTop='6px'; an.style.marginLeft='6px'; an.style.width='auto';
+  sv.style.width='auto';
+  nodo.textContent='';
+  nodo.appendChild(ta); nodo.appendChild(document.createElement('br'));
+  nodo.appendChild(sv); nodo.appendChild(an);
+  ta.focus();
+  an.onclick=function(){ carica(); };
+  sv.onclick=function(){
+    var t=ta.value.trim();
+    if(!t) return;
+    sv.disabled=true;
+    api('/api/psicologa_modifica',{id:id,testo:t}).then(carica)
+      .catch(function(e){ sv.disabled=false; alert('Errore: '+e.message); });
+  };
+}
+
+function sposta(id, dir){
+  var i=CORRENTI.findIndex(function(x){ return x.id===id; });
+  if(i<0) return;
+  var j=i+dir;
+  if(j<0||j>=CORRENTI.length) return;
+  /* si mette a meta strada tra il vicino e quello oltre il vicino */
+  var vicino=Number(CORRENTI[j].posizione);
+  var oltre=(j+dir>=0 && j+dir<CORRENTI.length)?Number(CORRENTI[j+dir].posizione):null;
+  var pos=(oltre===null)?vicino+dir:(vicino+oltre)/2;
+  api('/api/psicologa_modifica',{id:id,posizione:pos}).then(carica)
+    .catch(function(e){ alert('Errore: '+e.message); });
+}
+
+function elimina(id){
+  if(!confirm('Eliminare questo appunto? Non finisce nello storico: sparisce.')) return;
+  api('/api/psicologa_elimina',{id:id}).then(carica)
+    .catch(function(e){ alert('Errore: '+e.message); });
+}
+
+function portaSelezionati(){
+  var ids=[].slice.call(document.querySelectorAll('#correnti input[type=checkbox]:checked'))
+    .map(function(c){ return Number(c.getAttribute('data-id')); });
+  var out=document.getElementById('cEsito');
+  if(!ids.length){ out.className='avviso'; out.textContent='Seleziona prima le voci portate in seduta.'; return; }
+  api('/api/psicologa_porta',{ids:ids}).then(function(r){
+    out.className='ok'; out.textContent=(r.portati||0)+' voci spostate nello storico.';
+    carica();
+  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; });
+}
+
+/* esporta: un file di testo, singolo appunto o blocco intero */
+function esporta(stato, id){
+  var lista=(stato==='storico')?STORICO:CORRENTI;
+  var voci=(id==null)?lista:lista.filter(function(v){ return v.id===id; });
+  if(!voci.length) return;
+  var titolo=(stato==='storico')?'STORICO (portati in seduta)':'CORRENTI (da portare in seduta)';
+  var righe=['APPUNTI PER LA PSICOLOGA — '+titolo,
+             'esportato il '+new Date().toLocaleDateString('it-IT'),''];
+  voci.forEach(function(v){
+    righe.push('['+(TIPI[v.tipo]||v.tipo).toUpperCase()+' · '+quando(v.ts)+
+      (v.portato_il?' · seduta del '+quando(v.portato_il):'')+']');
+    righe.push(v.testo); righe.push('');
+  });
+  var nome='psicologa-'+stato+(id?('-'+id):'')+'-'+new Date().toISOString().slice(0,10)+'.txt';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+righe.join('\n')],{type:'text/plain;charset=utf-8'}));
+  a.download=nome; a.click();
+}
+
+if(TOK){ document.getElementById('login').style.display='none'; carica(); }
+</script>
+</body>
+</html>

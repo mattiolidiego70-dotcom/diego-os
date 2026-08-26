@@ -182,6 +182,7 @@
       <button onclick="vista('diario',this)">Diario</button>
       <button onclick="vista('input',this)">Inserisci</button>
       <button onclick="vista('coach',this)">Coach</button>
+      <button onclick="location.href='psicologa.html'">Psicologa</button>
     </nav>
 
     <!-- ============ OGGI ============ -->
@@ -590,7 +591,7 @@ function caricaDiario(){
     if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea l\u0027abitudine..."</span>'; return; }
     el.innerHTML=l.map(function(a){
       var oggi=a.fatta_oggi?'<span class="ok">oggi \u2713</span>':'<span class="avviso">oggi \u2717</span>';
-      return '<div class="voce"><div>'+a.nome+'<small>serie '+a.serie_corrente+
+      return '<div class="voce"><div>'+a.nome+'<small>serie '+(a.serie_settimane!=null?a.serie_settimane:a.serie_corrente)+
         ' \u00b7 7gg '+a.volte_ultimi_7gg+'/'+a.target_settimana+' \u00b7 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
     }).join('');
   }).catch(function(){});
