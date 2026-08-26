@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Diego_OS</title>
+<title>Diego_OS · Health</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -21,7 +21,6 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
-
   .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
   .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
         display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
@@ -29,12 +28,10 @@
               writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
   .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
        flex-direction:column;align-items:center;justify-content:center;gap:1px;
-       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative}
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
   .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
   .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
   .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
-  .mod.soon{opacity:.38;cursor:default}
-
   main{padding:24px 22px 96px;max-width:1100px;width:100%}
   header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
   .saluto{font:600 24px/1.1 var(--disp)}
@@ -42,39 +39,10 @@
   .stato{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-2);font-size:12.5px}
   .stato .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
   .stato .dot.warn{background:var(--warning)}
-
   nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--hairline);padding-bottom:8px}
   nav.tabs button{background:none;border:0;color:var(--muted);font:500 13.5px var(--sans);padding:8px 14px;border-radius:8px;cursor:pointer}
   nav.tabs button:hover{color:var(--ink-2);background:var(--surface-2)}
   nav.tabs button.on{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
-
-  .hero-row{display:flex;gap:26px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
-  .hero .lbl{color:var(--muted);font-size:12.5px}
-  .hero .val{font:600 44px/1.05 var(--sans);letter-spacing:-.01em}
-  .hero .val small{font-size:17px;color:var(--muted);font-weight:500}
-  .hero .nota{color:var(--ink-2);font-size:12.5px;margin-top:4px}
-
-  .budget{border:1px solid var(--hairline);border-radius:12px;background:var(--surface);padding:14px 16px;margin-bottom:16px}
-  .budget .riga1{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-  .budget .t{font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2)}
-  .budget .num{font:600 15px var(--sans)}
-  .barra{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
-  .barra i{display:block;height:100%;border-radius:5px;background:var(--accent);transition:width .4s}
-  .barra i.rosso{background:var(--serious)}
-  .budget .sotto{color:var(--muted);font-size:11.5px;margin-top:6px}
-
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:18px}
-  .kpi{border:1px solid var(--hairline);border-radius:10px;padding:10px 13px;background:var(--surface)}
-  .kpi .l{color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
-  .kpi .v{font:600 19px/1.3 var(--sans);margin-top:2px}
-  .kpi .d{font-size:11.5px;margin-top:1px;color:var(--muted)}
-  .kpi .d.up{color:var(--serious)} .kpi .d.down{color:var(--good)}
-  .kpi.watch{border-color:rgba(250,178,25,.35)}
-
-  .chartbox{border:1px solid var(--hairline);border-radius:12px;background:var(--surface);padding:16px 16px 8px;margin-bottom:14px}
-  .chartbox h3{margin:0 0 8px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
-  canvas{max-height:200px}
-
   .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;margin-bottom:14px}
   .scheda h3{margin:0 0 10px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
   input,select,textarea,button.azione{font:inherit;color:var(--ink);background:var(--page);
@@ -88,58 +56,94 @@
   .voce small{color:var(--muted);display:block;font-size:11.5px}
   .ok{color:var(--good);font-size:12px} .avviso{color:var(--warning);font-size:12px}
   .spin{color:var(--muted);font-size:13px}
-
   .chat{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-bottom:4px}
   .msg{padding:10px 13px;border-radius:12px;max-width:86%;white-space:pre-wrap;font-size:13.5px;line-height:1.45}
   .io{background:#24313f;align-self:flex-end}
   .coach{background:var(--surface-2);align-self:flex-start;border:1px solid var(--hairline)}
-
   #login{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;
          justify-content:center;padding:32px;gap:12px;z-index:10;max-width:420px;margin:0 auto}
   #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
   .vista{display:none}.vista.on{display:block}
 
-  /* ── card semaforo: il punteggio del giorno, in cima ── */
-  .score{padding:18px 16px}
-  .score .livello{font:700 56px/1 var(--disp);letter-spacing:.06em;text-transform:uppercase}
+  /* ═══ DASH HEALTH: griglia a card modulari (26/08) ═══
+     Le card si accendono/spengono da una configurazione nel database
+     (contesto 'dash_health', modificabile da Alfred): il registro dei tipi
+     e chiuso, un tipo sconosciuto si scarta e il resto vive. */
+  .griglia{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;grid-auto-flow:dense}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;min-width:0}
+  .card h3{margin:0 0 8px;font:600 11px var(--disp);letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+  .sz-hero{grid-column:span 12}
+  .sz-wide{grid-column:span 12}
+  .sz-half{grid-column:span 6}
+  .sz-third{grid-column:span 4}
+  @media (max-width:720px){ .sz-half{grid-column:span 12} .sz-third{grid-column:span 6} }
+
+  /* score (semaforo): un numero/una parola, la risposta non i dati */
+  .score-liv{font:700 54px/1 var(--disp);letter-spacing:.06em;text-transform:uppercase}
   .liv-verde{color:var(--good)} .liv-giallo{color:var(--warning)} .liv-rosso{color:var(--critical)}
-  .liv-sconosciuto{color:var(--muted);font-size:30px}
-  .score .racc{color:var(--ink-2);font-size:13.5px;margin-top:8px}
-  .contrib{margin-top:14px;display:flex;flex-direction:column;gap:7px}
-  .contrib .cr{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;font-size:12.5px}
-  .contrib .nome{color:var(--muted);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .contrib .barra2{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
-  .contrib .barra2 i{display:block;height:100%;border-radius:3px}
-  .contrib .fuori i{background:var(--critical)}
-  .contrib .manca i{background:rgba(255,255,255,.13)}
-  .contrib .vs{color:var(--ink-2);white-space:nowrap}
-  .score .ritmo{margin-top:14px;padding-top:11px;border-top:1px solid var(--hairline);color:var(--ink-2);font-size:13px}
-  .score .ritmo b{color:var(--ink)}
+  .liv-sconosciuto{color:var(--muted);font-size:28px}
+  .score-frase{color:var(--ink-2);font-size:13.5px;margin-top:8px;max-width:56ch}
+  .score-det{margin-top:10px;color:var(--muted);font-size:12px;cursor:pointer;user-select:none}
+  .score-contrib{display:none;margin-top:8px;color:var(--muted);font-size:12px;line-height:1.7}
+  .score-contrib.aperto{display:block}
 
-  /* ── rientro gentile: niente sensi di colpa ── */
-  .bentornato{border:1px solid rgba(166,226,46,.3);background:rgba(166,226,46,.07);border-radius:12px;
-      padding:10px 14px;margin-bottom:14px;color:var(--ink-2);font-size:13.5px}
+  /* stat tiles con sparkline */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .tile{border:1px solid var(--hairline);border-radius:10px;padding:10px 12px 6px;background:var(--surface-2);min-width:0}
+  .tile .l{color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  .tile .v{font:600 20px/1.3 var(--sans);font-variant-numeric:tabular-nums}
+  .tile .d{font-size:11px;color:var(--muted)}
+  .tile canvas{width:100%!important;height:26px!important;margin-top:2px}
 
-  /* ── heatmap costanza, stile GitHub ── */
+  /* budget a banda: dentro la banda = verde tenue, sopra = ambra informativo */
+  .banda-wrap{position:relative;height:14px;border-radius:7px;background:var(--surface-2);overflow:hidden;margin:8px 0 4px}
+  .banda-target{position:absolute;top:0;bottom:0;background:rgba(166,226,46,.16)}
+  .banda-fill{position:absolute;top:3px;bottom:3px;left:0;border-radius:5px;background:var(--accent);transition:width .4s}
+  .banda-fill.oltre{background:var(--warning)}
+  .banda-note{color:var(--muted);font-size:11.5px}
+  .banda-num{font:600 15px var(--sans);font-variant-numeric:tabular-nums}
+
+  /* contatore box: 4 tacche + verdetto */
+  .tacche{display:flex;gap:8px;margin:10px 0 6px}
+  .tacca{flex:1;height:12px;border-radius:6px;background:var(--surface-2)}
+  .tacca.piena{background:var(--accent)}
+  .tacca.saltata{background:rgba(236,131,90,.35)}
+  .verdetto{font:600 15px var(--sans)}
+  .verdetto small{color:var(--muted);font-weight:400}
+
+  /* heatmap costanza (celle vuote, mai rosse) */
   .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);gap:3px;
       overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
   .heat i{width:11px;height:11px;border-radius:3px;display:block}
   .heat-legenda{display:flex;align-items:center;gap:4px;margin-top:8px;color:var(--muted);font-size:11px}
   .heat-legenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
 
-  /* ── numeri grandi sempre tabulari: le cifre non ballano ── */
-  .hero .val,.kpi .v,.budget .num,.score .ritmo b,.contrib .vs{font-variant-numeric:tabular-nums}
+  /* check-in serale: riga di 5 tocchi */
+  .tocchi{display:flex;gap:14px;flex-wrap:wrap;color:var(--ink-2);font-size:13px}
+  .tocchi b{color:var(--ink)}
 
+  /* insight del coach: parole, non grafici */
+  .insight{color:var(--ink-2);font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+
+  /* dettagli collassati: la frizione qui e voluta */
+  details.dett{border:1px solid var(--hairline);border-radius:14px;background:var(--surface);
+    padding:0 16px;margin-bottom:14px}
+  details.dett summary{padding:14px 0;cursor:pointer;color:var(--ink-2);
+    font:600 12px var(--disp);letter-spacing:.18em;text-transform:uppercase;list-style:none}
+  details.dett summary::-webkit-details-marker{display:none}
+  details.dett summary::after{content:"+";float:right;color:var(--muted)}
+  details.dett[open] summary::after{content:"\2212"}
+  details.dett .corpo{padding-bottom:14px}
+  canvas.grande{max-height:200px}
+
+  .hero .val,.tile .v,.banda-num{font-variant-numeric:tabular-nums}
   @media (max-width:720px){
-    /* niente zoom automatico iOS al focus */
     input,select,textarea{font-size:16px}
-    /* l'item di griglia deve poter stringersi, e i canvas di Chart.js
-       non devono mai superare la card che li contiene */
-    main{min-width:0}
-    .chartbox,.scheda{min-width:0}
+    main{min-width:0;padding:18px 14px 120px}
+    .scheda,.card{min-width:0}
     canvas{max-width:100%!important}
-    .score .livello{font-size:46px}
-    .liv-sconosciuto{font-size:26px}
+    .score-liv{font-size:44px}
+    .liv-sconosciuto{font-size:24px}
     .shell{grid-template-columns:1fr}
     .dock{flex-direction:row;height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;z-index:20;
           border-right:0;border-top:1px solid var(--hairline);background:var(--surface);
@@ -147,8 +151,6 @@
     .dock .mark{writing-mode:horizontal-tb;transform:none;margin:0 10px 0 0;font-size:12px;align-self:center}
     .mod{width:46px;height:46px}
     .mod.active::before{left:50%;top:-9px;transform:translateX(-50%);width:22px;height:3px}
-    main{padding:18px 14px 120px}
-    .hero .val{font-size:36px}
   }
 </style>
 </head>
@@ -165,14 +167,14 @@
 <div class="shell">
   <aside class="dock">
     <div class="mark">DIEGO_OS</div>
-    <button class="mod active"><span>&#10084;</span><span class="lbl">SALUTE</span></button>
-    <button class="mod soon" title="presto"><span>&#128176;</span><span class="lbl">SOLDI</span></button>
-    <button class="mod soon" title="presto"><span>&#9783;</span><span class="lbl">ORG</span></button>
+    <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
+    <span class="mod active" title="Health">&#10084;<span class="lbl">HEALTH</span></span>
+    <a class="mod" href="psicologa.html" title="Psicologa">&#129504;<span class="lbl">PSI</span></a>
   </aside>
 
   <main>
     <header class="top">
-      <div class="saluto">Salute</div>
+      <div class="saluto">Health</div>
       <div class="data-oggi" id="dataOggi"></div>
       <div class="stato"><span class="dot" id="dotStato"></span><span id="txtStato">sistema attivo</span></div>
     </header>
@@ -185,41 +187,11 @@
       <button onclick="location.href='psicologa.html'">Psicologa</button>
     </nav>
 
-    <!-- ============ OGGI ============ -->
+    <!-- ============ OGGI: card modulari ============ -->
     <div id="v-oggi" class="vista on">
-      <!-- rientro gentile: compare solo dopo 3 o piu giorni senza dati -->
-      <div id="bentornato" class="bentornato" style="display:none">Bentornato: si riparte da oggi, senza recuperi.</div>
-
-      <!-- il semaforo del giorno: una parola sola, poi il perche -->
-      <div class="scheda score" id="scoreCard">
-        <div class="livello liv-sconosciuto" id="scLiv">&hellip;</div>
-        <div class="racc" id="scRacc"></div>
-        <div class="contrib" id="scContrib"></div>
-        <div class="ritmo" id="scRitmo" style="display:none"></div>
-      </div>
-
-      <div class="hero-row">
-        <div class="hero">
-          <div class="lbl">peso &middot; media 7 giorni</div>
-          <div class="val" id="heroPeso">&mdash;</div>
-          <div class="nota" id="heroNota"></div>
-        </div>
-      </div>
-      <div class="budget">
-        <div class="riga1"><span class="t">BUDGET KCAL DI OGGI</span><span class="num" id="budNum">&mdash;</span></div>
-        <div class="barra"><i id="budBar" style="width:0%"></i></div>
-        <div class="sotto" id="budSotto">target dal coach</div>
-      </div>
-      <div class="kpis" id="kpi"></div>
-      <div class="chartbox"><h3>Peso e media 7gg</h3><canvas id="gPeso"></canvas></div>
-      <div class="chartbox"><h3>Calorie</h3><canvas id="gKcal"></canvas></div>
-      <div class="chartbox"><h3>Sonno e recovery</h3><canvas id="gRec"></canvas></div>
-      <div class="scheda"><h3>Costanza &middot; 26 settimane</h3>
-        <div class="heat" id="heat"></div>
-        <div class="heat-legenda">meno <i style="background:rgba(166,226,46,.06)"></i><i style="background:rgba(166,226,46,.22)"></i><i style="background:rgba(166,226,46,.42)"></i><i style="background:rgba(166,226,46,.65)"></i><i style="background:#a6e22e"></i> pi&ugrave;</div>
-      </div>
-      <div class="scheda"><h3>TDEE dinamico</h3><div id="tdee" class="spin">&hellip;</div></div>
-      <div class="scheda"><h3>Pipeline dati</h3><div id="qualita" class="spin">&hellip;</div></div>
+      <div id="bentornato" class="scheda" style="display:none;border-color:rgba(166,226,46,.3);background:rgba(166,226,46,.07);color:var(--ink-2)">Bentornato: si riparte da oggi, senza recuperi.</div>
+      <div class="griglia" id="griglia"></div>
+      <div id="dettagli"></div>
     </div>
 
     <!-- ============ DIARIO ============ -->
@@ -241,17 +213,14 @@
             <option value="body_fat_pct">Massa grassa (%)</option>
             <option value="whoop_recovery_pct">Recovery Whoop (%)</option>
             <option value="whoop_strain">Day Strain Whoop</option>
-            <option value="calories_in">Calorie (kcal)</option>
-            <option value="protein_g">Proteine (g)</option>
             <option value="sleep_duration_hours">Sonno (ore)</option>
-            <option value="energia">Energia (1-5)</option>
-            <option value="umore">Umore (1-5)</option>
           </select>
           <input id="mValore" type="number" step="0.1" inputmode="decimal" placeholder="valore">
         </div>
         <div class="riga"><input id="mData" type="date"></div>
         <button class="azione" onclick="salvaMisura()">Salva</button>
         <p id="mEsito"></p>
+        <p class="spin">I pasti si dicono ad Alfred (li somma lui); qui solo le misure.</p>
       </div>
       <div class="scheda">
         <h3>Promemoria</h3>
@@ -275,7 +244,7 @@
     <div id="v-coach" class="vista">
       <div class="scheda">
         <div class="chat" id="chat">
-          <div class="msg coach">Sono il tuo coach. Stessa memoria del bot Telegram: chiudi la e riprendi qui.</div>
+          <div class="msg coach">Sono il tuo coach. Stessa memoria del bot Telegram: chiudi l&agrave; e riprendi qui.</div>
         </div>
         <div class="riga" style="margin-top:10px">
           <textarea id="dom" rows="2" placeholder="scrivi al coach&hellip;"></textarea>
@@ -290,7 +259,6 @@
 var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
 var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
 var grafici = {};
-var TARGET_KCAL = null;
 
 document.getElementById('dataOggi').textContent =
   new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
@@ -310,6 +278,10 @@ function api(percorso, corpo){
   var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' } };
   if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
   return fetch(API_BASE+percorso, opt).then(function(r){
+    if(r.status===401){
+      document.getElementById('login').style.display='flex';
+      throw new Error('sessione scaduta: reinserisci il codice');
+    }
     if(!r.ok) return r.json().then(function(e){ throw new Error(e.errore||r.status); });
     return r.json();
   });
@@ -322,142 +294,142 @@ function vista(nome, btn){
   btn.classList.add('on');
 }
 
-function fmt(n, dec){ return n==null ? '\u2014' : Number(n).toFixed(dec==null?1:dec); }
+function fmt(n, dec){ return n==null ? '—' : Number(n).toFixed(dec==null?1:dec).replace('.',','); }
+function grafico(id,cfg){ if(grafici[id]) grafici[id].destroy(); var el=document.getElementById(id); if(el) grafici[id]=new Chart(el,cfg); }
 
-function carica(){
-  api('/api/contesto').then(function(c){
-    var m = String(c.kcal_target_die||'').match(/(\d{3,5})/);
-    if(m) TARGET_KCAL = parseInt(m[1],10);
-    aggiornaBudget();
-  }).catch(function(){});
+/* ════════════════════════════════════════════════════════════════════
+   DASH A CARD (26/08). Regole:
+   - la configurazione vive in contesto 'dash_health' (JSON); se manca o
+     e rotta si usa il DEFAULT: la pagina non si rompe MAI;
+   - registro CHIUSO dei tipi: un tipo sconosciuto si scarta in silenzio;
+   - taglie a gettone (hero/wide/half/third), mai coordinate;
+   - anti-ansia: medie davanti, valori del giorno dietro; niente rosso
+     fuori dal semaforo; sforamenti in ambra informativo; celle vuote
+     nella heatmap, mai rosse; un solo verdetto in cima.
+   ════════════════════════════════════════════════════════════════════ */
+var DEFAULT_CONFIG = { version:1, cards:[
+  { id:'semaforo',  type:'score',   size:'hero',  enabled:true, order:1 },
+  { id:'tiles',     type:'tiles',   size:'wide',  enabled:true, order:2 },
+  { id:'kcal',      type:'budget',  size:'half',  enabled:true, order:3 },
+  { id:'box',       type:'counter', size:'half',  enabled:true, order:4 },
+  { id:'costanza',  type:'heatmap', size:'wide',  enabled:true, order:5 },
+  { id:'checkin',   type:'checkin', size:'wide',  enabled:true, order:6 },
+  { id:'insight',   type:'insight', size:'wide',  enabled:true, order:7 }
+]};
 
-  api('/api/dati?giorni=42').then(function(righe){
-    righe.sort(function(a,b){ return a.date<b.date?-1:1; });
-    var oggi = righe.length ? righe[righe.length-1] : null;
-    var ultimo = null;
-    for(var i=righe.length-1;i>=0;i--){ if(!righe[i].giorno_scoperto){ ultimo=righe[i]; break; } }
+var DATI = {};   // cache dei dati per le card
 
-    if(ultimo){
-      var mostra = ultimo.peso_ma7 != null ? ultimo.peso_ma7 : ultimo.weight_kg;
-      document.getElementById('heroPeso').innerHTML =
-        (mostra!=null? fmt(mostra,1) : '\u2014') + ' <small>kg</small>';
-      var d7 = ultimo.delta_peso_ma7_su_7gg;
-      document.getElementById('heroNota').textContent = d7==null
-        ? 'servono pesate regolari per il trend'
-        : ((d7>0?'+':'')+fmt(d7,2)+' kg sulla settimana');
-      window.__oggi = oggi; aggiornaBudget();
-
-      var k = document.getElementById('kpi');
-      k.innerHTML =
-        kpi('Sonno 7gg', ultimo.sonno_ma7!=null? fmt(ultimo.sonno_ma7)+' h':'\u2014',
-            (ultimo.sonno_ma7!=null && ultimo.sonno_ma7<6.5)?'sotto soglia':'', ultimo.sonno_ma7!=null && ultimo.sonno_ma7<6.5) +
-        kpi('Passi ieri/oggi', (oggi&&oggi.steps!=null)? fmt(oggi.steps,0):'\u2014','') +
-        kpi('Battito medio', (oggi&&oggi.hr_media!=null)? fmt(oggi.hr_media,0)+' bpm':'\u2014','') +
-        kpi('Recovery 7gg', ultimo.recovery_ma7!=null? fmt(ultimo.recovery_ma7,0)+'%':'\u2014',
-            ultimo.recovery_ma7==null?'non arriva da Whoop':'') +
-        kpi('Energia 7gg', ultimo.energia_ma7!=null? fmt(ultimo.energia_ma7)+'/5':'\u2014',
-            ultimo.energia_ma7==null?'dilla al coach':'') +
-        kpi('Umore 7gg', ultimo.umore_ma7!=null? fmt(ultimo.umore_ma7)+'/5':'\u2014','');
-    }
-    disegna(righe);
-    document.getElementById('txtStato').textContent='sistema attivo';
-  }).catch(function(e){
-    document.getElementById('txtStato').textContent='errore: '+e.message;
-    document.getElementById('dotStato').className='dot warn';
-  });
-
-  api('/api/tdee').then(function(t){
-    var el = document.getElementById('tdee');
-    if(!t || t.tdee_stimato==null){
-      el.innerHTML='<span class="avviso">Servono pesate e calorie regolari: '+
-        (t? (t.giorni_con_peso||0)+' pesate e '+(t.giorni_con_kcal||0)+' giorni di kcal nella finestra.':'')+'</span>';
-      return;
-    }
-    var fid=(t.affidabilita||'').split(':')[0];
-    el.innerHTML = '<div class="kpi" style="border:0;padding:0"><div class="v">'+fmt(t.tdee_stimato,0)+' kcal</div>'+
-      '<div class="d">bilancio '+fmt(t.bilancio_kcal_die,0)+' kcal/die &middot; '+fmt(t.kg_a_settimana,2)+' kg/sett</div>'+
-      '<div class="'+(fid==='BUONA'?'ok':'avviso')+'">affidabilit\u00e0 '+t.affidabilita+' (r\u00b2 '+fmt(t.r2,2)+')</div></div>';
-  }).catch(function(){});
-
-  api('/api/qualita').then(function(q){
-    var righe=[];
-    righe.push('ultimo giorno con dati: <b>'+(q.ultimo_giorno||'mai')+'</b>');
-    if(q.buchi_ultimi_30gg>0) righe.push('<span class="avviso">'+q.buchi_ultimi_30gg+' giorni scoperti su 30</span>');
-    if((q.metriche_ignote_7gg||[]).length) righe.push('<span class="avviso">metriche nuove: '+q.metriche_ignote_7gg.join(', ')+'</span>');
-    if(q.ingest_falliti_7gg>0) righe.push('<span class="avviso">'+q.ingest_falliti_7gg+' invii falliti (7gg)</span>');
-    if(righe.length===1) righe.push('<span class="ok">tutto regolare</span>');
-    document.getElementById('qualita').innerHTML=righe.join('<br>');
-  }).catch(function(){});
-
-  caricaProm(); caricaDiario(); caricaChat();
-  caricaSemaforo(); caricaHeatmap();
+function configDash(ctx){
+  try{
+    var raw = ctx && ctx.dash_health;
+    if(!raw) return DEFAULT_CONFIG;
+    var c = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if(!c || !Array.isArray(c.cards) || !c.cards.length) return DEFAULT_CONFIG;
+    return c;
+  }catch(e){ return DEFAULT_CONFIG; }
 }
 
-/* ── numeri in stile italiano per la card semaforo ── */
-function numIt(v){
-  if(v==null) return '\u2014';
-  var n=Math.round(Number(v)*10)/10;
-  return String(n).replace('.',',');
-}
+/* — registro delle card: ogni tipo = funzione pura render(el, card) — */
+var CARD_TYPES = {
 
-/* ── card semaforo: GET /api/semaforo ── */
-function caricaSemaforo(){
-  api('/api/semaforo').then(function(r){
-    var s=(r&&r.semaforo)||{}, rit=(r&&r.ritmo)||null;
+  score: function(el){
+    var s=(DATI.semaforo&&DATI.semaforo.semaforo)||{}, rit=(DATI.semaforo&&DATI.semaforo.ritmo)||null;
     var liv=s.livello||'sconosciuto';
-    var el=document.getElementById('scLiv');
-    el.textContent=liv;
-    el.className='livello liv-'+liv;
-    document.getElementById('scRacc').textContent = liv==='sconosciuto'
-      ? 'Ancora niente dati oggi: appena arriva qualcosa, il semaforo si accende.'
-      : (s.raccomandazione||'');
-
-    /* barrette contributors: rosse se fuori soglia, grigie se il dato manca */
-    var righe='';
-    (s.marcatori||[]).forEach(function(m){
-      var pct=100;
-      if(m.valore!=null && m.soglia!=null && Number(m.soglia)!==0)
-        pct=Math.max(10,Math.min(100,Math.round(Number(m.valore)/Number(m.soglia)*100)));
-      righe+='<div class="cr fuori"><span class="nome">'+m.nome+'</span>'+
-        '<span class="barra2"><i style="width:'+pct+'%"></i></span>'+
-        '<span class="vs">'+numIt(m.valore)+' vs '+numIt(m.soglia)+'</span></div>';
-    });
-    (s.dati_mancanti||[]).forEach(function(n){
-      righe+='<div class="cr manca"><span class="nome">'+n+'</span>'+
-        '<span class="barra2"><i style="width:100%"></i></span>'+
-        '<span class="vs">manca</span></div>';
-    });
-    document.getElementById('scContrib').innerHTML=righe;
-
-    /* riga sul ritmo del peso */
-    if(rit && rit.ma7_oggi!=null){
-      var freccia = (rit.esito || (rit.delta_14g>0?'in_salita':(rit.delta_14g<0?'in_discesa':'stabile'))).replace(/_/g,' ');
-      var er=document.getElementById('scRitmo');
-      er.style.display='block';
-      er.innerHTML='media 7g: <b>'+numIt(rit.ma7_oggi)+'</b> \u2014 14 giorni fa: <b>'+
-        numIt(rit.ma7_14g_fa)+'</b> \u2192 '+freccia;
+    var h='<div class="score-liv liv-'+liv+'">'+liv+'</div>'+
+      '<div class="score-frase">'+(liv==='sconosciuto'
+        ? 'Ancora niente dati oggi: appena arriva qualcosa, il semaforo si accende.'
+        : (s.raccomandazione||''))+'</div>';
+    var det='';
+    (s.marcatori||[]).forEach(function(m){ det+=m.nome+': '+fmt(m.valore)+' (soglia '+fmt(m.soglia)+')<br>'; });
+    (s.dati_mancanti||[]).forEach(function(n){ det+=n+': manca<br>'; });
+    if(rit && rit.ma7_oggi!=null)
+      det+='peso media 7gg: '+fmt(rit.ma7_oggi)+' kg · 14 giorni fa: '+fmt(rit.ma7_14g_fa)+' kg';
+    if(det){
+      h+='<div class="score-det" onclick="this.nextElementSibling.classList.toggle(\'aperto\')">il perché ▾</div>'+
+         '<div class="score-contrib">'+det+'</div>';
     }
-  }).catch(function(){
-    document.getElementById('scLiv').textContent='sconosciuto';
-    document.getElementById('scRacc').textContent='Semaforo non raggiungibile in questo momento.';
-  });
-}
+    el.innerHTML=h;
+  },
 
-/* ── data locale in formato AAAA-MM-GG, senza sorprese di fuso ── */
-function giornoIso(d){
-  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-}
+  tiles: function(el){
+    var righe=DATI.righe||[];
+    var ultimo=null, oggi=righe.length?righe[righe.length-1]:null;
+    for(var i=righe.length-1;i>=0;i--){ if(!righe[i].giorno_scoperto){ ultimo=righe[i]; break; } }
+    if(!ultimo){ el.innerHTML='<span class="spin">Niente dati recenti.</span>'; return; }
+    var serie14=righe.slice(-14);
+    function tile(id,label,val,delta,serie){
+      return '<div class="tile"><div class="l">'+label+'</div><div class="v">'+val+'</div>'+
+        '<div class="d">'+(delta||'')+'</div><canvas id="sp-'+id+'"></canvas></div>';
+    }
+    function spark(id,dati,colore){
+      grafico('sp-'+id,{type:'line',data:{labels:dati.map(function(){return '';}),
+        datasets:[{data:dati,borderColor:colore,borderWidth:1.5,pointRadius:0,tension:.4,spanGaps:true}]},
+        options:{responsive:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
+                 scales:{x:{display:false},y:{display:false}}}});
+    }
+    var h='<div class="tiles">';
+    h+=tile('peso','Peso · media 7gg',(ultimo.peso_ma7!=null?fmt(ultimo.peso_ma7,1):'—')+' kg',
+      ultimo.delta_peso_ma7_su_7gg!=null?((ultimo.delta_peso_ma7_su_7gg>0?'+':'')+fmt(ultimo.delta_peso_ma7_su_7gg,2)+' kg / 7gg'):'servono pesate regolari');
+    h+=tile('sonno','Sonno · 7gg',(ultimo.sonno_ma7!=null?fmt(ultimo.sonno_ma7,1)+' h':'—'),
+      (ultimo.sonno_ma7!=null&&ultimo.sonno_ma7<6.5)?'sotto la soglia delle 6,5':'');
+    h+=tile('rec','Recovery · 7gg',(ultimo.recovery_ma7!=null?fmt(ultimo.recovery_ma7,0)+'%':'—'),
+      ultimo.recovery_ma7==null?'in attesa da Whoop':'');
+    h+=tile('passi','Passi oggi',(oggi&&oggi.steps!=null)?fmt(oggi.steps,0):'—','');
+    h+='</div>';
+    el.innerHTML=h;
+    spark('peso',serie14.map(function(r){return r.peso_ma7;}),'#a6e22e');
+    spark('sonno',serie14.map(function(r){return r.sleep_duration_hours;}),'#3987e5');
+    spark('rec',serie14.map(function(r){return r.whoop_recovery_pct;}),'#9085e9');
+    spark('passi',serie14.map(function(r){return r.steps;}),'#85837c');
+  },
 
-/* ── heatmap costanza: 26 settimane, colonne = settimane, righe = lun-dom ── */
-function caricaHeatmap(){
-  api('/api/dati?giorni=182').then(function(righe){
+  budget: function(el){
+    var righe=DATI.righe||[], oggi=righe.length?righe[righe.length-1]:null;
+    var target=DATI.targetKcal;
+    el.innerHTML='<h3>Kcal di oggi</h3>';
+    if(!target){ el.innerHTML+='<span class="spin">Target non fissato: dillo ad Alfred.</span>'; return; }
+    var min=Math.round(target*0.95), max=Math.round(target*1.05);
+    var scala=max*1.25;
+    var mangiate=(oggi&&oggi.calories_in!=null)?Math.round(oggi.calories_in):0;
+    var pct=Math.min(100,Math.round(mangiate/scala*100));
+    var oltre=mangiate>max;
+    var nota= mangiate===0 ? 'ancora niente registrato · banda '+min+'–'+max
+      : (oltre ? '+'+(mangiate-max)+' oltre la banda · si riparte dal pasto dopo'
+      : (mangiate>=min ? 'dentro la banda '+min+'–'+max : 'restano '+(min-mangiate)+' per entrare in banda'));
+    el.innerHTML+=
+      '<span class="banda-num">'+mangiate+' kcal</span>'+
+      '<div class="banda-wrap">'+
+        '<div class="banda-target" style="left:'+Math.round(min/scala*100)+'%;width:'+Math.round((max-min)/scala*100)+'%"></div>'+
+        '<div class="banda-fill'+(oltre?' oltre':'')+'" style="width:'+pct+'%"></div>'+
+      '</div>'+
+      '<div class="banda-note">'+nota+'</div>';
+  },
+
+  counter: function(el){
+    var b=DATI.box||{};
+    var fatte=Number(b.fatte||0), saltate=Number(b.saltate||0), riposi=Number(b.riposi||0);
+    el.innerHTML='<h3>Box · settimana</h3>';
+    var h='<div class="tacche">';
+    for(var i=0;i<4;i++){
+      h+='<div class="tacca'+(i<fatte?' piena':(i<fatte+saltate?' saltata':''))+'"></div>';
+    }
+    h+='</div>';
+    var v=b.verdetto||'';
+    var parole={ottimo:'ottimo',buono:'buono',minimo:'minimo',sotto_minimo:'in costruzione'};
+    h+='<div class="verdetto">'+fatte+'/4 <small>· '+(parole[v]||v)+
+       (riposi?' · '+riposi+' riposo':'')+' · 2 minimo, 3 buono, 4 ottimo</small></div>';
+    el.innerHTML+=h;
+  },
+
+  heatmap: function(el){
+    el.innerHTML='<h3>Costanza · 26 settimane</h3><div class="heat" id="heatH"></div>'+
+      '<div class="heat-legenda">meno <i style="background:rgba(166,226,46,.06)"></i><i style="background:rgba(166,226,46,.22)"></i><i style="background:rgba(166,226,46,.42)"></i><i style="background:rgba(166,226,46,.65)"></i><i style="background:#a6e22e"></i> pi&ugrave;</div>';
     var per={};
-    righe.forEach(function(r){ per[r.date]=r; });
-    /* 5 gradazioni del verde: da quasi invisibile a pieno. Mai rosso. */
+    (DATI.righe182||[]).forEach(function(r){ per[r.date]=r; });
     var GRAD=['rgba(166,226,46,.06)','rgba(166,226,46,.22)','rgba(166,226,46,.42)','rgba(166,226,46,.65)','#a6e22e'];
     var oggi=new Date(); oggi.setHours(12,0,0,0);
-    var dow=(oggi.getDay()+6)%7;                 /* 0 = lunedi */
-    var fine=new Date(oggi); fine.setDate(fine.getDate()+(6-dow));   /* domenica corrente */
+    var dow=(oggi.getDay()+6)%7;
+    var fine=new Date(oggi); fine.setDate(fine.getDate()+(6-dow));
     var inizio=new Date(fine); inizio.setDate(inizio.getDate()-26*7+1);
     var html='';
     for(var d=new Date(inizio); d<=fine; d.setDate(d.getDate()+1)){
@@ -465,67 +437,73 @@ function caricaHeatmap(){
       if(r){
         if(r.weight_kg!=null){ n++; cose.push('peso'); }
         if(r.calories_in!=null){ n++; cose.push('kcal'); }
-        if(r.energia!=null || r.umore!=null){ n++; cose.push('diario'); }
-        if(r.whoop_strain!=null || r.allenamento!=null || r.workout!=null){ n++; cose.push('allenamento'); }
+        if(r.sleep_duration_hours!=null){ n++; cose.push('sonno'); }
+        if(r.whoop_strain!=null){ n++; cose.push('whoop'); }
       }
-      if(d>oggi){
-        html+='<i style="background:transparent"></i>';   /* giorni futuri: vuoti */
-      }else{
-        html+='<i title="'+iso+(cose.length?' \u00b7 '+cose.join(', '):' \u00b7 niente')+
-          '" style="background:'+GRAD[Math.min(n,4)]+'"></i>';
-      }
+      html+= d>oggi ? '<i style="background:transparent"></i>'
+        : '<i title="'+iso+(cose.length?' · '+cose.join(', '):'')+'" style="background:'+GRAD[Math.min(n,4)]+'"></i>';
     }
-    document.getElementById('heat').innerHTML=html;
-    var h=document.getElementById('heat'); h.scrollLeft=h.scrollWidth;  /* mostra le settimane recenti */
+    var hh=document.getElementById('heatH');
+    hh.innerHTML=html; hh.scrollLeft=hh.scrollWidth;
+  },
 
-    /* rientro gentile: 3 giorni senza nessun dato, tono caldo */
-    var vuoti=0;
-    for(var k=0;k<3;k++){
-      var dd=new Date(oggi); dd.setDate(dd.getDate()-k);
-      var r2=per[giornoIso(dd)];
-      var ha=r2 && (r2.weight_kg!=null||r2.calories_in!=null||r2.energia!=null||
-                    r2.umore!=null||r2.sleep_duration_hours!=null||r2.steps!=null);
-      if(!ha) vuoti++;
-    }
-    if(vuoti===3) document.getElementById('bentornato').style.display='block';
-  }).catch(function(){});
-}
+  checkin: function(el){
+    el.innerHTML='<h3>Tracker serale · ultima settimana</h3>';
+    var sett=(DATI.tracker&&Array.isArray(DATI.tracker.settimane))?DATI.tracker.settimane:[];
+    var s=sett.length?sett[sett.length-1]:null;
+    if(!s){ el.innerHTML+='<span class="spin">Si riempie coi check delle 21.</span>'; return; }
+    var h='<div class="tocchi">';
+    if(s.pct_valore_fatto!=null) h+='<span>cose che contano <b>'+Math.round(s.pct_valore_fatto)+'%</b></span>';
+    if(s.attivazione_sd!=null) h+='<span>motore: oscillazione <b>'+fmt(s.attivazione_sd,1)+'</b></span>';
+    if(s.acquisti_non_pianificati!=null) h+='<span>acquisti non pianificati <b>'+s.acquisti_non_pianificati+'</b></span>';
+    if(s.pct_giorni_su_fuoco!=null) h+='<span>giorni su un fuoco <b>'+Math.round(s.pct_giorni_su_fuoco)+'%</b></span>';
+    if(s.ore_lavoro_medie!=null) h+='<span>lavoro <b>'+fmt(s.ore_lavoro_medie,1)+' h/gg</b></span>';
+    h+='</div><div class="banda-note" style="margin-top:6px">la lettura vera è al rituale del lunedì, qui solo il polso</div>';
+    el.innerHTML+=h;
+  },
 
-function aggiornaBudget(){
-  var o = window.__oggi;
-  var num=document.getElementById('budNum'), bar=document.getElementById('budBar'),
-      sotto=document.getElementById('budSotto');
-  if(!TARGET_KCAL){ num.textContent='\u2014'; sotto.textContent='target non ancora fissato: dillo al coach'; return; }
-  var mangiate = (o && o.calories_in!=null) ? Math.round(o.calories_in) : null;
-  if(mangiate==null){
-    num.textContent='0 / '+TARGET_KCAL;
-    bar.style.width='0%';
-    sotto.textContent='oggi nessuna kcal registrata (FatSecret o dillo al coach) \u00b7 target '+TARGET_KCAL;
-    return;
+  insight: function(el, card){
+    var testo=DATI.contesto && (DATI.contesto.insight_settimana||DATI.contesto.lettura_percorso);
+    if(!testo){ el.remove(); return; }   // niente da dire = niente card
+    el.innerHTML='<h3>Il coach dice</h3><div class="insight"></div>';
+    el.querySelector('.insight').textContent=String(testo).slice(0,400);
   }
-  var pct = Math.min(100, Math.round(mangiate/TARGET_KCAL*100));
-  num.textContent = mangiate+' / '+TARGET_KCAL+' kcal';
-  bar.style.width=pct+'%';
-  bar.className = mangiate>TARGET_KCAL ? 'rosso' : '';
-  sotto.textContent = mangiate>TARGET_KCAL
-    ? 'sfondato di '+(mangiate-TARGET_KCAL)+' kcal'
-    : 'restano '+(TARGET_KCAL-mangiate)+' kcal';
+};
+
+function montaDash(){
+  var cfg=configDash(DATI.contesto);
+  var griglia=document.getElementById('griglia');
+  griglia.innerHTML='';
+  var cards=(cfg.cards||[]).filter(function(c){ return c && c.enabled !== false && CARD_TYPES[c.type]; })
+    .sort(function(a,b){ return (a.order||99)-(b.order||99); });
+  cards.forEach(function(c){
+    var el=document.createElement('div');
+    el.className='card sz-'+(['hero','wide','half','third'].indexOf(c.size)>=0?c.size:'wide');
+    el.id='card-'+c.id;
+    griglia.appendChild(el);
+    try{ CARD_TYPES[c.type](el, c); }
+    catch(e){ el.remove(); }   // una card rotta non rompe la pagina
+  });
+  montaDettagli();
 }
 
-function kpi(l,v,d,watch){
-  return '<div class="kpi'+(watch?' watch':'')+'"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="d">'+(d||'')+'</div></div>';
-}
-
-function grafico(id,cfg){ if(grafici[id]) grafici[id].destroy(); grafici[id]=new Chart(document.getElementById(id),cfg); }
-
-function disegna(righe){
+/* trend lunghi e tecnici: collassati, la frizione e voluta */
+function montaDettagli(){
+  var box=document.getElementById('dettagli');
+  box.innerHTML=
+    '<details class="dett"><summary>Peso &middot; 42 giorni</summary><div class="corpo"><canvas id="gPeso" class="grande"></canvas></div></details>'+
+    '<details class="dett"><summary>Calorie &middot; 42 giorni</summary><div class="corpo"><canvas id="gKcal" class="grande"></canvas></div></details>'+
+    '<details class="dett"><summary>Sonno e recovery</summary><div class="corpo"><canvas id="gRec" class="grande"></canvas></div></details>'+
+    '<details class="dett"><summary>TDEE e pipeline</summary><div class="corpo"><div id="tdee" class="spin">&hellip;</div><div id="qualita" class="spin" style="margin-top:10px">&hellip;</div></div></details>';
+  var righe=DATI.righe||[];
   var lab=righe.map(function(r){return r.date.slice(5);});
   var op={responsive:true,plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}}},
           scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
                   y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
+  /* media 7gg = la verita (spessa); il giorno = rumore (puntini attenuati) */
   grafico('gPeso',{type:'line',data:{labels:lab,datasets:[
-    {label:'peso',data:righe.map(function(r){return r.weight_kg;}),borderColor:'rgba(57,135,229,.15)',pointRadius:1.5,pointBackgroundColor:'rgba(57,135,229,.35)',pointBorderWidth:0,borderWidth:1,spanGaps:true},
-    {label:'media 7gg',data:righe.map(function(r){return r.peso_ma7;}),borderColor:'#a6e22e',pointRadius:0,borderWidth:2.5,spanGaps:true}]},options:op});
+    {label:'giorno',data:righe.map(function(r){return r.weight_kg;}),borderColor:'rgba(57,135,229,0)',pointRadius:2,pointBackgroundColor:'rgba(57,135,229,.3)',showLine:false},
+    {label:'media 7gg',data:righe.map(function(r){return r.peso_ma7;}),borderColor:'#a6e22e',pointRadius:0,borderWidth:3,spanGaps:true}]},options:op});
   grafico('gKcal',{type:'bar',data:{labels:lab,datasets:[
     {label:'kcal',data:righe.map(function(r){return r.calories_in;}),backgroundColor:'rgba(57,135,229,.45)'},
     {label:'media 7gg',type:'line',data:righe.map(function(r){return r.kcal_ma7;}),borderColor:'#fab219',pointRadius:0,borderWidth:2,spanGaps:true}]},options:op});
@@ -535,6 +513,62 @@ function disegna(righe){
     options:Object.assign({},op,{scales:{x:op.scales.x,
       y:{position:'left',ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
       y1:{position:'right',min:0,max:100,ticks:{color:'#85837c'},grid:{display:false}}}})});
+  api('/api/tdee').then(function(t){
+    var el=document.getElementById('tdee');
+    if(!t || t.tdee_stimato==null){
+      el.innerHTML='<span class="spin">TDEE: servono più giorni di pesate e kcal nell’era.</span>'; return;
+    }
+    var fid=(t.affidabilita||'').split(':')[0];
+    el.innerHTML='TDEE stimato <b>'+fmt(t.tdee_stimato,0)+' kcal</b> · '+
+      '<span class="'+(fid==='BUONA'?'ok':'avviso')+'">affidabilità '+t.affidabilita+'</span>';
+  }).catch(function(){});
+  api('/api/qualita').then(function(q){
+    var righe=['ultimo giorno con dati: <b>'+(q.ultimo_giorno||'mai')+'</b>'];
+    if(q.buchi_ultimi_30gg>0) righe.push('<span class="avviso">'+q.buchi_ultimi_30gg+' giorni scoperti su 30</span>');
+    if((q.metriche_ignote_7gg||[]).length) righe.push('<span class="avviso">metriche nuove: '+q.metriche_ignote_7gg.join(', ')+'</span>');
+    if(q.ingest_falliti_7gg>0) righe.push('<span class="avviso">'+q.ingest_falliti_7gg+' invii falliti (7gg)</span>');
+    if(righe.length===1) righe.push('<span class="ok">tutto regolare</span>');
+    document.getElementById('qualita').innerHTML=righe.join('<br>');
+  }).catch(function(){});
+}
+
+function giornoIso(d){
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+
+function carica(){
+  /* si raccolgono i dati una volta, poi si montano le card */
+  var attese=[
+    api('/api/contesto').then(function(c){
+      DATI.contesto=c;
+      var m=String(c.kcal_target_die||'').match(/(\d{3,5})/);
+      DATI.targetKcal=m?parseInt(m[1],10):null;
+    }).catch(function(){}),
+    api('/api/dati?giorni=182').then(function(righe){
+      righe.sort(function(a,b){ return a.date<b.date?-1:1; });
+      DATI.righe182=righe;
+      DATI.righe=righe.slice(-42);
+      document.getElementById('txtStato').textContent='sistema attivo';
+      /* rientro gentile */
+      var per={}; righe.forEach(function(r){ per[r.date]=r; });
+      var oggi=new Date(); oggi.setHours(12,0,0,0); var vuoti=0;
+      for(var k=0;k<3;k++){
+        var dd=new Date(oggi); dd.setDate(dd.getDate()-k);
+        var r2=per[giornoIso(dd)];
+        var ha=r2&&(r2.weight_kg!=null||r2.calories_in!=null||r2.sleep_duration_hours!=null||r2.steps!=null);
+        if(!ha) vuoti++;
+      }
+      if(vuoti===3) document.getElementById('bentornato').style.display='block';
+    }).catch(function(e){
+      document.getElementById('txtStato').textContent='errore: '+e.message;
+      document.getElementById('dotStato').className='dot warn';
+    }),
+    api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(function(){}),
+    api('/api/box').then(function(b){ DATI.box=b; }).catch(function(){}),
+    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(function(){})
+  ];
+  Promise.all(attese).then(montaDash);
+  caricaProm(); caricaDiario(); caricaChat();
 }
 
 function salvaMisura(){
@@ -557,8 +591,8 @@ function caricaProm(){
     el.innerHTML=lista.map(function(p){
       var quando=new Date(p.quando).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       return '<div class="voce"><div>'+p.testo+'<small>'+quando+
-        (p.ricorrenza!=='nessuna'?' \u00b7 '+p.ricorrenza:'')+
-        (p.nag_minuti?' \u00b7 insiste ogni '+p.nag_minuti+' min':'')+'</small></div></div>';
+        (p.ricorrenza!=='nessuna'?' · '+p.ricorrenza:'')+
+        (p.nag_minuti?' · insiste ogni '+p.nag_minuti+' min':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
 }
@@ -583,16 +617,16 @@ function caricaDiario(){
     el.innerHTML=l.map(function(i){
       return '<div class="voce"><div>'+i.testo+'<small>'+
         (i.scadenza? 'scade '+new Date(i.scadenza).toLocaleDateString('it-IT'):'senza scadenza')+
-        (i.target? ' \u00b7 target '+i.target:'')+'</small></div></div>';
+        (i.target? ' · target '+i.target:'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
   api('/api/abitudini').then(function(l){
     var el=document.getElementById('dAbitudini');
-    if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea l\u0027abitudine..."</span>'; return; }
+    if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea una abitudine..."</span>'; return; }
     el.innerHTML=l.map(function(a){
-      var oggi=a.fatta_oggi?'<span class="ok">oggi \u2713</span>':'<span class="avviso">oggi \u2717</span>';
-      return '<div class="voce"><div>'+a.nome+'<small>serie '+(a.serie_settimane!=null?a.serie_settimane:a.serie_corrente)+
-        ' \u00b7 7gg '+a.volte_ultimi_7gg+'/'+a.target_settimana+' \u00b7 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
+      var oggi=a.fatta_oggi?'<span class="ok">oggi ✓</span>':(a.saltata_oggi?'<span class="avviso">oggi saltata</span>':'<span class="spin">oggi –</span>');
+      return '<div class="voce"><div>'+a.nome+'<small>serie '+(a.serie_settimane!=null?a.serie_settimane:'—')+
+        ' · questa settimana '+a.volte_questa_settimana+'/'+a.target_settimana+' · 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
     }).join('');
   }).catch(function(){});
   api('/api/diario').then(function(l){
@@ -600,8 +634,8 @@ function caricaDiario(){
     if(!l.length){ el.innerHTML='<span class="spin">Vuoto. Racconta al coach come stai: annota lui.</span>'; return; }
     el.innerHTML=l.map(function(d){
       var quando=new Date(d.ts).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return '<div class="voce"><div>'+d.testo+'<small>'+quando+' \u00b7 '+d.tipo+
-        (d.umore? ' \u00b7 umore '+d.umore+'/5':'')+'</small></div></div>';
+      return '<div class="voce"><div>'+d.testo+'<small>'+quando+' · '+d.tipo+
+        (d.umore? ' · umore '+d.umore+'/5':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
   api('/api/contesto').then(function(c){
@@ -612,7 +646,7 @@ function caricaDiario(){
       var v=String(c[k]);
       var manca=v.indexOf('DA ')===0;
       return '<div class="voce"><div>'+(manca?'<span class="avviso">'+k+'</span>':k)+
-        '<small>'+v.slice(0,170)+(v.length>170?'\u2026':'')+'</small></div></div>';
+        '<small>'+v.slice(0,170)+(v.length>170?'…':'')+'</small></div></div>';
     }).join('');
   }).catch(function(){});
 }
@@ -641,7 +675,7 @@ function chiedi(){
   var box=document.getElementById('dom'), q=box.value.trim();
   if(!q) return;
   box.value=''; aggiungi('io',q);
-  var attesa=aggiungi('coach','\u2026');
+  var attesa=aggiungi('coach','…');
   var btn=document.getElementById('btnChiedi'); btn.disabled=true;
   api('/api/chat',{domanda:q}).then(function(r){ attesa.textContent=r.risposta||'(vuoto)'; })
   .catch(function(e){ attesa.textContent='Errore: '+e.message; })
