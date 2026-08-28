@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
+<title>Diego_OS · Outfit</title>
+<style>
+  :root{
+    --page:#101216; --surface:#16181d; --surface-2:#1c1f25;
+    --ink:#f2f1ec; --ink-2:#b9b7ae; --muted:#85837c;
+    --hairline:rgba(255,255,255,.08);
+    --accent:#a6e22e; --accent-dim:#7ab510;
+    --good:#0ca30c; --warning:#fab219;
+    --disp:"Futura","Avenir Next Condensed","Avenir Next",system-ui,sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+        display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
+  .dock .mark{font:700 15px/1 var(--disp);letter-spacing:.18em;color:var(--accent);
+              writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
+  .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
+       flex-direction:column;align-items:center;justify-content:center;gap:1px;
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
+  .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
+  .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
+  .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
+  main{padding:24px 22px 110px;max-width:1100px;width:100%}
+  header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .saluto{font:600 24px/1.1 var(--disp)}
+  .data-oggi{color:var(--muted);font-size:13px}
+  .fitbadge{margin-left:auto;font-size:11.5px;color:var(--ink-2);border:1px solid var(--hairline);
+            border-radius:20px;padding:4px 12px;background:var(--surface)}
+  .fitbadge b{color:var(--accent)}
+
+  .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .scheda-head{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  .scheda-head .titolo{font:600 12px/1 var(--disp);letter-spacing:.22em;color:var(--ink-2)}
+  .pane{padding:16px 18px}
+
+  .filtri{display:flex;flex-direction:column;gap:12px}
+  .friga{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .friga .flbl{width:88px;flex:none;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .chip{background:var(--surface-2);border:1px solid var(--hairline);color:var(--ink-2);border-radius:20px;
+        padding:6px 14px;font:500 13px var(--sans);cursor:pointer}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#101216;font-weight:700}
+  .temp{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
+  .temp input{flex:1;accent-color:var(--accent)}
+  .temp .tval{font:700 15px var(--disp);min-width:44px;text-align:right}
+
+  .slotsec{margin:16px 0 6px;font:600 12px var(--disp);letter-spacing:.22em;color:var(--muted)}
+  .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .capo{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;
+        cursor:pointer;padding:0;text-align:left;color:var(--ink);font:inherit}
+  .capo:hover{border-color:var(--accent-dim)}
+  .capo.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .capo img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--surface-2)}
+  .capo .cn{padding:8px 10px 3px;font-size:12.5px;line-height:1.25;font-weight:600}
+  .capo .cf{padding:0 10px 9px;font-size:10.5px;color:var(--muted)}
+  .vuoto{color:var(--muted);padding:16px 4px;font-size:13px}
+
+  #risultati{scroll-margin-top:12px}
+  .outfit{background:var(--page);border:1px solid var(--hairline);border-radius:12px;padding:14px;margin-bottom:14px}
+  .outfit .ohead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+  .outfit .otit{font:600 15px var(--disp)}
+  .outfit .oscore{margin-left:auto;color:var(--muted);font-size:11px}
+  .orow{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:10px}
+  .oitem{position:relative;border:1px solid var(--hairline);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+  .oitem img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block}
+  .oitem .on{font-size:10px;line-height:1.2;padding:5px 6px;color:var(--ink-2)}
+  .oitem.anchor{border-color:var(--accent)}
+  .oitem.anchor::after{content:"SCELTO";position:absolute;top:5px;left:5px;background:var(--accent);
+        color:#101216;font:700 8px/1 var(--disp);letter-spacing:.1em;padding:3px 6px;border-radius:4px}
+  .otesto{font-size:13px;color:var(--ink-2);line-height:1.55}
+  .regole{color:var(--muted);font-size:11.5px;padding:4px 2px 0;line-height:1.6}
+
+  @media (max-width:700px){
+    .shell{grid-template-columns:1fr}
+    .dock{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;min-height:58px;
+          flex-direction:row;justify-content:space-around;padding:6px 10px calc(6px + env(safe-area-inset-bottom));
+          border-right:0;border-top:1px solid var(--hairline);background:var(--page);z-index:40}
+    .dock .mark{display:none}
+    .mod.active::before{left:50%;top:-7px;transform:translateX(-50%);width:22px;height:3px}
+    main{padding:18px 14px 120px}
+    .friga .flbl{width:100%}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="dock">
+    <div class="mark">DIEGO_OS</div>
+    <a href="index.html" class="mod" title="Home">⌂<span class="lbl">HOME</span></a>
+    <button class="mod active" title="Outfit">👔<span class="lbl">OUTFIT</span></button>
+  </aside>
+  <main>
+    <header class="top">
+      <div class="saluto">Outfit</div>
+      <div class="data-oggi" id="oggi"></div>
+      <div class="fitbadge">fit: <b>regular · relaxed</b> — mai slim</div>
+    </header>
+
+    <section class="scheda">
+      <div class="scheda-head"><span class="titolo">CONTESTO</span></div>
+      <div class="pane filtri">
+        <div class="friga" id="f-occ">
+          <span class="flbl">Occasione</span>
+          <button class="chip on" data-v="lavoro">Lavoro</button>
+          <button class="chip" data-v="serale">Serale</button>
+          <button class="chip" data-v="weekend">Weekend</button>
+        </div>
+        <div class="friga" id="f-stile">
+          <span class="flbl">Stile</span>
+          <button class="chip on" data-v="tutti">Tutti</button>
+          <button class="chip" data-v="smart">Smart casual</button>
+          <button class="chip" data-v="casual">Casual</button>
+        </div>
+        <div class="friga" id="f-meteo">
+          <span class="flbl">Meteo</span>
+          <button class="chip on" data-v="sole">☀️ Sole</button>
+          <button class="chip" data-v="nuvole">☁️ Nuvole</button>
+          <button class="chip" data-v="pioggia">🌧 Pioggia</button>
+          <div class="temp">
+            <input type="range" id="temp" min="-5" max="35" value="18" step="1">
+            <span class="tval" id="tval">18°</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scheda">
+      <div class="scheda-head"><span class="titolo">SCEGLI UN CAPO</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:12px" id="conta"></span></div>
+      <div class="pane" id="guardaroba"></div>
+    </section>
+
+    <section class="scheda" id="risultati" hidden>
+      <div class="scheda-head"><span class="titolo" id="rtitolo">ABBINAMENTI</span></div>
+      <div class="pane" id="rbody"></div>
+    </section>
+
+    <p class="regole">Motore v0.1 · regole attive: finestra di formalità per occasione · massimo un
+    accento di colore · mai doppio denim · penalità nero+marrone e navy+nero · capospalla in base a
+    temperatura e pioggia · esclusi slim e skinny alla fonte. Foto verificate a vista (Unsplash, 28/08/2026).</p>
+  </main>
+</div>
+
+<script>
+/* OutfitEngine — motore di regole di stile v0.1
+ * Profilo target: uomo, 35 anni, manager. Registro: business casual / smart casual
+ * al lavoro, casual pulito la sera e nel weekend. Fit ammessi: regular, straight,
+ * relaxed, oversize moderato. Vietati: slim, skinny, aderente.
+ * File unico usabile sia nel browser (window.OutfitEngine) sia in Node (module.exports).
+ */
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = factory();
+  else root.OutfitEngine = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var FIT_VIETATI = ['slim', 'skinny', 'super-skinny', 'aderente'];
+  var FIT_AMMESSI = ['regular', 'straight', 'relaxed', 'oversize-moderato'];
+
+  // Colori neutri: si abbinano a tutto. Gli accenti si contano: massimo uno per outfit.
+  var NEUTRI = ['bianco', 'nero', 'grigio', 'navy', 'azzurro', 'beige', 'cammello',
+    'crema', 'marrone', 'cognac', 'denim', 'tortora', 'oliva'];
+
+  // Registro per occasione: formalità obiettivo e finestra ammessa.
+  var OCCASIONI = {
+    lavoro:  { target: 6, min: 4, max: 8, label: 'Lavoro — business/smart casual' },
+    serale:  { target: 5, min: 3, max: 7, label: 'Serale — uscita, cena, aperitivo' },
+    weekend: { target: 4, min: 2, max: 6, label: 'Weekend — tempo libero' }
+  };
+
+  // Slot che compongono un outfit completo.
+  var SLOT_BASE = ['top', 'bottom', 'shoes'];
+
+  function isAccento(colore) { return NEUTRI.indexOf(colore) === -1; }
+
+  function fitOk(item) {
+    if (FIT_VIETATI.indexOf(item.fit) !== -1) return false;
+    return FIT_AMMESSI.indexOf(item.fit) !== -1;
+  }
+
+  // Il capo regge la temperatura richiesta?
+  function meteoOk(item, temp) {
+    if (!item.caldo) return true;
+    return temp >= item.caldo[0] && temp <= item.caldo[1];
+  }
+
+  // Serve un capospalla? E di che peso?
+  function livelloOuter(temp, meteo) {
+    if (temp < 8) return 'pesante';                       // cappotto, piumino
+    if (temp <= 16) return 'medio';                       // blazer, overshirt, trench
+    if (meteo === 'pioggia' && temp <= 22) return 'leggero'; // antipioggia leggero
+    return 'nessuno';
+  }
+
+  function outerOk(item, livello, meteo) {
+    if (livello === 'nessuno') return false;
+    if (meteo === 'pioggia' && item.antipioggia) return true;
+    if (livello === 'pesante') return item.caldo && item.caldo[0] <= 0;
+    if (livello === 'leggero') return item.antipioggia === true;
+    return true; // medio: qualsiasi outer che regge la temperatura
+  }
+
+  // Penalità e bonus di armonia colore tra due capi.
+  function scoreColori(a, b) {
+    var s = 0;
+    var i, j, ca, cb;
+    for (i = 0; i < a.colori.length; i++) {
+      for (j = 0; j < b.colori.length; j++) {
+        ca = a.colori[i]; cb = b.colori[j];
+        // Nero + marroni caldi: da evitare.
+        if ((ca === 'nero' && (cb === 'marrone' || cb === 'cognac' || cb === 'cammello')) ||
+            (cb === 'nero' && (ca === 'marrone' || ca === 'cognac' || ca === 'cammello'))) s -= 2;
+        // Navy + nero: possibile ma difficile.
+        if ((ca === 'navy' && cb === 'nero') || (ca === 'nero' && cb === 'navy')) s -= 1;
+        // Tono su tono chiaro (bianco/crema/beige/cammello) o blu su blu: bonus.
+        var caldi = ['bianco', 'crema', 'beige', 'cammello', 'tortora'];
+        var blu = ['navy', 'azzurro', 'denim'];
+        if (ca !== cb && caldi.indexOf(ca) !== -1 && caldi.indexOf(cb) !== -1) s += 1;
+        if (ca !== cb && blu.indexOf(ca) !== -1 && blu.indexOf(cb) !== -1) s += 1;
+      }
+    }
+    return s;
+  }
+
+  function contaAccenti(items) {
+    var n = 0;
+    items.forEach(function (it) {
+      if (it.colori.some(isAccento)) n++;
+    });
+    return n;
+  }
+
+  // Denim su denim dello stesso peso: vietato.
+  function doppioDenim(items) {
+    var denim = items.filter(function (it) { return it.colori.indexOf('denim') !== -1; });
+    return denim.length > 1;
+  }
+
+  function scoreOutfit(items, occ) {
+    var o = OCCASIONI[occ];
+    var s = 0, i, j;
+    // Coerenza di registro: media formalità vicina al target, e nessun salto interno > 3.
+    var media = items.reduce(function (acc, it) { return acc + it.formalita; }, 0) / items.length;
+    s -= Math.abs(media - o.target) * 2;
+    for (i = 0; i < items.length; i++) {
+      for (j = i + 1; j < items.length; j++) {
+        if (Math.abs(items[i].formalita - items[j].formalita) > 3) s -= 2;
+        s += scoreColori(items[i], items[j]);
+      }
+    }
+    var accenti = contaAccenti(items);
+    if (accenti > 1) s -= 3 * (accenti - 1); // massimo un punto di colore
+    if (doppioDenim(items)) s -= 4;
+    // Ogni capo esplicitamente adatto all'occasione vale un punto.
+    items.forEach(function (it) { if (it.occasioni.indexOf(occ) !== -1) s += 1; });
+    return s;
+  }
+
+  function filtraCandidati(capi, slot, ctx, anchorId) {
+    var o = OCCASIONI[ctx.occasione];
+    return capi.filter(function (it) {
+      if (it.id === anchorId) return false;
+      if (it.slot !== slot) return false;
+      if (!fitOk(it)) return false;
+      if (!meteoOk(it, ctx.temperatura)) return false;
+      if (it.formalita < o.min || it.formalita > o.max) return false;
+      if (ctx.stile && ctx.stile !== 'tutti' && it.stile.indexOf(ctx.stile) === -1) return false;
+      // Un capo entra se copre l'occasione o se è trasversale (>=2 occasioni).
+      if (it.occasioni.indexOf(ctx.occasione) === -1 && it.occasioni.length < 2) return false;
+      return true;
+    });
+  }
+
+  // ——— testo descrittivo ———
+
+  function registroLabel(media) {
+    if (media >= 6) return 'business casual';
+    if (media >= 4.6) return 'smart casual';
+    return 'casual pulito';
+  }
+
+  function notaColore(items) {
+    var accenti = [];
+    items.forEach(function (it) {
+      it.colori.forEach(function (c) { if (isAccento(c) && accenti.indexOf(c) === -1) accenti.push(c); });
+    });
+    if (accenti.length === 0) return 'Palette tutta neutra: impossibile sbagliare, autorevole senza sforzo.';
+    return 'Un solo punto di colore (' + accenti.join(', ') + '), il resto neutro: la regola dei 35 anni portati bene.';
+  }
+
+  function notaMeteo(ctx, outer) {
+    if (ctx.temperatura < 8) return 'Con ' + ctx.temperatura + '°C il capospalla è pesante e la maglia sotto lavora: niente eroismi col freddo.';
+    if (outer) {
+      if (ctx.meteo === 'pioggia') return 'Pioggia prevista: il capospalla scelto la regge senza ombrello da supermercato.';
+      return 'Mezza stagione: il capospalla chiude l’outfit e si toglie in ambiente senza rovinare il look.';
+    }
+    if (ctx.temperatura >= 24) return 'Caldo vero: tessuti che respirano e niente strati inutili.';
+    return 'Temperatura gestibile senza capospalla: il look regge da solo.';
+  }
+
+  var NOTA_FIT = 'Linee comode e contemporanee: regular e relaxed, mai slim. La gamba cade dritta sulla scarpa.';
+
+  function descriviOutfit(items, ctx, anchor) {
+    var media = items.reduce(function (a, it) { return a + it.formalita; }, 0) / items.length;
+    var reg = registroLabel(media);
+    var outer = items.filter(function (it) { return it.slot === 'outer'; })[0];
+    var pezzi = items.filter(function (it) { return it.id !== anchor.id && it.slot !== 'accessorio'; })
+      .map(function (it) { return it.nome.toLowerCase(); });
+    var frasi = [];
+    frasi.push('Partendo da ' + anchor.nome.toLowerCase() + ', il registro giusto è ' + reg +
+      ': ' + pezzi.join(', ') + '.');
+    frasi.push(notaColore(items));
+    frasi.push(notaMeteo(ctx, outer));
+    frasi.push(NOTA_FIT);
+    return frasi.join(' ');
+  }
+
+  // ——— generazione ———
+
+  function combinazioni(slots, candidatiPerSlot, anchorSlotIndex) {
+    // prodotto cartesiano limitato: i candidati sono già ordinati per qualità
+    var res = [[]];
+    slots.forEach(function (slot, idx) {
+      var next = [];
+      res.forEach(function (parziale) {
+        candidatiPerSlot[idx].forEach(function (item) {
+          next.push(parziale.concat([item]));
+        });
+      });
+      res = next;
+    });
+    return res;
+  }
+
+  /**
+   * generaOutfit(capi, anchorId, ctx) → { anchor, outfits: [{items, score, testo}], contesto }
+   * ctx: { occasione: 'lavoro'|'serale'|'weekend', stile: 'tutti'|'smart'|'casual',
+   *        temperatura: n, meteo: 'sole'|'nuvole'|'pioggia' }
+   */
+  function generaOutfit(capi, anchorId, ctx) {
+    ctx = ctx || {};
+    ctx.occasione = ctx.occasione || 'serale';
+    ctx.stile = ctx.stile || 'tutti';
+    ctx.temperatura = typeof ctx.temperatura === 'number' ? ctx.temperatura : 18;
+    ctx.meteo = ctx.meteo || 'sole';
+
+    var anchor = capi.filter(function (c) { return c.id === anchorId; })[0];
+    if (!anchor) return { errore: 'capo non trovato: ' + anchorId };
+    if (!fitOk(anchor)) return { errore: 'capo escluso dal fit check (slim/skinny non ammessi)' };
+
+    // Un "look" pronto non si combina: si racconta.
+    if (anchor.slot === 'look') {
+      return {
+        anchor: anchor,
+        outfits: [{
+          items: [anchor],
+          score: 10,
+          testo: anchor.nota + ' ' + NOTA_FIT
+        }],
+        contesto: ctx
+      };
+    }
+
+    var livello = livelloOuter(ctx.temperatura, ctx.meteo);
+    var slotsNecessari = SLOT_BASE.filter(function (s) { return s !== anchor.slot; });
+    var serveOuter = livello !== 'nessuno' && anchor.slot !== 'outer';
+
+    var candidatiPerSlot = slotsNecessari.map(function (slot) {
+      var cands = filtraCandidati(capi, slot, ctx, anchor.id);
+      return cands.slice(0, 6); // limite per il prodotto cartesiano
+    });
+
+    // Se uno slot resta vuoto (filtri troppo stretti), riapri la finestra di formalità.
+    candidatiPerSlot = candidatiPerSlot.map(function (cands, i) {
+      if (cands.length > 0) return cands;
+      return capi.filter(function (it) {
+        return it.slot === slotsNecessari[i] && fitOk(it) && meteoOk(it, ctx.temperatura) && it.id !== anchor.id;
+      }).slice(0, 4);
+    });
+
+    var outers = [];
+    if (serveOuter) {
+      outers = filtraCandidati(capi, 'outer', ctx, anchor.id)
+        .filter(function (it) { return outerOk(it, livello, ctx.meteo); });
+      if (outers.length === 0 && livello !== 'nessuno') {
+        outers = capi.filter(function (it) {
+          return it.slot === 'outer' && fitOk(it) && outerOk(it, livello, ctx.meteo) && it.id !== anchor.id;
+        });
+      }
+      // Con la pioggia i capi antipioggia passano davanti.
+      if (ctx.meteo === 'pioggia') {
+        outers.sort(function (a, b) { return (b.antipioggia ? 1 : 0) - (a.antipioggia ? 1 : 0); });
+      }
+    }
+
+    var combos = combinazioni(slotsNecessari, candidatiPerSlot);
+    var outfits = [];
+    combos.forEach(function (combo) {
+      var base = [anchor].concat(combo);
+      if (serveOuter && outers.length) {
+        outers.slice(0, 3).forEach(function (o) {
+          var items = base.concat([o]);
+          outfits.push({ items: items, score: scoreOutfit(items, ctx.occasione) });
+        });
+      } else {
+        outfits.push({ items: base, score: scoreOutfit(base, ctx.occasione) });
+      }
+    });
+
+    outfits.sort(function (a, b) { return b.score - a.score; });
+
+    // Diversità: massimo 3 outfit, senza ripetere la stessa scarpa o lo stesso outer.
+    var scelti = [], visteScarpe = {}, vistiOuter = {};
+    for (var i = 0; i < outfits.length && scelti.length < 3; i++) {
+      var of = outfits[i];
+      var scarpa = of.items.filter(function (it) { return it.slot === 'shoes'; })[0];
+      var outer = of.items.filter(function (it) { return it.slot === 'outer'; })[0];
+      var kS = scarpa ? scarpa.id : '-';
+      var kO = outer ? outer.id : '-';
+      if (visteScarpe[kS] && vistiOuter[kO]) continue;
+      visteScarpe[kS] = true; vistiOuter[kO] = true;
+      scelti.push(of);
+    }
+
+    // Un accessorio coerente per ogni outfit.
+    var accessori = filtraCandidati(capi, 'accessorio', ctx, anchor.id);
+    scelti.forEach(function (of, idx) {
+      if (accessori[idx]) of.items = of.items.concat([accessori[idx]]);
+      of.testo = descriviOutfit(of.items, ctx, anchor);
+    });
+
+    return { anchor: anchor, outfits: scelti, contesto: ctx, occasione: OCCASIONI[ctx.occasione] };
+  }
+
+  return {
+    generaOutfit: generaOutfit,
+    fitOk: fitOk,
+    meteoOk: meteoOk,
+    livelloOuter: livelloOuter,
+    scoreOutfit: scoreOutfit,
+    OCCASIONI: OCCASIONI,
+    FIT_VIETATI: FIT_VIETATI,
+    FIT_AMMESSI: FIT_AMMESSI,
+    NEUTRI: NEUTRI
+  };
+});
+
+</script>
+<script>
+var DB = {
+  "versione": "0.1",
+  "nota": "Ogni foto è stata scaricata e verificata a vista il 28/08/2026: il soggetto corrisponde alla descrizione. Fit ammessi: regular, straight, relaxed, oversize moderato. Nessun capo slim/skinny.",
+  "cdn": "https://images.unsplash.com/",
+  "capi": [
+    { "id": "t-bianca", "nome": "T-shirt bianca girocollo", "slot": "top", "colori": ["bianco"], "fit": "regular", "formalita": 3, "occasioni": ["serale", "weekend"], "stile": ["casual", "smart"], "caldo": [12, 34], "img": "photo-1521572163474-6864f9cf17ab", "nota": "La base di tutto: girocollo pulito, spalla giusta, niente stampe." },
+    { "id": "t-nera", "nome": "T-shirt nera girocollo", "slot": "top", "colori": ["nero"], "fit": "regular", "formalita": 3, "occasioni": ["serale", "weekend"], "stile": ["casual"], "caldo": [12, 34], "img": "photo-1583743814966-8936f5b7be1a", "nota": "Più sera della bianca: sotto blazer o overshirt alza subito il tono." },
+    { "id": "t-palette", "nome": "T-shirt girocollo — colori assortiti", "slot": "top", "colori": ["bordeaux", "navy", "bianco"], "fit": "regular", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [12, 34], "img": "photo-1562157873-818bc0726f68", "nota": "Bordeaux e navy funzionano meglio dei colori accesi dopo i 30." },
+    { "id": "polo-nera", "nome": "Polo piqué nera", "slot": "top", "colori": ["nero"], "fit": "regular", "formalita": 4, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [16, 32], "img": "photo-1625910513399-c9fcba54338c", "nota": "L'alternativa estiva alla camicia: collo che regge anche in ufficio." },
+    { "id": "polo-bianca", "nome": "Polo bianca piqué", "slot": "top", "colori": ["bianco"], "fit": "regular", "formalita": 5, "occasioni": ["lavoro", "weekend"], "stile": ["smart"], "caldo": [18, 34], "img": "photo-1623200693945-ec1e9991039a", "nota": "In foto con chino tabacco e sneaker bianche: lo schema estivo che non sbaglia." },
+    { "id": "polo-azzurra", "nome": "Polo — bianco e azzurro", "slot": "top", "colori": ["azzurro", "bianco"], "fit": "regular", "formalita": 4, "occasioni": ["lavoro", "weekend"], "stile": ["smart", "casual"], "caldo": [18, 34], "img": "photo-1720514496161-914011a9ee02", "nota": "Tinte fredde chiare: stanno bene con beige, navy e denim." },
+    { "id": "camicia-oxford", "nome": "Camicia Oxford azzurra", "slot": "top", "colori": ["azzurro"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [8, 28], "img": "photo-1604695573706-53170668f6a6", "nota": "Il pilastro del business casual: collo botton-down, tessuto che perdona." },
+    { "id": "camicia-bianca", "nome": "Camicia bianca", "slot": "top", "colori": ["bianco"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [8, 30], "img": "photo-1603252109303-2751441dd157", "nota": "Aperta sul collo, mai con cravatta in questo guardaroba: registro contemporaneo." },
+    { "id": "camicia-pastello", "nome": "Camicia pastello (azzurro/lilla)", "slot": "top", "colori": ["azzurro", "lilla"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [10, 28], "img": "photo-1603251579431-8041402bdeda", "nota": "Il pastello ammorbidisce l'autorità senza toglierla: perfetto in riunione." },
+    { "id": "camicia-lino-navy", "nome": "Camicia di lino navy", "slot": "top", "colori": ["navy"], "fit": "relaxed", "formalita": 4, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [22, 36], "img": "photo-1740711152088-88a009e877bb", "nota": "Lino con caduta morbida: l'estate smart senza sudare l'eleganza." },
+    { "id": "camicia-lino-crema", "nome": "Camicia di lino crema", "slot": "top", "colori": ["crema"], "fit": "relaxed", "formalita": 4, "occasioni": ["serale", "weekend"], "stile": ["casual", "smart"], "caldo": [22, 36], "img": "photo-1627686011747-74adda3d2343", "nota": "Portata aperta su t-shirt bianca o abbottonata da sola: aperitivo estivo." },
+    { "id": "camicia-chambray", "nome": "Camicia chambray", "slot": "top", "colori": ["denim"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [12, 26], "img": "photo-1782329993439-6bc0cc7bc7bf", "nota": "In foto con chino beige: il casual da manager fuori orario." },
+    { "id": "camicia-flanella", "nome": "Camicia in flanella", "slot": "top", "colori": ["marrone", "verde"], "fit": "relaxed", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [-5, 15], "img": "photo-1782227282777-31e421d02eaf", "nota": "Toni caldi e sordi, mai tartan urlati: weekend d'autunno." },
+    { "id": "camp-collar", "nome": "Camicia camp collar bianca", "slot": "top", "colori": ["bianco"], "fit": "relaxed", "formalita": 4, "occasioni": ["serale", "weekend"], "stile": ["casual", "smart"], "caldo": [22, 36], "img": "photo-1593757147298-e064ed1419e5", "nota": "Collo aperto e linea boxy controllata: sera d'estate, mai in ufficio." },
+    { "id": "dolcevita-crema", "nome": "Dolcevita crema", "slot": "top", "colori": ["crema"], "fit": "regular", "formalita": 5, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [-5, 14], "img": "photo-1516914943479-89db7d9ae7f2", "nota": "Sotto cappotto o blazer sostituisce la camicia da ottobre a marzo." },
+    { "id": "dolcevita-trecce", "nome": "Maglione a trecce collo alto, verde scuro", "slot": "top", "colori": ["verde"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [-5, 12], "img": "photo-1610901157620-340856d0a50f", "nota": "Trama grossa e colore profondo: da solo fa già l'outfit." },
+    { "id": "dolcevita-ruggine", "nome": "Dolcevita chunky ruggine", "slot": "top", "colori": ["ruggine"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [-5, 12], "img": "photo-1608975321561-176c1b187d24", "nota": "L'unico punto di colore dell'outfit: tutto il resto neutro." },
+    { "id": "maglione-shawl", "nome": "Maglione shawl collar", "slot": "top", "colori": ["grigio", "verde"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [-5, 12], "img": "photo-1506794778202-cad84cf45f1d", "nota": "Il collo a scialle veste più di un girocollo: cena informale d'inverno." },
+    { "id": "felpa-bianca", "nome": "Felpa girocollo bianca", "slot": "top", "colori": ["bianco"], "fit": "relaxed", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [8, 18], "img": "photo-1620799140408-edc6dcb6d633", "nota": "Minimal, senza loghi: con denim scuro non sembra palestra." },
+
+    { "id": "chino-beige", "nome": "Chino beige straight", "slot": "bottom", "colori": ["beige"], "fit": "straight", "formalita": 5, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [10, 32], "img": "photo-1473966968600-fa801b869a1a", "nota": "Gamba dritta, orlo pulito: il pantalone che parla con tutto l'armadio." },
+    { "id": "denim-scuro", "nome": "Denim blu scuro regular", "slot": "bottom", "colori": ["navy", "denim"], "fit": "regular", "formalita": 4, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [0, 28], "img": "photo-1624378439575-d8705ad7ae80", "nota": "Il jeans da sera e da venerdì in ufficio: scuro, senza abrasioni." },
+    { "id": "denim-regular", "nome": "Denim regular — lavaggio medio", "slot": "bottom", "colori": ["denim"], "fit": "regular", "formalita": 3, "occasioni": ["serale", "weekend"], "stile": ["casual"], "caldo": [0, 28], "img": "photo-1542272604-787c3835535d", "nota": "Regular vero, non slim: cade dritto sulla scarpa." },
+    { "id": "denim-chiaro", "nome": "Denim chiaro regular", "slot": "bottom", "colori": ["denim"], "fit": "regular", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [8, 30], "img": "photo-1602293589930-45aad59ba3ab", "nota": "Lavaggio chiaro = weekend: con bianco e beige è la formula pulita." },
+    { "id": "pant-neri", "nome": "Pantaloni neri straight", "slot": "bottom", "colori": ["nero"], "fit": "straight", "formalita": 5, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [5, 28], "img": "photo-1584865288642-42078afe6942", "nota": "In foto con camicia bianca e sneaker bianche: la divisa da sera che non stanca." },
+    { "id": "pant-grigi", "nome": "Pantaloni grigi in lana fredda", "slot": "bottom", "colori": ["grigio"], "fit": "straight", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [0, 24], "img": "photo-1479064555552-3ef4979f8908", "nota": "Il più formale dei pantaloni in guardaroba: con maglia o camicia, mai col gessato." },
+
+    { "id": "stan-smith", "nome": "Sneaker bianca in pelle", "slot": "shoes", "colori": ["bianco"], "fit": "regular", "formalita": 5, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [5, 36], "img": "photo-1544441892-794166f1e3be", "nota": "Pulita e senza volumi: l'unica sneaker che entra anche in ufficio." },
+    { "id": "sneaker-crema", "nome": "Sneaker minimal crema", "slot": "shoes", "colori": ["crema"], "fit": "regular", "formalita": 4, "occasioni": ["serale", "weekend"], "stile": ["casual", "smart"], "caldo": [5, 36], "img": "photo-1603808033192-082d6919d3e1", "nota": "Il tono caldo ammorbidisce i look scuri: premium senza logo." },
+    { "id": "sneaker-twotone", "nome": "Sneaker due toni tortora", "slot": "shoes", "colori": ["tortora", "bianco"], "fit": "regular", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [5, 36], "img": "photo-1603808033176-9d134e6f2c74", "nota": "Variante materica della bianca: con beige e oliva è naturale." },
+    { "id": "nb-olive", "nome": "Sneaker running-style oliva", "slot": "shoes", "colori": ["oliva"], "fit": "regular", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [0, 32], "img": "photo-1539185441755-769473a23570", "nota": "Il massimo di sportivo concesso: suola contenuta, colore sordo." },
+    { "id": "penny-loafer", "nome": "Mocassino penny cognac", "slot": "shoes", "colori": ["cognac"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [10, 34], "img": "photo-1777987601447-266e128de448", "nota": "Con chino o pantalone dritto, anche senza calza a vista d'estate." },
+    { "id": "horsebit", "nome": "Mocassino horsebit cuoio", "slot": "shoes", "colori": ["cognac"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [10, 34], "img": "photo-1616406432452-07bc5938759d", "nota": "Il morsetto alza il registro: da riunione importante o cena elegante." },
+    { "id": "loafer-suede", "nome": "Mocassino scamosciato", "slot": "shoes", "colori": ["marrone"], "fit": "regular", "formalita": 5, "occasioni": ["serale", "weekend"], "stile": ["smart", "casual"], "caldo": [10, 32], "img": "photo-1761659760447-8d7eb5cd309a", "nota": "Più morbido del penny in pelle: con denim regular è la sera giusta." },
+    { "id": "derby", "nome": "Derby marrone", "slot": "shoes", "colori": ["marrone"], "fit": "regular", "formalita": 7, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [0, 26], "img": "photo-1614252235316-8c857d38b5f4", "nota": "La scarpa allacciata dei giorni seri: con grigio e navy, mai col denim chiaro." },
+    { "id": "monk", "nome": "Monk strap testa di moro", "slot": "shoes", "colori": ["marrone"], "fit": "regular", "formalita": 7, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [0, 26], "img": "photo-1533867617858-e7b97e060509", "nota": "La fibbia dice carattere senza cravatta: business casual d'autorità." },
+    { "id": "chelsea-suede", "nome": "Chelsea boot scamosciato cognac", "slot": "shoes", "colori": ["cognac"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [-5, 18], "img": "photo-1608629601270-a0007becead3", "nota": "Lo stivaletto che sta bene sia col cappotto che col denim scuro." },
+    { "id": "chelsea-nera", "nome": "Chelsea boot nera", "slot": "shoes", "colori": ["nero"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [-5, 18], "img": "photo-1534233812932-59b8fa1b780c", "nota": "Con pantalone nero o grigio: la sera invernale in monocromo." },
+    { "id": "chukka", "nome": "Chukka scamosciata", "slot": "shoes", "colori": ["marrone", "grigio"], "fit": "regular", "formalita": 5, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [-5, 20], "img": "photo-1610548194675-3f7a220b26f5", "nota": "Il ponte tra sneaker e scarpa seria: perfetta col chino." },
+    { "id": "boots-pelle", "nome": "Stivaletto in pelle marrone", "slot": "shoes", "colori": ["marrone"], "fit": "regular", "formalita": 4, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [-10, 16], "img": "photo-1608256246200-53e635b5b65f", "nota": "Suola importante, pelle vissuta: field jacket e flanella lo chiamano." },
+    { "id": "brogue-boots", "nome": "Brogue boot cognac", "slot": "shoes", "colori": ["cognac"], "fit": "regular", "formalita": 5, "occasioni": ["lavoro", "weekend"], "stile": ["smart", "casual"], "caldo": [-5, 18], "img": "photo-1638609348722-aa2a3a67db26", "nota": "Lavorazione classica su forma robusta: autunno business casual." },
+
+    { "id": "blazer-navy", "nome": "Blazer navy destrutturato", "slot": "outer", "colori": ["navy"], "fit": "relaxed", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [8, 24], "img": "photo-1627379114594-7aff6664cd94", "nota": "In foto su t-shirt bianca e sneaker: l'equazione manager-fuori-ufficio." },
+    { "id": "blazer-azzurro", "nome": "Blazer azzurro chiaro", "slot": "outer", "colori": ["azzurro"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [12, 26], "img": "photo-1622450180332-3da1126f10a4", "nota": "Primavera-estate in ufficio: con camicia bianca e pantaloni oliva o beige." },
+    { "id": "blazer-quadri", "nome": "Blazer a quadri su camicia", "slot": "outer", "colori": ["navy"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [5, 20], "img": "photo-1646888000308-620e64df78fe", "nota": "Il quadro dà texture: sotto meglio una tinta unita che una fantasia." },
+    { "id": "blazer-check", "nome": "Blazer navy Principe di Galles", "slot": "outer", "colori": ["navy"], "fit": "regular", "formalita": 7, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [5, 20], "img": "photo-1592878904946-b3cd8ae243d0", "nota": "In foto con cravatta: nel nostro registro va portato aperto su maglia o camicia, senza." },
+    { "id": "overshirt-cognac", "nome": "Overshirt cognac", "slot": "outer", "colori": ["cognac"], "fit": "relaxed", "formalita": 5, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [8, 18], "img": "photo-1617114919297-3c8ddb01f599", "nota": "In foto su camicia scura e denim: la giacca-camicia che ha pensionato il blazer la sera." },
+    { "id": "overshirt-scura", "nome": "Overshirt scura", "slot": "outer", "colori": ["marrone", "nero"], "fit": "relaxed", "formalita": 4, "occasioni": ["serale", "weekend"], "stile": ["casual"], "caldo": [8, 18], "img": "photo-1507680434567-5739c80be1ac", "nota": "Su camicia chiara o t-shirt: mezze stagioni, zero pensieri." },
+    { "id": "giacca-jeans", "nome": "Giacca di jeans, colletto corduroy", "slot": "outer", "colori": ["denim"], "fit": "regular", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [10, 20], "img": "photo-1611312449408-fcece27cdbb7", "nota": "Mai denim-su-denim dello stesso lavaggio: sotto beige o bianco." },
+    { "id": "bomber-terracotta", "nome": "Bomber leggero terracotta", "slot": "outer", "colori": ["terracotta"], "fit": "regular", "formalita": 3, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [10, 20], "img": "photo-1591047139829-d91aecb6caea", "nota": "Il colore fa da protagonista: tutto il resto bianco, beige o navy." },
+    { "id": "bomber-look", "nome": "Bomber bordeaux", "slot": "outer", "colori": ["bordeaux"], "fit": "regular", "formalita": 3, "occasioni": ["serale", "weekend"], "stile": ["casual"], "caldo": [8, 18], "img": "photo-1512353087810-25dfcd100962", "nota": "In foto su riga marinara e denim: sera informale con carattere." },
+    { "id": "field-jacket", "nome": "Field jacket sabbia", "slot": "outer", "colori": ["beige"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [5, 16], "img": "photo-1638247025967-b4e38f787b76", "nota": "In foto con denim scuro risvoltato e boots: il weekend d'autunno fatto bene." },
+    { "id": "trench-beige", "nome": "Trench beige", "slot": "outer", "colori": ["beige"], "fit": "relaxed", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [6, 16], "antipioggia": true, "img": "photo-1575862980084-cd0645edddba", "nota": "La pioggia è il suo momento: sopra tutto ciò che è navy, grigio o denim scuro." },
+    { "id": "trench-nero", "nome": "Trench nero con cintura", "slot": "outer", "colori": ["nero"], "fit": "relaxed", "formalita": 5, "occasioni": ["serale"], "stile": ["smart", "casual"], "caldo": [4, 14], "antipioggia": true, "img": "photo-1642886513308-d21acc15057d", "nota": "Total black da sera urbana: serve solo una t-shirt sotto." },
+    { "id": "trench-olive", "nome": "Trench oliva", "slot": "outer", "colori": ["oliva"], "fit": "relaxed", "formalita": 4, "occasioni": ["weekend", "serale"], "stile": ["casual"], "caldo": [4, 14], "antipioggia": true, "img": "photo-1603817399543-15c3120cd5be", "nota": "Militare ripulito: con nero e denim scuro non sa di surplus." },
+    { "id": "cappotto-cammello", "nome": "Cappotto cammello", "slot": "outer", "colori": ["cammello"], "fit": "relaxed", "formalita": 6, "occasioni": ["lavoro", "serale"], "stile": ["smart"], "caldo": [-8, 12], "img": "photo-1619603364904-c0498317e145", "nota": "In foto su dolcevita tono su tono: l'inverno più autorevole che esista." },
+    { "id": "cappotto-grigio", "nome": "Cappotto grigio", "slot": "outer", "colori": ["grigio"], "fit": "relaxed", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [-8, 12], "img": "photo-1787045098569-2e17ae871df4", "nota": "In foto con dolcevita navy e pantaloni beige: la palette invernale da copiare." },
+    { "id": "piumino", "nome": "Piumino nero", "slot": "outer", "colori": ["nero"], "fit": "regular", "formalita": 3, "occasioni": ["weekend"], "stile": ["casual"], "caldo": [-15, 8], "img": "photo-1557418669-db3f781a58c0", "nota": "Sotto zero vince la fisica: nero, corto, senza loghi giganti." },
+
+    { "id": "look-abito-dolcevita", "nome": "Abito navy + dolcevita grigio", "slot": "look", "colori": ["navy", "grigio"], "fit": "regular", "formalita": 7, "occasioni": ["serale", "lavoro"], "stile": ["smart"], "caldo": [-5, 14], "img": "photo-1582274528667-1e8a10ded835", "nota": "Il look pronto per la sera importante d'inverno: abito senza cravatta, dolcevita fine." },
+    { "id": "look-monocromo", "nome": "Monocromo nero + t-shirt bianca", "slot": "look", "colori": ["nero", "bianco"], "fit": "regular", "formalita": 5, "occasioni": ["serale"], "stile": ["casual", "smart"], "caldo": [8, 20], "img": "photo-1495366691023-cc4eadcc2d7e", "nota": "Giacca nera, t-shirt bianca, pantalone nero, sneaker bianca: la sera senza pensarci." },
+
+    { "id": "orologio-pelle", "nome": "Orologio classico, cinturino in pelle", "slot": "accessorio", "colori": ["marrone"], "fit": "regular", "formalita": 6, "occasioni": ["lavoro"], "stile": ["smart"], "caldo": [-20, 40], "img": "photo-1524805444758-089113d48a6d", "nota": "Quadrante sobrio, pelle marrone: parla con mocassini e derby." },
+    { "id": "orologio-acciaio", "nome": "Orologio in acciaio", "slot": "accessorio", "colori": ["grigio"], "fit": "regular", "formalita": 5, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [-20, 40], "img": "photo-1547996160-81dfa63595aa", "nota": "Il tuttofare: bracciale d'acciaio, va dal lunedì al sabato sera." },
+    { "id": "occhiali-tondi", "nome": "Occhiali da sole tondi, montatura oro", "slot": "accessorio", "colori": ["cognac"], "fit": "regular", "formalita": 4, "occasioni": ["serale", "weekend"], "stile": ["casual"], "caldo": [-20, 40], "img": "photo-1511499767150-a48a237f0083", "nota": "Più morbidi del wayfarer: con toni caldi e lino." },
+    { "id": "wayfarer", "nome": "Occhiali da sole neri", "slot": "accessorio", "colori": ["nero"], "fit": "regular", "formalita": 4, "occasioni": ["lavoro", "serale", "weekend"], "stile": ["smart", "casual"], "caldo": [-20, 40], "img": "photo-1572635196237-14b3f281503f", "nota": "La montatura che non tradisce: con tutto, sempre." },
+    { "id": "zaino", "nome": "Zaino navy minimal", "slot": "accessorio", "colori": ["navy"], "fit": "regular", "formalita": 4, "occasioni": ["lavoro", "weekend"], "stile": ["smart", "casual"], "caldo": [-20, 40], "img": "photo-1553062407-98eeb64c6a62", "nota": "Linee pulite, zero cinghie tecniche: il laptop viaggia elegante." },
+    { "id": "profumo", "nome": "Profumo da sera", "slot": "accessorio", "colori": ["navy"], "fit": "regular", "formalita": 5, "occasioni": ["serale"], "stile": ["smart"], "caldo": [-20, 40], "img": "photo-1523293182086-7651a899d37f", "nota": "Aromatico-legnoso: l'accessorio invisibile della sera." }
+  ],
+  "moodboard": [
+    { "id": "mood-rack", "nome": "Guardaroba capsule — toni neutri", "img": "photo-1551232864-3f0890e580d9" },
+    { "id": "mood-flat-smart", "nome": "Flat lay smart casual", "img": "photo-1593030761757-71fae45fa0e7" },
+    { "id": "mood-flat-casual", "nome": "Flat lay weekend", "img": "photo-1479064555552-3ef4979f8908" },
+    { "id": "mood-flat-business", "nome": "Flat lay business", "img": "photo-1490114538077-0a7f8cb49891" }
+  ]
+};
+(function(){
+  'use strict';
+  var capi = DB.capi;
+  var CDN = DB.cdn;
+  var SLOT_LABEL = { top:'SOPRA', bottom:'SOTTO', shoes:'SCARPE', outer:'CAPOSPALLA', look:'LOOK PRONTI', accessorio:'ACCESSORI' };
+  var SLOT_ORDINE = ['top','bottom','shoes','outer','look','accessorio'];
+
+  var stato = { occasione:'lavoro', stile:'tutti', meteo:'sole', temperatura:18, anchor:null };
+  try {
+    var salvato = JSON.parse(localStorage.getItem('outfit-filtri') || 'null');
+    if (salvato) { stato.occasione = salvato.occasione || stato.occasione;
+      stato.stile = salvato.stile || stato.stile; stato.meteo = salvato.meteo || stato.meteo;
+      if (typeof salvato.temperatura === 'number') stato.temperatura = salvato.temperatura; }
+  } catch(e){}
+
+  function salvaFiltri(){ try { localStorage.setItem('outfit-filtri', JSON.stringify(stato)); } catch(e){} }
+
+  function img(it, w){ return CDN + it.img + '?auto=format&fit=crop&w=' + (w||500) + '&q=75'; }
+
+  function chipInit(id, campo){
+    var box = document.getElementById(id);
+    var chips = box.querySelectorAll('.chip');
+    chips.forEach(function(ch){
+      if (ch.dataset.v === stato[campo]) { chips.forEach(function(c){c.classList.remove('on');}); ch.classList.add('on'); }
+      ch.addEventListener('click', function(){
+        chips.forEach(function(c){ c.classList.remove('on'); });
+        ch.classList.add('on');
+        stato[campo] = ch.dataset.v;
+        salvaFiltri(); renderGuardaroba(); rigenera();
+      });
+    });
+  }
+
+  function visibile(it){
+    if (stato.stile !== 'tutti' && it.stile.indexOf(stato.stile) === -1) return false;
+    if (it.occasioni.indexOf(stato.occasione) === -1) return false;
+    if (!OutfitEngine.meteoOk(it, stato.temperatura)) return false;
+    return true;
+  }
+
+  function renderGuardaroba(){
+    var box = document.getElementById('guardaroba');
+    box.innerHTML = '';
+    var n = 0;
+    SLOT_ORDINE.forEach(function(slot){
+      var items = capi.filter(function(it){ return it.slot === slot && visibile(it); });
+      if (!items.length) return;
+      var h = document.createElement('div'); h.className = 'slotsec'; h.textContent = SLOT_LABEL[slot];
+      box.appendChild(h);
+      var g = document.createElement('div'); g.className = 'griglia';
+      items.forEach(function(it){
+        n++;
+        var b = document.createElement('button');
+        b.className = 'capo' + (stato.anchor === it.id ? ' sel' : '');
+        b.innerHTML = '<img loading="lazy" alt="' + it.nome + '" src="' + img(it, 400) + '">' +
+          '<div class="cn">' + it.nome + '</div><div class="cf">' + it.fit + ' · formalità ' + it.formalita + '/10</div>';
+        b.addEventListener('click', function(){ stato.anchor = it.id; renderGuardaroba(); rigenera(true); });
+        g.appendChild(b);
+      });
+      box.appendChild(g);
+    });
+    if (!n) box.innerHTML = '<div class="vuoto">Nessun capo regge questi filtri (temperatura o stile troppo stretti): allarga il contesto.</div>';
+    document.getElementById('conta').textContent = n + ' capi';
+  }
+
+  function rigenera(scrolla){
+    var sec = document.getElementById('risultati');
+    if (!stato.anchor) { sec.hidden = true; return; }
+    var r = OutfitEngine.generaOutfit(capi, stato.anchor, {
+      occasione: stato.occasione, stile: stato.stile,
+      temperatura: stato.temperatura, meteo: stato.meteo
+    });
+    var body = document.getElementById('rbody');
+    if (r.errore || !r.outfits.length) {
+      sec.hidden = false;
+      document.getElementById('rtitolo').textContent = 'ABBINAMENTI';
+      body.innerHTML = '<div class="vuoto">' + (r.errore || 'Con questi filtri non esce un outfit onesto: cambia occasione o temperatura.') + '</div>';
+      return;
+    }
+    document.getElementById('rtitolo').textContent = 'ABBINAMENTI — ' + r.anchor.nome.toUpperCase();
+    body.innerHTML = '';
+    r.outfits.forEach(function(of, i){
+      var d = document.createElement('div'); d.className = 'outfit';
+      var righe = of.items.map(function(it){
+        return '<div class="oitem' + (it.id === r.anchor.id ? ' anchor' : '') + '">' +
+          '<img loading="lazy" alt="' + it.nome + '" src="' + img(it, 300) + '">' +
+          '<div class="on">' + it.nome + '</div></div>';
+      }).join('');
+      d.innerHTML = '<div class="ohead"><span class="otit">Proposta ' + (i+1) + '</span>' +
+        '<span class="oscore">armonia ' + Math.round(of.score) + '</span></div>' +
+        '<div class="orow">' + righe + '</div>' +
+        '<div class="otesto">' + of.testo + '</div>';
+      body.appendChild(d);
+    });
+    sec.hidden = false;
+    if (scrolla) sec.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  // init
+  document.getElementById('oggi').textContent = new Date().toLocaleDateString('it-IT',
+    { weekday:'long', day:'numeric', month:'long' });
+  chipInit('f-occ','occasione'); chipInit('f-stile','stile'); chipInit('f-meteo','meteo');
+  var slider = document.getElementById('temp');
+  slider.value = stato.temperatura;
+  document.getElementById('tval').textContent = stato.temperatura + '°';
+  slider.addEventListener('input', function(){
+    stato.temperatura = Number(slider.value);
+    document.getElementById('tval').textContent = stato.temperatura + '°';
+  });
+  slider.addEventListener('change', function(){ salvaFiltri(); renderGuardaroba(); rigenera(); });
+  renderGuardaroba();
+})();
+</script>
+</body>
+</html>
