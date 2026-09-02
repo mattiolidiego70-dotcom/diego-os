@@ -138,8 +138,31 @@
       <p id="nEsito"></p>
     </div>
 
-    <!-- ============ CORRENTI ============ -->
+    <!-- ============ FILTRI (29/08): cerca e filtra tutto ============ -->
     <div class="scheda">
+      <h3>Filtra</h3>
+      <div class="riga">
+        <input id="fTesto" placeholder="cerca nelle parole&hellip;" oninput="applicaFiltri()">
+      </div>
+      <div class="riga">
+        <select id="fTipo" onchange="applicaFiltri()">
+          <option value="">tutti i tipi</option>
+          <option value="pensiero">Un pensiero</option>
+          <option value="sogno">Sogno</option>
+          <option value="pattern">Pattern</option>
+          <option value="da_dire">Da dire in seduta</option>
+        </select>
+        <select id="fDove" onchange="applicaFiltri()">
+          <option value="">da portare + portati</option>
+          <option value="corrente">solo da portare</option>
+          <option value="storico">solo portati in seduta</option>
+        </select>
+      </div>
+      <p id="fConto" class="spin"></p>
+    </div>
+
+    <!-- ============ CORRENTI ============ -->
+    <div class="scheda" id="schedaCorrenti">
       <h3>Da portare in seduta &middot; correnti</h3>
       <div class="sotto">Spunta ci&ograve; che hai portato e premi &laquo;Portati in seduta&raquo;: finisce nello storico, per le tendenze.</div>
       <div id="correnti" class="spin">&hellip;</div>
@@ -151,7 +174,7 @@
     </div>
 
     <!-- ============ STORICO ============ -->
-    <div class="scheda">
+    <div class="scheda" id="schedaStorico">
       <h3>Storico &middot; gi&agrave; portati in seduta</h3>
       <div class="sotto">Qui Alfred e Claude leggono le tendenze e i miglioramenti nel tempo.</div>
       <div id="storico" class="spin">&hellip;</div>
@@ -201,12 +224,40 @@ function quando(v){
 }
 function badge(tipo){ return '<span class="badge b-'+tipo+'">'+(TIPI[tipo]||tipo)+'</span>'; }
 
-function carica(){
-  api('/api/psicologa?stato=corrente').then(function(l){
-    CORRENTI=l;
-    var el=document.getElementById('correnti');
-    if(!l.length){ el.innerHTML='<span class="spin">Niente da portare, per ora. Aggiungi un blocco qui sopra o dillo ad Alfred.</span>'; return; }
-    el.innerHTML=l.map(function(v,i){
+/* — filtri (29/08): valgono su correnti E storico, si applicano in locale — */
+var FILTRO={testo:'',tipo:'',dove:''};
+
+function filtra(lista){
+  return lista.filter(function(v){
+    if(FILTRO.tipo && v.tipo!==FILTRO.tipo) return false;
+    if(FILTRO.testo && String(v.testo).toLowerCase().indexOf(FILTRO.testo)<0) return false;
+    return true;
+  });
+}
+
+function applicaFiltri(){
+  FILTRO.testo=document.getElementById('fTesto').value.trim().toLowerCase();
+  FILTRO.tipo=document.getElementById('fTipo').value;
+  FILTRO.dove=document.getElementById('fDove').value;
+  document.getElementById('schedaCorrenti').style.display = FILTRO.dove==='storico'?'none':'';
+  document.getElementById('schedaStorico').style.display = FILTRO.dove==='corrente'?'none':'';
+  rendi();
+}
+
+function rendi(){
+  var attivo=FILTRO.testo||FILTRO.tipo||FILTRO.dove;
+  var lc=filtra(CORRENTI), ls=filtra(STORICO);
+  document.getElementById('fConto').textContent = attivo
+    ? 'mostrati '+lc.length+' su '+CORRENTI.length+' da portare e '+ls.length+' su '+STORICO.length+' portati'
+    : '';
+
+  var el=document.getElementById('correnti');
+  if(!lc.length){
+    el.innerHTML='<span class="spin">'+(CORRENTI.length
+      ? 'Nessun appunto passa il filtro.'
+      : 'Niente da portare, per ora. Aggiungi un blocco qui sopra o dillo ad Alfred.')+'</span>';
+  } else {
+    el.innerHTML=lc.map(function(v){
       return '<div class="appunto" id="app-'+v.id+'">'+
         '<input type="checkbox" data-id="'+v.id+'">'+
         '<div class="corpo"><div class="testo" id="testo-'+v.id+'"></div>'+
@@ -219,15 +270,17 @@ function carica(){
           '<button title="elimina" onclick="elimina('+v.id+')">&#215;</button>'+
         '</div></div>';
     }).join('');
-    l.forEach(function(v){ document.getElementById('testo-'+v.id).textContent=v.testo; });
-  }).catch(function(e){ err(e); });
+    lc.forEach(function(v){ document.getElementById('testo-'+v.id).textContent=v.testo; });
+  }
 
-  api('/api/psicologa?stato=storico').then(function(l){
-    STORICO=l;
-    var el=document.getElementById('storico');
-    if(!l.length){ el.innerHTML='<span class="spin">Ancora vuoto: si riempie dopo le sedute.</span>'; return; }
+  var es=document.getElementById('storico');
+  if(!ls.length){
+    es.innerHTML='<span class="spin">'+(STORICO.length
+      ? 'Nessun appunto passa il filtro.'
+      : 'Ancora vuoto: si riempie dopo le sedute.')+'</span>';
+  } else {
     var html='', ultima=null;
-    l.forEach(function(v){
+    ls.forEach(function(v){
       var g=v.portato_il||'';
       if(g!==ultima){ html+='<div class="gruppo-data">seduta del '+(g?quando(g):'?')+'</div>'; ultima=g; }
       html+='<div class="appunto"><div class="corpo"><div class="testo" id="stesto-'+v.id+'"></div>'+
@@ -237,8 +290,18 @@ function carica(){
           '<button title="esporta questo" onclick="esporta(\'storico\','+v.id+')">&#8595;&#775;</button>'+
         '</div></div>';
     });
-    el.innerHTML=html;
-    l.forEach(function(v){ var n=document.getElementById('stesto-'+v.id); if(n) n.textContent=v.testo; });
+    es.innerHTML=html;
+    ls.forEach(function(v){ var n=document.getElementById('stesto-'+v.id); if(n) n.textContent=v.testo; });
+  }
+}
+
+function carica(){
+  Promise.all([
+    api('/api/psicologa?stato=corrente'),
+    api('/api/psicologa?stato=storico'),
+  ]).then(function(r){
+    CORRENTI=r[0]; STORICO=r[1];
+    rendi();
   }).catch(function(e){ err(e); });
 }
 
@@ -277,6 +340,14 @@ function modifica(id, storico){
   var ta=document.createElement('textarea');
   ta.value=v.testo;
   ta.rows=Math.min(14, Math.max(3, v.testo.split('\n').length+1));
+  /* 29/08: si cambia anche il TIPO (l'etichetta), non solo le parole */
+  var sel=document.createElement('select');
+  sel.style.width='auto'; sel.style.marginTop='6px'; sel.style.marginRight='6px';
+  Object.keys(TIPI).forEach(function(k){
+    var o=document.createElement('option'); o.value=k; o.textContent=TIPI[k];
+    sel.appendChild(o);
+  });
+  sel.value=v.tipo;
   var sv=document.createElement('button');
   sv.className='azione'; sv.textContent='Salva modifica'; sv.style.marginTop='6px';
   var an=document.createElement('button');
@@ -284,14 +355,14 @@ function modifica(id, storico){
   sv.style.width='auto';
   nodo.textContent='';
   nodo.appendChild(ta); nodo.appendChild(document.createElement('br'));
-  nodo.appendChild(sv); nodo.appendChild(an);
+  nodo.appendChild(sel); nodo.appendChild(sv); nodo.appendChild(an);
   ta.focus();
   an.onclick=function(){ carica(); };
   sv.onclick=function(){
     var t=ta.value.trim();
     if(!t) return;
     sv.disabled=true;
-    api('/api/psicologa_modifica',{id:id,testo:t}).then(carica)
+    api('/api/psicologa_modifica',{id:id,testo:t,tipo:sel.value}).then(carica)
       .catch(function(e){ sv.disabled=false; alert('Errore: '+e.message); });
   };
 }

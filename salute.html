@@ -136,6 +136,48 @@
   details.dett .corpo{padding-bottom:14px}
   canvas.grande{max-height:200px}
 
+  /* tendenza (29/08): chip di periodo + riga di lettura sotto i grafici */
+  .periodi{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{background:var(--surface-2);border:1px solid var(--hairline);border-radius:999px;
+    color:var(--muted);font:500 12.5px var(--sans);padding:7px 14px;cursor:pointer}
+  .chip.on{color:#101216;background:var(--accent);border-color:var(--accent);font-weight:700}
+  .lettura{margin-top:10px;padding:10px 12px;border:1px solid var(--hairline);border-radius:10px;
+    background:var(--surface-2);color:var(--ink-2);font-size:13px;min-height:20px;
+    font-variant-numeric:tabular-nums}
+  .lettura b{color:var(--ink)}
+  #v-trend canvas.grande{max-height:240px;width:100%!important}
+
+  /* corpo (02/09): figura coi punti di repere + campi di inserimento */
+  .corpo-wrap{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
+  .figura svg{width:100%;height:auto;max-height:400px;display:block}
+  .figura-nota{color:var(--muted);font-size:11px;text-align:center;margin-top:4px}
+  .pt{stroke:rgba(166,226,46,.35);cursor:pointer}
+  .pt:hover{stroke:rgba(166,226,46,.7)}
+  .pt.sel{stroke:var(--accent);stroke-width:4}
+  .pt.pieno{stroke:var(--accent)}
+  .campi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .campo{border:1px solid var(--hairline);border-radius:10px;padding:8px 10px;background:var(--surface-2)}
+  .campo.sel{border-color:var(--accent)}
+  .campo .n{color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    display:flex;justify-content:space-between;gap:6px}
+  .campo .n em{font-style:normal;color:var(--accent);font-size:9.5px}
+  .campo input{border:0;background:none;padding:4px 0;font:600 19px var(--sans);font-variant-numeric:tabular-nums}
+  .campo input:focus{outline:none}
+  .campo .prec{color:var(--muted);font-size:11px}
+  label.fuori{display:flex;align-items:center;gap:8px;color:var(--ink-2);font-size:12.5px;
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;cursor:pointer}
+  label.fuori input{width:17px;height:17px;flex:none;accent-color:var(--warning)}
+  .mis-riga{display:flex;justify-content:space-between;gap:10px;padding:9px 0;
+    border-bottom:1px solid var(--hairline);font-size:13.5px;align-items:baseline}
+  .mis-riga:last-child{border-bottom:0}
+  .mis-riga .val{font-variant-numeric:tabular-nums}
+  .mis-riga small{display:block;color:var(--muted);font-size:11.5px}
+  .indice{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+  .indice div{border:1px solid var(--hairline);border-radius:10px;padding:8px 12px;background:var(--surface-2)}
+  .indice .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+  .indice .v{font:600 18px var(--sans);font-variant-numeric:tabular-nums}
+  @media (max-width:720px){ .corpo-wrap{grid-template-columns:1fr} .figura{max-width:230px;margin:0 auto} }
+
   .hero .val,.tile .v,.banda-num{font-variant-numeric:tabular-nums}
   @media (max-width:720px){
     input,select,textarea{font-size:16px}
@@ -181,6 +223,8 @@
 
     <nav class="tabs">
       <button class="on" onclick="vista('oggi',this)">Oggi</button>
+      <button onclick="vista('trend',this);montaTrend()">Tendenza</button>
+      <button onclick="vista('corpo',this);montaCorpo()">Corpo</button>
       <button onclick="vista('diario',this)">Diario</button>
       <button onclick="vista('input',this)">Inserisci</button>
       <button onclick="vista('coach',this)">Coach</button>
@@ -192,6 +236,103 @@
       <div id="bentornato" class="scheda" style="display:none;border-color:rgba(166,226,46,.3);background:rgba(166,226,46,.07);color:var(--ink-2)">Bentornato: si riparte da oggi, senza recuperi.</div>
       <div class="griglia" id="griglia"></div>
       <div id="dettagli"></div>
+    </div>
+
+    <!-- ============ TENDENZA (29/08): grafici grandi, tocco = numero del giorno ============ -->
+    <div id="v-trend" class="vista">
+      <div class="scheda">
+        <div class="periodi" id="tPeriodi">
+          <button class="chip" data-g="30" onclick="trendPeriodo(30,this)">30 giorni</button>
+          <button class="chip on" data-g="90" onclick="trendPeriodo(90,this)">90 giorni</button>
+          <button class="chip" data-g="182" onclick="trendPeriodo(182,this)">6 mesi</button>
+        </div>
+        <h3 style="margin-top:12px">Peso</h3>
+        <canvas id="tPeso" class="grande"></canvas>
+        <div id="tPesoInfo" class="lettura">tocca un punto del grafico: qui appare il numero di quel giorno</div>
+      </div>
+      <div class="scheda">
+        <h3>Calorie</h3>
+        <canvas id="tKcal" class="grande"></canvas>
+        <div id="tKcalInfo" class="lettura">tocca una barra: qui appare il totale di quel giorno</div>
+      </div>
+      <div class="scheda">
+        <h3>Pliche &middot; controlli del nutrizionista</h3>
+        <canvas id="tPliche" class="grande"></canvas>
+        <div id="tPlicheInfo" class="lettura">tocca un controllo: qui appaiono le sei pliche di quel giorno</div>
+        <div id="tPlicheLista" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- ============ CORPO (02/09): misure settimanali del giovedi ============
+         Figura stilizzata coi punti di repere: si tocca un punto e si apre il
+         campo con l'istruzione operativa. Protocollo: WHO 2008, NHANES 2021,
+         CDC Series 2 n.182, IAS/ICCR 2020, ISAK. -->
+    <div id="v-corpo" class="vista">
+      <div class="scheda">
+        <h3>Misure del corpo &middot; giovedì mattina</h3>
+        <div id="cFinestra" class="lettura" style="margin-top:0;margin-bottom:12px"></div>
+        <div class="corpo-wrap">
+          <div class="figura">
+            <svg viewBox="0 0 200 420" id="svgCorpo" aria-label="figura del corpo coi punti di misurazione">
+              <!-- sagoma -->
+              <g fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2" stroke-linejoin="round">
+                <circle cx="100" cy="38" r="24"/>
+                <path d="M100 62 L100 78"/>
+                <path d="M100 78 C70 82 58 96 54 120 L44 196 L58 200 L70 150
+                         L70 214 C70 250 66 262 64 300 L60 396 L82 396 L88 300
+                         L100 258 L112 300 L118 396 L140 396 L136 300
+                         C134 262 130 250 130 214 L130 150 L142 200 L156 196
+                         L146 120 C142 96 130 82 100 78 Z"/>
+              </g>
+              <!-- linee dei punti di misura -->
+              <g stroke-width="2.5" stroke-linecap="round">
+                <line class="pt" data-m="circ_collo"     x1="78"  y1="72"  x2="122" y2="72"/>
+                <line class="pt" data-m="circ_torace"    x1="60"  y1="118" x2="140" y2="118"/>
+                <line class="pt" data-m="circ_braccio"   x1="46"  y1="150" x2="66"  y2="150"/>
+                <line class="pt" data-m="circ_vita"      x1="60"  y1="168" x2="140" y2="168"/>
+                <line class="pt" data-m="circ_fianchi"   x1="60"  y1="212" x2="140" y2="212"/>
+                <line class="pt" data-m="circ_coscia"    x1="66"  y1="252" x2="98"  y2="252"/>
+                <line class="pt" data-m="circ_polpaccio" x1="62"  y1="330" x2="88"  y2="330"/>
+              </g>
+              <g class="etichette" font-size="9" fill="#85837c">
+                <text x="128" y="69">collo</text>
+                <text x="146" y="115">torace</text>
+                <text x="14"  y="147">braccio</text>
+                <text x="146" y="165">VITA</text>
+                <text x="146" y="209">fianchi</text>
+                <text x="104" y="255">coscia</text>
+                <text x="94"  y="333">polpaccio</text>
+              </g>
+            </svg>
+            <div class="figura-nota">tocca un punto per l&rsquo;istruzione</div>
+          </div>
+          <div class="campi" id="cCampi"></div>
+        </div>
+        <div id="cIstruzione" class="lettura"></div>
+        <div class="riga" style="margin-top:10px"><input id="cData" type="date"></div>
+        <div class="riga">
+          <label class="fuori"><input type="checkbox" id="cFuori"> misurate fuori protocollo (altro giorno, dopo il box, non a digiuno)</label>
+        </div>
+        <button class="azione" onclick="salvaCorpo()">Salva le misure</button>
+        <p id="cEsito"></p>
+      </div>
+
+      <div class="scheda">
+        <h3>Lettura &middot; media a 4 settimane</h3>
+        <div id="cTrend" class="spin">&hellip;</div>
+      </div>
+
+      <div class="scheda">
+        <h3>Tendenza delle misure</h3>
+        <div class="periodi" id="cSerie"></div>
+        <canvas id="cGrafico" class="grande"></canvas>
+        <div id="cGraficoInfo" class="lettura">tocca un punto: qui appare la misura di quel giorno</div>
+      </div>
+
+      <details class="dett">
+        <summary>Il protocollo in breve</summary>
+        <div class="corpo" id="cProtocollo"></div>
+      </details>
     </div>
 
     <!-- ============ DIARIO ============ -->
@@ -536,6 +677,318 @@ function giornoIso(d){
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   TENDENZA (29/08, chiesto da Diego): grafici grandi e TOCCABILI.
+   Un tocco su un punto scrive il numero di QUEL giorno nella riga di
+   lettura sotto il grafico (il tooltip su iPhone e scomodo, la riga no).
+   Periodo a scelta con le chip; pliche dai controlli del nutrizionista.
+   ════════════════════════════════════════════════════════════════════ */
+var TREND_G = 90;
+var PLICHE_LBL = { plica_a:'addome (a)', plica_p:'petto (p)', plica_b:'bicipite (b)',
+                   plica_t:'tricipite (t)', plica_s:'sottoscapola (s)', plica_g:'gamba (g)' };
+var PLICHE_COL = { plica_a:'#a6e22e', plica_p:'#3987e5', plica_b:'#9085e9',
+                   plica_t:'#d55181', plica_s:'#fab219', plica_g:'#ec835a' };
+
+function dataIt(iso){
+  return new Date(iso+'T12:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
+}
+function dataCorta(iso){ return iso.split('-').reverse().join('/'); }
+
+function trendPeriodo(g, btn){
+  TREND_G=g;
+  document.querySelectorAll('#tPeriodi .chip').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  montaTrend();
+}
+
+function opTrend(righe){
+  return {responsive:true,animation:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}},
+      tooltip:{mode:'index',intersect:false,
+        callbacks:{title:function(it){ return it.length?dataIt(righe[it[0].dataIndex].date):''; }}}},
+    scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
+            y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
+}
+
+function montaTrend(){
+  var righe=(DATI.righe182||[]).slice(-TREND_G);
+  if(!righe.length) return;
+  var lab=righe.map(function(r){ return dataCorta(r.date).slice(0,5); });
+
+  var opP=opTrend(righe);
+  opP.onClick=function(e,els){ if(els&&els.length) letturaPeso(righe,els[0].index); };
+  grafico('tPeso',{type:'line',data:{labels:lab,datasets:[
+    {label:'pesata del giorno',data:righe.map(function(r){return r.weight_kg;}),
+     showLine:false,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:'rgba(57,135,229,.55)',borderColor:'rgba(57,135,229,0)'},
+    {label:'media 7 giorni (la lettura vera)',data:righe.map(function(r){return r.peso_ma7;}),
+     borderColor:'#a6e22e',backgroundColor:'rgba(166,226,46,.09)',fill:true,
+     pointRadius:0,pointHoverRadius:4,borderWidth:3,tension:.25,spanGaps:true}]},options:opP});
+  letturaPeso(righe,righe.length-1);
+
+  var opK=opTrend(righe);
+  opK.onClick=function(e,els){ if(els&&els.length) letturaKcal(righe,els[0].index); };
+  grafico('tKcal',{type:'bar',data:{labels:lab,datasets:[
+    {label:'kcal del giorno (margine +15% incluso)',data:righe.map(function(r){return r.calories_in;}),
+     backgroundColor:'rgba(57,135,229,.45)',hoverBackgroundColor:'#3987e5'},
+    {label:'media 7 giorni',type:'line',data:righe.map(function(r){return r.kcal_ma7;}),
+     borderColor:'#fab219',pointRadius:0,pointHoverRadius:4,borderWidth:2.5,tension:.25,spanGaps:true}]},options:opK});
+  letturaKcal(righe,righe.length-1);
+
+  montaPliche();
+}
+
+function letturaPeso(righe,i){
+  var r=righe[i]; if(!r) return;
+  var h='<b>'+dataIt(r.date)+'</b> · pesata '+(r.weight_kg!=null?'<b>'+fmt(r.weight_kg,2)+' kg</b>':'non fatta');
+  if(r.peso_ma7!=null) h+=' · media 7gg <b>'+fmt(r.peso_ma7,2)+' kg</b>';
+  if(r.delta_peso_ma7_su_7gg!=null) h+=' · '+(r.delta_peso_ma7_su_7gg>0?'+':'')+fmt(r.delta_peso_ma7_su_7gg,2)+' kg sulla settimana';
+  document.getElementById('tPesoInfo').innerHTML=h;
+}
+
+function letturaKcal(righe,i){
+  var r=righe[i]; if(!r) return;
+  var h='<b>'+dataIt(r.date)+'</b> · '+(r.calories_in!=null?'<b>'+fmt(r.calories_in,0)+' kcal</b>':'niente registrato');
+  if(r.kcal_ma7!=null) h+=' · media 7gg <b>'+fmt(r.kcal_ma7,0)+'</b>';
+  if(r.protein_g!=null) h+=' · proteine <b>'+fmt(r.protein_g,0)+' g</b>';
+  document.getElementById('tKcalInfo').innerHTML=h;
+}
+
+function montaPliche(){
+  var mis=DATI.misure||[];
+  var perData={};
+  mis.forEach(function(m){
+    if(/^plica_/.test(m.nome)||m.nome==='peso_controllo'){
+      (perData[m.data]=perData[m.data]||{})[m.nome]=Number(m.valore);
+    }
+  });
+  var date=Object.keys(perData).filter(function(d){
+    return Object.keys(perData[d]).some(function(k){ return /^plica_/.test(k); });
+  }).sort();
+  if(!date.length){
+    document.getElementById('tPlicheInfo').textContent='Ancora nessun controllo con le pliche: arrivano con la scheda del nutrizionista.';
+    return;
+  }
+  var ds=Object.keys(PLICHE_LBL).map(function(k){
+    return {label:PLICHE_LBL[k],data:date.map(function(d){ return perData[d][k]!=null?perData[d][k]:null; }),
+      borderColor:PLICHE_COL[k],backgroundColor:PLICHE_COL[k],
+      pointRadius:4,pointHoverRadius:7,borderWidth:2,tension:.2,spanGaps:true};
+  });
+  grafico('tPliche',{type:'line',data:{labels:date.map(dataCorta),datasets:ds},
+    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false},
+      onClick:function(e,els){ if(els&&els.length) letturaPliche(date,perData,els[0].index); },
+      plugins:{legend:{labels:{color:'#85837c',boxWidth:10,font:{size:10}}},
+        tooltip:{mode:'index',intersect:false}},
+      scales:{x:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
+              y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'},title:{display:true,text:'mm',color:'#85837c'}}}}});
+  letturaPliche(date,perData,date.length-1);
+  /* dal primo all'ultimo controllo: la ricomposizione che la bilancia non mostra */
+  var prima=perData[date[0]], ultima=perData[date[date.length-1]];
+  var righeL=Object.keys(PLICHE_LBL).map(function(k){
+    var da=prima[k], a=ultima[k];
+    var giu=(da!=null&&a!=null&&a<da);
+    return '<div class="voce"><div>'+PLICHE_LBL[k]+'</div><div>'+(da!=null?fmt(da,0):'—')+' → <b'+
+      (giu?' class="ok"':'')+'>'+(a!=null?fmt(a,0):'—')+' mm</b></div></div>';
+  }).join('');
+  document.getElementById('tPlicheLista').innerHTML=
+    '<div class="banda-note" style="margin-bottom:4px">dal primo controllo ('+dataCorta(date[0])+') all\'ultimo ('+dataCorta(date[date.length-1])+')</div>'+righeL;
+}
+
+function letturaPliche(date,perData,i){
+  var d=date[i], v=perData[d]; if(!v) return;
+  var h='<b>'+dataCorta(d)+'</b>';
+  Object.keys(PLICHE_LBL).forEach(function(k){
+    if(v[k]!=null) h+=' · '+k.replace('plica_','')+' <b>'+fmt(v[k],0)+'</b>';
+  });
+  if(v.peso_controllo!=null) h+=' · peso in studio <b>'+fmt(v.peso_controllo,1)+' kg</b>';
+  document.getElementById('tPlicheInfo').innerHTML=h;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   CORPO (02/09). Misure settimanali del giovedì mattina.
+   Protocollo: WHO 2008, NHANES 2021, CDC Series 2 n.182, IAS/ICCR 2020.
+   Le istruzioni stanno DENTRO la app perché è lì che servono: mentre
+   misuri, non dopo. Il punto di repere non si cambia mai: cambiarlo
+   falsa mesi di dati (fino a 7 cm di differenza fra siti diversi).
+   ════════════════════════════════════════════════════════════════════ */
+var MISURE_CORPO = [
+  { k:'circ_vita',      l:'Vita',      ess:true,
+    i:'Nastro orizzontale al bordo SUPERIORE dell\'ombelico. Addome rilassato (non tirare dentro la pancia: è l\'errore più grave), braccia lungo i fianchi, si legge alla fine di una espirazione normale. Controlla di profilo allo specchio che dietro il nastro non scenda.' },
+  { k:'circ_fianchi',   l:'Fianchi',   ess:true,
+    i:'Sulla massima sporgenza dei glutei, guardando di PROFILO allo specchio. Piedi uniti, glutei rilassati, nastro parallelo al pavimento.' },
+  { k:'circ_collo',     l:'Collo',     ess:true,
+    i:'A metà tra clavicola e mandibola, sotto il pomo d\'Adamo. Sguardo dritto davanti, spalle rilassate, senza contrarre il collo. È la misura meno disturbata da pasti e gonfiore: se scende insieme alla vita, il calo è vero.' },
+  { k:'circ_braccio',   l:'Braccio',   ess:false,
+    i:'Braccio DESTRO che pende morto lungo il fianco, muscoli rilassati (contrarre falsa tutto). Punto medio tra la sporgenza della spalla e la punta del gomito: segnalo con un pennarello lavabile, o il punto migra ogni settimana.' },
+  { k:'circ_coscia',    l:'Coscia',    ess:false,
+    i:'Circonferenza massima della coscia DESTRA, subito sotto la piega del gluteo. Gambe leggermente divaricate, peso su entrambi i piedi. Attento che il nastro non si inclini: è l\'errore più frequente qui.' },
+  { k:'circ_polpaccio', l:'Polpaccio', ess:false,
+    i:'Circonferenza massima del polpaccio DESTRO, tra ginocchio e caviglia. Piedi a circa 20 cm, peso distribuito. Serve soprattutto come sentinella della ritenzione.' },
+  { k:'circ_torace',    l:'Torace',    ess:false,
+    i:'All\'altezza di metà sterno, a fine espirazione normale. Molto sensibile al respiro: se non riesci a essere costante, lasciala perdere.' }
+];
+var CORPO_SEL = null, CORPO_SERIE = 'circ_vita';
+
+function montaCorpo(){
+  var oggi = new Date();
+  var giovedi = oggi.getDay() === 4;
+  document.getElementById('cFinestra').innerHTML = giovedi
+    ? '<b>È giovedì:</b> è il giorno giusto. Appena sveglio, dopo il bagno, a digiuno, prima di allenarti.'
+    : 'Il giorno del protocollo è il <b>giovedì mattina</b> (lontano dall\'acqua del weekend e a 36 ore dal box). Se misuri oggi, spunta «fuori protocollo»: il dato si salva ma resta fuori dal trend.';
+
+  var per = misurePerData();
+  var date = Object.keys(per).sort();
+  var ultima = date.length ? per[date[date.length-1]] : {};
+  var ultimaData = date.length ? date[date.length-1] : null;
+
+  document.getElementById('cCampi').innerHTML = MISURE_CORPO.map(function(m){
+    var prec = null;
+    for(var i=date.length-1;i>=0;i--){ if(per[date[i]][m.k]!=null){ prec=per[date[i]][m.k]; break; } }
+    return '<div class="campo" id="campo-'+m.k+'" onclick="selezionaPunto(\''+m.k+'\')">'+
+      '<div class="n"><span>'+m.l+'</span>'+(m.ess?'<em>essenziale</em>':'')+'</div>'+
+      '<input type="number" step="0.1" inputmode="decimal" id="in-'+m.k+'" placeholder="cm" '+
+        'onfocus="selezionaPunto(\''+m.k+'\')">'+
+      '<div class="prec">'+(prec!=null?'ultima: '+fmt(prec,1)+' cm':'mai misurata')+'</div></div>';
+  }).join('');
+
+  /* i punti già misurati si accendono sulla figura */
+  document.querySelectorAll('#svgCorpo .pt').forEach(function(p){
+    var k=p.getAttribute('data-m');
+    p.classList.toggle('pieno', ultima[k]!=null);
+    p.onclick=function(){ selezionaPunto(k); };
+  });
+
+  if(!document.getElementById('cData').value)
+    document.getElementById('cData').value=new Date().toISOString().slice(0,10);
+  selezionaPunto(CORPO_SEL||'circ_vita');
+  montaTrendCorpo(ultimaData);
+  var p=(DATI.contesto&&DATI.contesto.protocollo_misure)||'';
+  document.getElementById('cProtocollo').textContent=p||'protocollo non ancora salvato nel contesto';
+}
+
+function misurePerData(){
+  /* le misure prese fuori finestra sono salvate come circ_*_fuori: restano
+     nello storico ma NON entrano nel trend (regola del protocollo) */
+  var per={};
+  (DATI.misure||[]).forEach(function(m){
+    if(/^circ_/.test(m.nome) && !/_fuori$/.test(m.nome))
+      (per[m.data]=per[m.data]||{})[m.nome]=Number(m.valore);
+  });
+  return per;
+}
+
+function selezionaPunto(k){
+  CORPO_SEL=k;
+  var m=MISURE_CORPO.filter(function(x){ return x.k===k; })[0];
+  if(!m) return;
+  document.querySelectorAll('#svgCorpo .pt').forEach(function(p){
+    p.classList.toggle('sel', p.getAttribute('data-m')===k);
+  });
+  document.querySelectorAll('.campo').forEach(function(c){
+    c.classList.toggle('sel', c.id==='campo-'+k);
+  });
+  document.getElementById('cIstruzione').innerHTML='<b>'+m.l+'</b> — '+m.i;
+}
+
+function salvaCorpo(){
+  var out=document.getElementById('cEsito');
+  var data=document.getElementById('cData').value||undefined;
+  var fuori=document.getElementById('cFuori').checked;
+  var misure=[];
+  MISURE_CORPO.forEach(function(m){
+    var v=parseFloat(document.getElementById('in-'+m.k).value);
+    if(!isNaN(v)&&v>0) misure.push({nome:(fuori?m.k+'_fuori':m.k), valore:v, unita:'cm'});
+  });
+  if(!misure.length){ out.className='avviso'; out.textContent='Non hai scritto nessuna misura.'; return; }
+  api('/api/misura_corpo',{misure:misure,data:data}).then(function(r){
+    out.className='ok';
+    out.textContent=r.salvate+' misure salvate'+(fuori?' (fuori protocollo: restano fuori dal trend).':'.');
+    MISURE_CORPO.forEach(function(m){ document.getElementById('in-'+m.k).value=''; });
+    document.getElementById('cFuori').checked=false;
+    return api('/api/misure_extra').then(function(mm){ DATI.misure=mm; montaCorpo(); });
+  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; });
+}
+
+function montaTrendCorpo(ultimaData){
+  api('/api/misure_trend').then(function(t){
+    var el=document.getElementById('cTrend');
+    var mis=(t&&t.misure)||{};
+    var chiavi=Object.keys(mis);
+    var h='';
+    if(t && (t.vita_altezza!=null || t.vita_fianchi!=null)){
+      h+='<div class="indice">';
+      if(t.vita_altezza!=null){
+        var ok=t.vita_altezza<0.5;
+        h+='<div><div class="k">vita / altezza</div><div class="v '+(ok?'ok':'')+'">'+
+          fmt(t.vita_altezza,3)+'</div><div class="k">obiettivo sotto 0,500</div></div>';
+      }
+      if(t.vita_fianchi!=null)
+        h+='<div><div class="k">vita / fianchi</div><div class="v">'+fmt(t.vita_fianchi,3)+'</div></div>';
+      h+='</div>';
+    }
+    if(!chiavi.length){
+      el.innerHTML=h+'<span class="spin">Nessuna misura ancora: la prima serie parte giovedì mattina.</span>';
+      return;
+    }
+    h+=chiavi.map(function(k){
+      var m=mis[k], nome=(MISURE_CORPO.filter(function(x){return x.k===k;})[0]||{l:k}).l;
+      var d=m.delta_4sett;
+      var col=(d==null||m.lettura.indexOf('rumore')>=0)?'':(d<0?'ok':'avviso');
+      return '<div class="mis-riga"><div>'+nome+
+        '<small>ultima '+fmt(m.ultima,1)+' cm il '+dataCorta(m.data)+'</small></div>'+
+        '<div class="val" style="text-align:right">'+
+          (m.media_4sett!=null?'<b>'+fmt(m.media_4sett,1)+'</b> cm':'—')+
+          '<small class="'+col+'">'+(d!=null?(d>0?'+':'')+fmt(d,1)+' cm sulle 4 settimane · ':'')+
+          m.lettura+'</small></div></div>';
+    }).join('');
+    el.innerHTML=h;
+  }).catch(function(e){
+    document.getElementById('cTrend').innerHTML='<span class="avviso">'+e.message+'</span>';
+  });
+
+  /* grafico: una serie alla volta, scelta con le chip */
+  var per=misurePerData();
+  var presenti=MISURE_CORPO.filter(function(m){
+    return Object.keys(per).some(function(d){ return per[d][m.k]!=null; });
+  });
+  if(!presenti.length){
+    document.getElementById('cSerie').innerHTML='';
+    document.getElementById('cGraficoInfo').textContent='Il grafico si accende dalla prima misura.';
+    return;
+  }
+  if(!presenti.some(function(m){ return m.k===CORPO_SERIE; })) CORPO_SERIE=presenti[0].k;
+  document.getElementById('cSerie').innerHTML=presenti.map(function(m){
+    return '<button class="chip'+(m.k===CORPO_SERIE?' on':'')+'" onclick="serieCorpo(\''+m.k+'\')">'+m.l+'</button>';
+  }).join('');
+  var date=Object.keys(per).filter(function(d){ return per[d][CORPO_SERIE]!=null; }).sort();
+  var vals=date.map(function(d){ return per[d][CORPO_SERIE]; });
+  var nome=(MISURE_CORPO.filter(function(x){return x.k===CORPO_SERIE;})[0]||{l:''}).l;
+  grafico('cGrafico',{type:'line',data:{labels:date.map(dataCorta),datasets:[
+    {label:nome+' (cm)',data:vals,borderColor:'#a6e22e',backgroundColor:'rgba(166,226,46,.09)',
+     fill:true,pointRadius:4,pointHoverRadius:7,borderWidth:2.5,tension:.2,spanGaps:true}]},
+    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false},
+      onClick:function(e,els){ if(els&&els.length) letturaCorpo(date,vals,els[0].index); },
+      plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}}},
+      scales:{x:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
+              y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'},
+                 title:{display:true,text:'cm',color:'#85837c'}}}}});
+  letturaCorpo(date,vals,date.length-1);
+}
+
+function serieCorpo(k){ CORPO_SERIE=k; montaTrendCorpo(); }
+
+function letturaCorpo(date,vals,i){
+  if(!date.length) return;
+  var nome=(MISURE_CORPO.filter(function(x){return x.k===CORPO_SERIE;})[0]||{l:''}).l;
+  var h='<b>'+dataCorta(date[i])+'</b> · '+nome+' <b>'+fmt(vals[i],1)+' cm</b>';
+  if(i>0){
+    var d=vals[i]-vals[i-1];
+    h+=' · '+(d>0?'+':'')+fmt(d,1)+' cm dalla volta prima'+
+       (Math.abs(d)<1 ? ' <span class="spin">(sotto il centimetro: è rumore di misura, non progresso)</span>' : '');
+  }
+  document.getElementById('cGraficoInfo').innerHTML=h;
+}
+
 function carica(){
   /* si raccolgono i dati una volta, poi si montano le card */
   var attese=[
@@ -565,9 +1018,14 @@ function carica(){
     }),
     api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(function(){}),
     api('/api/box').then(function(b){ DATI.box=b; }).catch(function(){}),
-    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(function(){})
+    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(function(){}),
+    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(function(){})
   ];
-  Promise.all(attese).then(montaDash);
+  Promise.all(attese).then(function(){
+    montaDash();
+    if(document.getElementById('v-trend').classList.contains('on')) montaTrend();
+    if(document.getElementById('v-corpo').classList.contains('on')) montaCorpo();
+  });
   caricaProm(); caricaDiario(); caricaChat();
 }
 
