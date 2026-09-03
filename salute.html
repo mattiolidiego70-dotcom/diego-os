@@ -849,19 +849,19 @@ function montaCorpo(){
   var ultimaData = date.length ? date[date.length-1] : null;
 
   document.getElementById('cCampi').innerHTML = MISURE_CORPO.map(function(m){
-    var prec = null;
-    for(var i=date.length-1;i>=0;i--){ if(per[date[i]][m.k]!=null){ prec=per[date[i]][m.k]; break; } }
+    var u = ultimaDiSerie(m.k);
     return '<div class="campo" id="campo-'+m.k+'" onclick="selezionaPunto(\''+m.k+'\')">'+
       '<div class="n"><span>'+m.l+'</span>'+(m.ess?'<em>essenziale</em>':'')+'</div>'+
       '<input type="number" step="0.1" inputmode="decimal" id="in-'+m.k+'" placeholder="cm" '+
         'onfocus="selezionaPunto(\''+m.k+'\')">'+
-      '<div class="prec">'+(prec!=null?'ultima: '+fmt(prec,1)+' cm':'mai misurata')+'</div></div>';
+      '<div class="prec">'+(u ? 'ultima: '+fmt(u.v,1)+' cm'+(u.fuori?' — fuori protocollo':'')
+                              : 'mai misurata')+'</div></div>';
   }).join('');
 
   /* i punti già misurati si accendono sulla figura */
   document.querySelectorAll('#svgCorpo .pt').forEach(function(p){
     var k=p.getAttribute('data-m');
-    p.classList.toggle('pieno', ultima[k]!=null);
+    p.classList.toggle('pieno', ultimaDiSerie(k)!=null);
     p.onclick=function(){ selezionaPunto(k); };
   });
 
@@ -882,6 +882,22 @@ function misurePerData(){
       (per[m.data]=per[m.data]||{})[m.nome]=Number(m.valore);
   });
   return per;
+}
+
+/* L'ultima misura di una serie, ANCHE se fuori protocollo. Il trend resta
+   pulito (quello guarda solo le misure del giovedì), ma il numero che hai
+   preso lo devi vedere lo stesso: farlo sparire dalla card ti fa credere di
+   non aver mai misurato, ed è peggio di mostrarlo dichiarato (03/09).
+   A parità di giorno vince quella dentro protocollo. */
+function ultimaDiSerie(k){
+  var out=null;
+  (DATI.misure||[]).forEach(function(m){
+    var fuori=(m.nome===k+'_fuori');
+    if(m.nome!==k && !fuori) return;
+    if(!out || m.data>out.data || (m.data===out.data && out.fuori && !fuori))
+      out={data:m.data, v:Number(m.valore), fuori:fuori};
+  });
+  return out;
 }
 
 function selezionaPunto(k){
