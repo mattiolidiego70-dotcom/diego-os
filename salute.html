@@ -456,8 +456,9 @@ var DEFAULT_CONFIG = { version:1, cards:[
   { id:'kcal',      type:'budget',  size:'half',  enabled:true, order:3 },
   { id:'box',       type:'counter', size:'half',  enabled:true, order:4 },
   { id:'costanza',  type:'heatmap', size:'wide',  enabled:true, order:5 },
-  { id:'checkin',   type:'checkin', size:'wide',  enabled:true, order:6 },
-  { id:'insight',   type:'insight', size:'wide',  enabled:true, order:7 }
+  { id:'settimana', type:'settimana', size:'wide', enabled:true, order:6 },
+  { id:'checkin',   type:'checkin', size:'wide',  enabled:true, order:7 },
+  { id:'insight',   type:'insight', size:'wide',  enabled:true, order:8 }
 ]};
 
 var DATI = {};   // cache dei dati per le card
@@ -591,17 +592,42 @@ var CARD_TYPES = {
   },
 
   checkin: function(el){
-    el.innerHTML='<h3>Tracker serale · ultima settimana</h3>';
+    el.innerHTML='<h3>Check serale · ultima settimana</h3>';
     var sett=(DATI.tracker&&Array.isArray(DATI.tracker.settimane))?DATI.tracker.settimane:[];
     var s=sett.length?sett[sett.length-1]:null;
-    if(!s){ el.innerHTML+='<span class="spin">Si riempie coi check delle 21.</span>'; return; }
+    if(!s){ el.innerHTML+='<span class="spin">Si riempie coi check delle 22.</span>'; return; }
+    /* acquisti e ore di lavoro spenti da Diego il 03/09: restano tre domande
+       (motore, una cosa che conta, fuoco) e la card mostra solo quelle */
     var h='<div class="tocchi">';
     if(s.pct_valore_fatto!=null) h+='<span>cose che contano <b>'+Math.round(s.pct_valore_fatto)+'%</b></span>';
     if(s.attivazione_sd!=null) h+='<span>motore: oscillazione <b>'+fmt(s.attivazione_sd,1)+'</b></span>';
-    if(s.acquisti_non_pianificati!=null) h+='<span>acquisti non pianificati <b>'+s.acquisti_non_pianificati+'</b></span>';
     if(s.pct_giorni_su_fuoco!=null) h+='<span>giorni su un fuoco <b>'+Math.round(s.pct_giorni_su_fuoco)+'%</b></span>';
-    if(s.ore_lavoro_medie!=null) h+='<span>lavoro <b>'+fmt(s.ore_lavoro_medie,1)+' h/gg</b></span>';
     h+='</div><div class="banda-note" style="margin-top:6px">la lettura vera è al rituale del lunedì, qui solo il polso</div>';
+    el.innerHTML+=h;
+  },
+
+  /* La settimana come l'ha definita Diego il 03/09: tre gambe, nessuna vale
+     più delle altre. Si mostra a che punto sono, senza verdetti sul giorno. */
+  settimana: function(el){
+    el.innerHTML='<h3>La settimana</h3>';
+    var s=DATI.settimana;
+    if(!s){ el.innerHTML+='<span class="spin">…</span>'; return; }
+    var gambe=[
+      {k:'crossfit',    n:'CrossFit'},
+      {k:'recitazione', n:'Recitazione'},
+      {k:'uscite',      n:'Uscite nel weekend'}
+    ];
+    var h='<div class="tocchi">';
+    gambe.forEach(function(g){
+      var d=s[g.k]; if(!d) return;
+      h+='<span>'+g.n+' <b class="'+(d.ok?'ok':'')+'">'+d.fatte+'/'+d.servono+'</b></span>';
+    });
+    h+='</div>';
+    var manca=(s.mancano||'').trim();
+    h+='<div class="banda-note" style="margin-top:6px">'+
+       (s.buona ? 'settimana piena: tutte e tre a posto'
+                : (manca ? 'ancora aperte: '+manca : 'la settimana è in corso'))+
+       ' · il verdetto vero è al rituale del lunedì</div>';
     el.innerHTML+=h;
   },
 
@@ -1056,6 +1082,7 @@ function carica(){
     api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(function(){}),
     api('/api/box').then(function(b){ DATI.box=b; }).catch(function(){}),
     api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(function(){}),
+    api('/api/settimana_buona').then(function(s){ DATI.settimana=s; }).catch(function(){}),
     api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(function(){})
   ];
   Promise.all(attese).then(function(){
