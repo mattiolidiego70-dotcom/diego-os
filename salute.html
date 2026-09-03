@@ -286,22 +286,24 @@
               </g>
               <!-- linee dei punti di misura -->
               <g stroke-width="2.5" stroke-linecap="round">
-                <line class="pt" data-m="circ_collo"     x1="78"  y1="72"  x2="122" y2="72"/>
-                <line class="pt" data-m="circ_torace"    x1="60"  y1="118" x2="140" y2="118"/>
-                <line class="pt" data-m="circ_braccio"   x1="46"  y1="150" x2="66"  y2="150"/>
-                <line class="pt" data-m="circ_vita"      x1="60"  y1="168" x2="140" y2="168"/>
-                <line class="pt" data-m="circ_fianchi"   x1="60"  y1="212" x2="140" y2="212"/>
-                <line class="pt" data-m="circ_coscia"    x1="66"  y1="252" x2="98"  y2="252"/>
-                <line class="pt" data-m="circ_polpaccio" x1="62"  y1="330" x2="88"  y2="330"/>
+                <line class="pt" data-m="circ_collo"      x1="78"  y1="72"  x2="122" y2="72"/>
+                <line class="pt" data-m="circ_torace"     x1="60"  y1="118" x2="140" y2="118"/>
+                <line class="pt" data-m="circ_braccio"    x1="46"  y1="150" x2="66"  y2="150"/>
+                <line class="pt" data-m="circ_vita"       x1="60"  y1="166" x2="140" y2="166"/>
+                <line class="pt" data-m="circ_cintura"    x1="60"  y1="184" x2="140" y2="184"/>
+                <line class="pt" data-m="circ_fianchi"    x1="60"  y1="201" x2="140" y2="201"/>
+                <line class="pt" data-m="circ_girosedere" x1="60"  y1="218" x2="140" y2="218"/>
+                <line class="pt" data-m="circ_coscia"     x1="66"  y1="252" x2="98"  y2="252"/>
               </g>
               <g class="etichette" font-size="9" fill="#85837c">
                 <text x="128" y="69">collo</text>
                 <text x="146" y="115">torace</text>
                 <text x="14"  y="147">braccio</text>
-                <text x="146" y="165">VITA</text>
-                <text x="146" y="209">fianchi</text>
+                <text x="146" y="163">VITA</text>
+                <text x="12"  y="187">cintura</text>
+                <text x="146" y="204">fianchi</text>
+                <text x="4"   y="221">girosedere</text>
                 <text x="104" y="255">coscia</text>
-                <text x="94"  y="333">polpaccio</text>
               </g>
             </svg>
             <div class="figura-nota">tocca un punto per l&rsquo;istruzione</div>
@@ -811,21 +813,26 @@ function letturaPliche(date,perData,i){
    misuri, non dopo. Il punto di repere non si cambia mai: cambiarlo
    falsa mesi di dati (fino a 7 cm di differenza fra siti diversi).
    ════════════════════════════════════════════════════════════════════ */
+/* L'ordine di questa lista è l'ordine di TUTTA la sezione (campi, chip del
+   grafico, righe del trend): dall'alto del corpo verso il basso, come li
+   misuri davvero. Cambiare l'ordine qui li sposta ovunque. */
 var MISURE_CORPO = [
-  { k:'circ_vita',      l:'Vita',      ess:true,
-    i:'Nastro orizzontale al bordo SUPERIORE dell\'ombelico. Addome rilassato (non tirare dentro la pancia: è l\'errore più grave), braccia lungo i fianchi, si legge alla fine di una espirazione normale. Controlla di profilo allo specchio che dietro il nastro non scenda.' },
-  { k:'circ_fianchi',   l:'Fianchi',   ess:true,
-    i:'Sulla massima sporgenza dei glutei, guardando di PROFILO allo specchio. Piedi uniti, glutei rilassati, nastro parallelo al pavimento.' },
-  { k:'circ_collo',     l:'Collo',     ess:true,
+  { k:'circ_collo',      l:'Collo',      ess:true,
     i:'A metà tra clavicola e mandibola, sotto il pomo d\'Adamo. Sguardo dritto davanti, spalle rilassate, senza contrarre il collo. È la misura meno disturbata da pasti e gonfiore: se scende insieme alla vita, il calo è vero.' },
-  { k:'circ_braccio',   l:'Braccio',   ess:false,
+  { k:'circ_torace',     l:'Torace',     ess:false,
+    i:'All\'altezza di metà sterno, a fine espirazione normale. Molto sensibile al respiro: se non riesci a essere costante, lasciala perdere.' },
+  { k:'circ_braccio',    l:'Braccio',    ess:false,
     i:'Braccio DESTRO che pende morto lungo il fianco, muscoli rilassati (contrarre falsa tutto). Punto medio tra la sporgenza della spalla e la punta del gomito: segnalo con un pennarello lavabile, o il punto migra ogni settimana.' },
-  { k:'circ_coscia',    l:'Coscia',    ess:false,
-    i:'Circonferenza massima della coscia DESTRA, subito sotto la piega del gluteo. Gambe leggermente divaricate, peso su entrambi i piedi. Attento che il nastro non si inclini: è l\'errore più frequente qui.' },
-  { k:'circ_polpaccio', l:'Polpaccio', ess:false,
-    i:'Circonferenza massima del polpaccio DESTRO, tra ginocchio e caviglia. Piedi a circa 20 cm, peso distribuito. Serve soprattutto come sentinella della ritenzione.' },
-  { k:'circ_torace',    l:'Torace',    ess:false,
-    i:'All\'altezza di metà sterno, a fine espirazione normale. Molto sensibile al respiro: se non riesci a essere costante, lasciala perdere.' }
+  { k:'circ_vita',       l:'Vita',       ess:true,
+    i:'Nastro orizzontale al bordo SUPERIORE dell\'ombelico. Addome rilassato (non tirare dentro la pancia: è l\'errore più grave), braccia lungo i fianchi, si legge alla fine di una espirazione normale. Controlla di profilo allo specchio che dietro il nastro non scenda.' },
+  { k:'circ_cintura',    l:'Cintura',    ess:false,
+    i:'Dove appoggia la cintura dei pantaloni: SOTTO la curva della pancia, in piedi rilassato, nastro parallelo al pavimento e non tirato. È la misura che senti addosso quando i pantaloni chiudono meglio, e si muove spesso prima della vita.' },
+  { k:'circ_fianchi',    l:'Fianchi',    ess:false,
+    i:'Il punto più largo del tronco guardandoti DI FRONTE allo specchio, all\'altezza delle anche, sopra il sedere. Piedi uniti, nastro parallelo al pavimento. Non confonderla col girosedere: i fianchi si trovano di fronte (largo), il girosedere di profilo (sporgenza).' },
+  { k:'circ_girosedere', l:'Girosedere', ess:true,
+    i:'Sulla massima sporgenza dei glutei, guardandoti DI PROFILO allo specchio. Piedi uniti, glutei rilassati, nastro parallelo al pavimento. È la misura dello standard WHO per il rapporto vita/fianchi: fino al 03/09/2026 questa serie si chiamava «fianchi», lo storico è suo.' },
+  { k:'circ_coscia',     l:'Coscia',     ess:false,
+    i:'Circonferenza massima della coscia DESTRA, subito sotto la piega del gluteo. Gambe leggermente divaricate, peso su entrambi i piedi. Attento che il nastro non si inclini: è l\'errore più frequente qui.' }
 ];
 var CORPO_SEL = null, CORPO_SERIE = 'circ_vita';
 
@@ -901,8 +908,15 @@ function salvaCorpo(){
   });
   if(!misure.length){ out.className='avviso'; out.textContent='Non hai scritto nessuna misura.'; return; }
   api('/api/misura_corpo',{misure:misure,data:data}).then(function(r){
+    /* il database marca da solo come fuori protocollo tutto quello che non e
+       di giovedi: se succede senza che tu l'abbia spuntato devi saperlo, o
+       credi di avere un dato che entra nel trend e invece no (03/09) */
+    var marcate=(r.esiti||[]).filter(function(e){ return /_fuori$/.test(e&&e.nome||''); }).length;
     out.className='ok';
-    out.textContent=r.salvate+' misure salvate'+(fuori?' (fuori protocollo: restano fuori dal trend).':'.');
+    out.textContent = r.salvate+' misure salvate'+
+      (fuori ? ' (fuori protocollo: restano fuori dal trend).'
+             : marcate ? ' — ma il giorno scelto non e giovedi, quindi restano fuori dal trend.'
+             : '.');
     MISURE_CORPO.forEach(function(m){ document.getElementById('in-'+m.k).value=''; });
     document.getElementById('cFuori').checked=false;
     return api('/api/misure_extra').then(function(mm){ DATI.misure=mm; montaCorpo(); });
@@ -913,7 +927,14 @@ function montaTrendCorpo(ultimaData){
   api('/api/misure_trend').then(function(t){
     var el=document.getElementById('cTrend');
     var mis=(t&&t.misure)||{};
-    var chiavi=Object.keys(mis);
+    /* stesso ordine dei campi: dall'alto del corpo verso il basso. Le chiavi
+       che non sono in lista (serie vecchie) restano in coda, non si perdono. */
+    var ordine=MISURE_CORPO.map(function(m){ return m.k; });
+    var chiavi=Object.keys(mis).sort(function(a,b){
+      var ia=ordine.indexOf(a), ib=ordine.indexOf(b);
+      if(ia<0) ia=99; if(ib<0) ib=99;
+      return ia-ib || (a<b?-1:1);
+    });
     var h='';
     if(t && (t.vita_altezza!=null || t.vita_fianchi!=null)){
       h+='<div class="indice">';
@@ -923,7 +944,7 @@ function montaTrendCorpo(ultimaData){
           fmt(t.vita_altezza,3)+'</div><div class="k">obiettivo sotto 0,500</div></div>';
       }
       if(t.vita_fianchi!=null)
-        h+='<div><div class="k">vita / fianchi</div><div class="v">'+fmt(t.vita_fianchi,3)+'</div></div>';
+        h+='<div><div class="k">vita / girosedere</div><div class="v">'+fmt(t.vita_fianchi,3)+'</div></div>';
       h+='</div>';
     }
     if(!chiavi.length){

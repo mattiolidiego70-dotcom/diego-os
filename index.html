@@ -1980,7 +1980,8 @@ async function loadFiscal(){
 
 /* ═════════ MODULO TRACK ═════════ */
 const PLICHE=['tricipite','sottoscapolare','addome','soprailiaca','coscia','petto'];
-const CIRC=['vita','fianchi','torace','braccio','coscia','polpaccio','collo'];
+/* dall'alto del corpo verso il basso, stesso ordine della sezione misure di HEALTH */
+const CIRC=['collo','torace','braccio','vita','cintura','fianchi','girosedere','coscia'];
 
 // switch moduli dal dock
 document.querySelectorAll('.mod[data-mod]').forEach(b=>b.addEventListener('click',()=>{
