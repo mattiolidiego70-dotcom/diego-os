@@ -262,6 +262,50 @@
     .ap-line{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
     #alfred-fab{right:16px;bottom:calc(74px + env(safe-area-inset-bottom))}
   }
+  /* OUTFIT:CSS */
+  /* ───────── MODULO OUTFIT ───────── */
+  .o-riga{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .o-riga .o-lbl{width:82px;flex:none;color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+  .o-chip{background:var(--surface-2);border:1px solid var(--hairline);color:var(--ink-2);border-radius:20px;
+       padding:5px 13px;font:500 12.5px var(--sans);cursor:pointer}
+  .o-chip:hover{color:var(--ink)}
+  .o-chip.on{background:var(--accent);border-color:var(--accent);color:#101216;font-weight:700}
+  .o-temp{display:flex;align-items:center;gap:9px;flex:1;min-width:180px}
+  .o-temp input{flex:1;accent-color:var(--accent);max-width:260px}
+  .o-temp b{font:700 14px var(--disp);min-width:40px;text-align:right}
+  .o-nota{color:var(--muted);font-size:12.5px;margin-bottom:12px}
+  .o-sez{margin:14px 0 7px;font:600 11.5px var(--disp);letter-spacing:.2em;color:var(--muted)}
+  .o-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px}
+  .o-capo{background:var(--page);border:1px solid var(--hairline);border-radius:11px;overflow:hidden;
+       cursor:pointer;padding:0;text-align:left;color:var(--ink);font:inherit}
+  .o-capo:hover{border-color:var(--accent-dim)}
+  .o-capo.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .o-capo img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--surface-2)}
+  .o-capo .cn{padding:7px 9px 2px;font-size:12px;line-height:1.25;font-weight:600}
+  .o-capo .cf{padding:0 9px 8px;font-size:10.5px;color:var(--muted)}
+  .o-outfit{background:var(--page);border:1px solid var(--hairline);border-radius:12px;padding:13px;margin-bottom:12px}
+  .o-ohead{display:flex;align-items:baseline;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+  .o-otit{font:600 14px var(--disp)}
+  .o-score{margin-left:auto;color:var(--muted);font-size:11px}
+  .o-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:7px;margin-bottom:9px}
+  .o-item{position:relative;border:1px solid var(--hairline);border-radius:9px;overflow:hidden;background:var(--surface-2)}
+  .o-item img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block}
+  .o-item .on{font-size:9.5px;line-height:1.2;padding:4px 5px;color:var(--ink-2)}
+  .o-item.anchor{border-color:var(--accent)}
+  .o-item.anchor::after{content:"SCELTO";position:absolute;top:4px;left:4px;background:var(--accent);
+       color:#101216;font:700 7.5px/1 var(--disp);letter-spacing:.1em;padding:3px 5px;border-radius:4px}
+  .o-testo{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+  .o-btn{background:none;border:1px solid var(--hairline);color:var(--ink-2);border-radius:8px;
+       padding:4px 11px;font:500 11.5px var(--sans);cursor:pointer}
+  .o-btn:hover{border-color:var(--accent-dim);color:var(--ink)}
+  .o-carica{display:block;margin:4px auto 0;background:var(--surface-2);border:1px solid var(--hairline);
+       color:var(--ink);border-radius:10px;padding:9px 24px;font:600 12.5px var(--sans);cursor:pointer}
+  .o-card{border:1px solid var(--hairline);border-radius:12px;padding:14px 16px;background:var(--page)}
+  .o-card h4{margin:0 0 6px;font:600 13px var(--sans);color:var(--ink)}
+  .o-card p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.55}
+  .o-vuoto{color:var(--muted);padding:14px 2px;font-size:12.5px}
+  @media (max-width:700px){ .o-riga .o-lbl{width:100%} }
+  /* /OUTFIT:CSS */
 </style>
 </head>
 <body>
@@ -269,7 +313,7 @@
   <aside class="dock">
     <div class="mark">DIEGO·OS</div>
     <button class="mod active" data-mod="tesoreria" title="Tesoreria">◈<span class="lbl">SOLDI</span><span class="tip">Tesoreria</span></button>
-    <button class="mod" data-mod="track" title="Track">⚡<span class="lbl">TRACK</span><span class="tip">Corpo · dieta · WOD</span></button><a href="salute.html" class="mod" title="Health" style="text-decoration:none">♥<span class="lbl">HEALTH</span><span class="tip">Health — dettaglio</span></a><a href="psicologa.html" class="mod" title="Psicologa" style="text-decoration:none">🧠<span class="lbl">PSI</span><span class="tip">Appunti per la psicologa</span></a>
+    <button class="mod" data-mod="track" title="Track">⚡<span class="lbl">TRACK</span><span class="tip">Corpo · dieta · WOD</span></button><a href="salute.html" class="mod" title="Health" style="text-decoration:none">♥<span class="lbl">HEALTH</span><span class="tip">Health — dettaglio</span></a><a href="psicologa.html" class="mod" title="Psicologa" style="text-decoration:none">🧠<span class="lbl">PSI</span><span class="tip">Appunti per la psicologa</span></a><button class="mod" data-mod="outfit" title="Outfit">👔<span class="lbl">OUTFIT</span><span class="tip">Outfit — abbinamenti</span></button>
     <button class="mod soon">▲<span class="lbl">RACE</span><span class="tip">Racing — presto</span></button>
     <button class="mod soon">⌂<span class="lbl">CASA</span><span class="tip">Casa — presto</span></button>
     <button class="mod soon">✈<span class="lbl">VOLO</span><span class="tip">Volo — presto</span></button>
@@ -706,6 +750,102 @@
           pranzo non registrato (14:00), cena (21:00), circonferenze ogni 2-3 settimane, pliche mensili.</div>
       </div>
     </section>
+    <!-- OUTFIT:HTML -->
+    <!-- ═══════════════════ MODULO OUTFIT ═══════════════════ -->
+    <section class="scheda" id="scheda-outfit" style="display:none">
+      <div class="scheda-head">
+        <span class="titolo">OUTFIT</span>
+        <span class="sub" style="color:var(--muted);font-size:12px">abbinamenti · regular &amp; relaxed</span>
+        <nav class="tabs" id="outfit-tabs">
+          <button class="on" data-opane="abbina">Abbina</button>
+          <button data-opane="guardaroba">Guardaroba</button>
+          <button data-opane="archivio">Archivio<span class="badge" id="o-badge" style="display:none">0</span></button>
+          <button data-opane="regole">Regole</button>
+        </nav>
+      </div>
+
+      <!-- ── contesto: vale per tutte le sotto-schede ── -->
+      <div id="o-contesto" style="padding:12px 22px;border-bottom:1px solid var(--hairline);display:flex;flex-direction:column;gap:9px">
+        <div class="o-riga" id="o-f-occ"><span class="o-lbl">Occasione</span>
+          <button class="o-chip on" data-v="lavoro">Lavoro</button>
+          <button class="o-chip" data-v="serale">Serale</button>
+          <button class="o-chip" data-v="weekend">Weekend</button>
+        </div>
+        <div class="o-riga" id="o-f-stile"><span class="o-lbl">Stile</span>
+          <button class="o-chip on" data-v="tutti">Tutti</button>
+          <button class="o-chip" data-v="street">Street</button>
+          <button class="o-chip" data-v="casual">Casual</button>
+          <button class="o-chip" data-v="smart">Smart</button>
+          <button class="o-chip" data-v="elegante">Elegante</button>
+        </div>
+        <div class="o-riga" id="o-f-meteo"><span class="o-lbl">Meteo</span>
+          <button class="o-chip on" data-v="sole">☀️ Sole</button>
+          <button class="o-chip" data-v="nuvole">☁️ Nuvole</button>
+          <button class="o-chip" data-v="pioggia">🌧 Pioggia</button>
+          <span class="o-temp"><input type="range" id="o-temp" min="-5" max="35" value="18" step="1"><b id="o-tval">18°</b></span>
+        </div>
+      </div>
+
+      <!-- ── ABBINA ── -->
+      <div class="pane on" id="opane-abbina">
+        <div id="o-scelto-box"></div>
+        <div id="o-proposte"></div>
+      </div>
+
+      <!-- ── GUARDAROBA ── -->
+      <div class="pane" id="opane-guardaroba">
+        <div class="o-nota" id="o-conta-capi"></div>
+        <div id="o-guardaroba"></div>
+      </div>
+
+      <!-- ── ARCHIVIO ── -->
+      <div class="pane" id="opane-archivio">
+        <div class="o-nota" id="o-arch-nota"></div>
+        <div id="o-arch-body"></div>
+        <button class="o-carica" id="o-arch-piu" hidden>Mostra altri</button>
+      </div>
+
+      <!-- ── REGOLE ── -->
+      <div class="pane" id="opane-regole">
+        <div class="kpis" id="o-kpis"></div>
+        <div class="colonne" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+          <div class="o-card">
+            <h4>Fit check — non negoziabile</h4>
+            <p>Ammessi solo <b>regular</b>, <b>straight</b>, <b>relaxed</b> e oversize moderato.
+            Slim, skinny e aderente sono rifiutati alla fonte: non entrano nemmeno nel guardaroba.</p>
+          </div>
+          <div class="o-card">
+            <h4>Silhouette — BMI 28</h4>
+            <p>Bonus alla <b>colonna di colore</b> (sopra e sotto nello stesso tono scuro: allunga e
+            asciuga il punto vita) e alla <b>vita alta con pinces</b>. Un solo capo voluminoso per
+            outfit. Le righe orizzontali vengono pesate e spiegate.</p>
+          </div>
+          <div class="o-card">
+            <h4>Registro per occasione</h4>
+            <p>Ogni capo ha una formalità da 1 a 10. Lavoro 4–8, serale 3–8, weekend 2–6.
+            Il filtro stile sposta l'asticella: <b>street</b> la abbassa, <b>elegante</b> la alza.
+            Mai un salto superiore a 3 tra due capi (niente derby con la felpa).</p>
+          </div>
+          <div class="o-card">
+            <h4>Colore</h4>
+            <p>Neutri liberi, <b>massimo un accento</b> per outfit. Penalità su nero+marroni caldi e
+            navy+nero. Mai doppio denim. Bonus al tono su tono chiaro e al blu su blu.</p>
+          </div>
+          <div class="o-card">
+            <h4>Meteo e strati</h4>
+            <p>Sotto gli 8° capospalla pesante, 8–16° medio (blazer, overshirt, trench),
+            con la pioggia i capi antipioggia passano davanti. Sopra i 24° niente strati inutili.</p>
+          </div>
+          <div class="o-card">
+            <h4>Le foto</h4>
+            <p>Ogni immagine del guardaroba è stata <b>scaricata e guardata una per una</b> prima di
+            entrare: il capo in foto è davvero quello descritto, col taglio giusto.
+            Niente slim, niente streetwear da ventenni, niente gessati da vecchio ufficio.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- /OUTFIT:HTML -->
   </main>
 </div>
 
@@ -875,7 +1015,7 @@ document.getElementById('saluto').textContent = (hh<6?'Notte fonda':hh<13?'Buong
 
 document.querySelectorAll('nav.tabs button[data-pane]').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('nav.tabs button[data-pane]').forEach(x=>x.classList.remove('on'));
-  document.querySelectorAll('#scheda-tesoreria .pane, .scheda:not(#scheda-track) .pane').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('#scheda-tesoreria .pane, .scheda:not(#scheda-track):not(#scheda-outfit) .pane').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
   document.getElementById('pane-'+b.dataset.pane).classList.add('on');
 }));
@@ -1990,6 +2130,7 @@ document.querySelectorAll('.mod[data-mod]').forEach(b=>b.addEventListener('click
   const mod=b.dataset.mod;
   document.querySelectorAll('main .scheda').forEach(s=>s.style.display='none');
   if(mod==='track'){ document.getElementById('scheda-track').style.display='block'; loadTrack(); }
+  else if(mod==='outfit'){ document.getElementById('scheda-outfit').style.display='block'; loadOutfit(); }
   else document.querySelector('main .scheda').style.display='block';
 }));
 // tab interni track
@@ -2234,6 +2375,253 @@ document.getElementById('g-riconc-no').addEventListener('click',()=>{
 
 refresh();
 apContext();
+/* OUTFIT:JS */
+/* ═════════ MODULO OUTFIT ═════════
+   Dati e motore caricati alla prima apertura del modulo (lazy):
+   outfit-engine.js + outfit-data.json, generati da outfit/scripts/build_modulo.mjs */
+const O = {
+  pronto: false, capi: [], cdn: '', archivio: null, combos: [],
+  occasione: 'lavoro', stile: 'tutti', meteo: 'sole', temperatura: 18,
+  anchor: null, soloCapo: false, pagine: 1
+};
+const O_SLOT = { top:'SOPRA', bottom:'SOTTO', shoes:'SCARPE', outer:'CAPOSPALLA', look:'LOOK PRONTI', accessorio:'ACCESSORI' };
+const O_ORDINE = ['top','bottom','shoes','outer','look','accessorio'];
+const O_PAGINA = 12;
+
+try {
+  const s = JSON.parse(localStorage.getItem('outfit-filtri') || 'null');
+  if (s) { O.occasione = s.occasione || O.occasione; O.stile = s.stile || O.stile;
+           O.meteo = s.meteo || O.meteo;
+           if (typeof s.temperatura === 'number') O.temperatura = s.temperatura; }
+} catch(e){}
+
+function oSalva(){ try { localStorage.setItem('outfit-filtri', JSON.stringify(
+  { occasione:O.occasione, stile:O.stile, meteo:O.meteo, temperatura:O.temperatura })); } catch(e){} }
+
+function oImg(it, w){ return O.cdn + it.img + '?auto=format&fit=crop&w=' + (w||420) + '&q=75'; }
+
+function oScript(src){
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = ok; s.onerror = () => ko(new Error('script ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadOutfit(){
+  if (O.pronto) { oRenderTutto(); return; }
+  const box = document.getElementById('o-proposte');
+  box.innerHTML = '<div class="o-vuoto">Carico il guardaroba…</div>';
+  try {
+    if (typeof OutfitEngine === 'undefined') await oScript('outfit-engine.js');
+    const r = await fetch('outfit-data.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    O.capi = d.capi; O.cdn = d.cdn; O.archivio = d.archivio;
+    // ogni riga: [indici capi, contesti in cui è valido, punteggio]
+    O.combos = d.archivio.combos.map(row => {
+      const items = row[0].map(i => O.capi[i]);
+      const stili = {};
+      items.forEach(it => it.stile.forEach(s => { stili[s] = true; }));
+      return { items, ctx: row[1], score: row[2], stili };
+    });
+    O.pronto = true;
+    oInitControlli();
+    oRenderTutto();
+  } catch (e) {
+    box.innerHTML = '<div class="o-vuoto">Guardaroba non caricato (' + e.message +
+      '). Se apri la pagina da file locale serve un server: online funziona.</div>';
+  }
+}
+
+function oInitControlli(){
+  if (oInitControlli.fatto) return;
+  oInitControlli.fatto = true;
+  [['o-f-occ','occasione'],['o-f-stile','stile'],['o-f-meteo','meteo']].forEach(([id, campo]) => {
+    const chips = document.querySelectorAll('#' + id + ' .o-chip');
+    chips.forEach(ch => {
+      if (ch.dataset.v === O[campo]) { chips.forEach(c => c.classList.remove('on')); ch.classList.add('on'); }
+      ch.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('on'));
+        ch.classList.add('on'); O[campo] = ch.dataset.v; O.pagine = 1;
+        oSalva(); oRenderTutto();
+      });
+    });
+  });
+  const sl = document.getElementById('o-temp');
+  sl.value = O.temperatura;
+  document.getElementById('o-tval').textContent = O.temperatura + '°';
+  sl.addEventListener('input', () => {
+    O.temperatura = Number(sl.value);
+    document.getElementById('o-tval').textContent = O.temperatura + '°';
+  });
+  sl.addEventListener('change', () => { O.pagine = 1; oSalva(); oRenderTutto(); });
+  document.getElementById('o-arch-piu').addEventListener('click', () => { O.pagine++; oRenderArchivio(); });
+}
+
+function oRenderTutto(){ oRenderGuardaroba(); oRenderProposte(); oRenderArchivio(); oRenderKpi(); }
+
+function oVisibile(it){
+  if (O.stile !== 'tutti' && it.stile.indexOf(O.stile) === -1) return false;
+  if (it.occasioni.indexOf(O.occasione) === -1) return false;
+  return OutfitEngine.meteoOk(it, O.temperatura);
+}
+
+function oRenderGuardaroba(){
+  const box = document.getElementById('o-guardaroba');
+  box.innerHTML = ''; let n = 0;
+  O_ORDINE.forEach(slot => {
+    const items = O.capi.filter(it => it.slot === slot && oVisibile(it));
+    if (!items.length) return;
+    const h = document.createElement('div'); h.className = 'o-sez'; h.textContent = O_SLOT[slot];
+    box.appendChild(h);
+    const g = document.createElement('div'); g.className = 'o-griglia';
+    items.forEach(it => {
+      n++;
+      const b = document.createElement('button');
+      b.className = 'o-capo' + (O.anchor === it.id ? ' sel' : '');
+      b.innerHTML = '<img loading="lazy" alt="' + it.nome + '" src="' + oImg(it, 340) + '">' +
+        '<div class="cn">' + it.nome + '</div><div class="cf">' + it.fit + ' · form. ' + it.formalita + '/10</div>';
+      b.addEventListener('click', () => {
+        O.anchor = it.id; O.pagine = 1;
+        oRenderGuardaroba(); oRenderProposte(); oRenderArchivio();
+        document.querySelector('#outfit-tabs button[data-opane="abbina"]').click();
+      });
+      g.appendChild(b);
+    });
+    box.appendChild(g);
+  });
+  if (!n) box.innerHTML = '<div class="o-vuoto">Nessun capo regge questi filtri: allarga il contesto.</div>';
+  document.getElementById('o-conta-capi').textContent =
+    n + ' capi su ' + O.capi.length + ' per ' + O.occasione + ' a ' + O.temperatura + '°. Tocca un capo per farci gli abbinamenti.';
+}
+
+function oRiga(items, anchorId){
+  return items.map(it => '<div class="o-item' + (anchorId && it.id === anchorId ? ' anchor' : '') + '">' +
+    '<img loading="lazy" alt="' + it.nome + '" src="' + oImg(it, 260) + '">' +
+    '<div class="on">' + it.nome + '</div></div>').join('');
+}
+
+function oRenderProposte(){
+  const scelto = document.getElementById('o-scelto-box');
+  const box = document.getElementById('o-proposte');
+  if (!O.anchor) {
+    scelto.innerHTML = '';
+    box.innerHTML = '<div class="o-vuoto">Scegli un capo dalla scheda <b>Guardaroba</b>: da lì costruisco l’outfit intorno.</div>';
+    return;
+  }
+  const r = OutfitEngine.generaOutfit(O.capi, O.anchor, {
+    occasione: O.occasione, stile: O.stile, temperatura: O.temperatura, meteo: O.meteo });
+  if (r.errore || !r.outfits.length) {
+    scelto.innerHTML = '';
+    box.innerHTML = '<div class="o-vuoto">' + (r.errore || 'Con questi filtri non esce un outfit onesto: cambia occasione o temperatura.') + '</div>';
+    return;
+  }
+  const inArch = O.combos.filter(c => c.items.some(it => it.id === O.anchor)).length;
+  scelto.innerHTML = '<div class="o-nota">Parto da <b style="color:var(--ink)">' + r.anchor.nome +
+    '</b> · ' + r.anchor.fit + ' · formalità ' + r.anchor.formalita + '/10 · in archivio compare in ' +
+    inArch + ' abbinamenti. <button class="o-btn" id="o-cambia">cambia capo</button></div>';
+  document.getElementById('o-cambia').addEventListener('click', () =>
+    document.querySelector('#outfit-tabs button[data-opane="guardaroba"]').click());
+  box.innerHTML = '';
+  r.outfits.forEach((of, i) => {
+    const d = document.createElement('div'); d.className = 'o-outfit';
+    d.innerHTML = '<div class="o-ohead"><span class="o-otit">Proposta ' + (i+1) + '</span>' +
+      '<span class="o-score">armonia ' + Math.round(of.score) + '</span></div>' +
+      '<div class="o-row">' + oRiga(of.items, r.anchor.id) + '</div>' +
+      '<div class="o-testo">' + of.testo + '</div>';
+    box.appendChild(d);
+  });
+}
+
+function oFascia(t){ if (t < 8) return 2; if (t <= 16) return 12; if (t <= 24) return 20; return 28; }
+
+// indice del contesto corrente nella tabella dell'archivio (-1 se non esiste)
+function oContestoCorrente(){
+  const occ = O.archivio.occasioni.indexOf(O.occasione);
+  const f = oFascia(O.temperatura);
+  const pioggia = O.meteo === 'pioggia' ? 1 : 0;
+  let i = O.archivio.contesti.findIndex(c => c[0] === occ && c[1] === f && c[2] === pioggia);
+  // fasce senza variante pioggia (2° e 28°): si ricade su quella al sole
+  if (i === -1) i = O.archivio.contesti.findIndex(c => c[0] === occ && c[1] === f && c[2] === 0);
+  return i;
+}
+
+function oArchivioFiltrato(){
+  const ci = oContestoCorrente();
+  if (ci === -1) return [];
+  return O.combos.filter(c => {
+    if (c.ctx.indexOf(ci) === -1) return false;
+    if (O.stile !== 'tutti' && !c.stili[O.stile]) return false;
+    if (O.soloCapo && O.anchor && !c.items.some(it => it.id === O.anchor)) return false;
+    return true;
+  });
+}
+
+function oRenderArchivio(){
+  const lista = oArchivioFiltrato();
+  const badge = document.getElementById('o-badge');
+  badge.style.display = 'inline-block';
+  badge.textContent = O.archivio.totale >= 1000
+    ? (O.archivio.totale / 1000).toFixed(1).replace('.', ',') + 'k' : O.archivio.totale;
+  document.getElementById('o-arch-nota').innerHTML =
+    '<b style="color:var(--ink)">' + O.archivio.totale.toLocaleString('it-IT') + '</b> abbinamenti in archivio, ' +
+    lista.length.toLocaleString('it-IT') + ' validi per ' + O.occasione +
+    (O.meteo === 'pioggia' ? ' con pioggia' : '') + ' a ~' + oFascia(O.temperatura) + '°' +
+    (O.stile !== 'tutti' ? ', stile ' + O.stile : '') +
+    (O.anchor ? ' · <button class="o-btn" id="o-solo">' + (O.soloCapo ? '✓ solo col capo scelto' : 'solo col capo scelto') + '</button>' : '');
+  const solo = document.getElementById('o-solo');
+  if (solo) solo.addEventListener('click', () => { O.soloCapo = !O.soloCapo; O.pagine = 1; oRenderArchivio(); });
+
+  const body = document.getElementById('o-arch-body');
+  body.innerHTML = '';
+  const fine = Math.min(lista.length, O.pagine * O_PAGINA);
+  for (let k = 0; k < fine; k++) {
+    const c = lista[k];
+    const d = document.createElement('div'); d.className = 'o-outfit';
+    d.innerHTML = '<div class="o-ohead"><span class="o-otit">#' + (k+1) + '</span>' +
+      '<button class="o-btn">perché funziona</button>' +
+      '<span class="o-score">armonia ' + Math.round(c.score) + '</span></div>' +
+      '<div class="o-row">' + oRiga(c.items, O.anchor) + '</div>' +
+      '<div class="o-testo" hidden></div>';
+    d.querySelector('.o-btn').addEventListener('click', function(){
+      const t = d.querySelector('.o-testo');
+      if (t.hidden) {
+        t.textContent = OutfitEngine.descriviOutfit(c.items,
+          { occasione: O.occasione, stile: O.stile === 'tutti' ? undefined : O.stile,
+            temperatura: O.temperatura, meteo: O.meteo }, c.items[0]);
+        t.hidden = false; this.textContent = 'chiudi';
+      } else { t.hidden = true; this.textContent = 'perché funziona'; }
+    });
+    body.appendChild(d);
+  }
+  if (!fine) body.innerHTML = '<div class="o-vuoto">Nessun abbinamento in archivio con questi filtri: allarga il contesto.</div>';
+  const piu = document.getElementById('o-arch-piu');
+  piu.hidden = fine >= lista.length;
+  piu.textContent = 'Mostra altri (' + (lista.length - fine) + ')';
+}
+
+function oRenderKpi(){
+  const box = document.getElementById('o-kpis');
+  const perStile = s => O.capi.filter(c => c.stile.indexOf(s) !== -1).length;
+  const kpi = (l, v, d) => '<div class="kpi"><div class="l">' + l + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>';
+  box.innerHTML =
+    kpi('Capi in guardaroba', O.capi.length, 'foto verificate una per una') +
+    kpi('Abbinamenti', O.archivio.totale.toLocaleString('it-IT'), 'precalcolati e filtrabili') +
+    kpi('Street · Casual', perStile('street') + ' · ' + perStile('casual'), 'registro basso') +
+    kpi('Smart · Elegante', perStile('smart') + ' · ' + perStile('elegante'), 'registro alto') +
+    kpi('Fit vietati', '0', 'niente slim né skinny');
+}
+
+// tab interni outfit
+document.querySelectorAll('#outfit-tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#outfit-tabs button').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('#scheda-outfit .pane').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('opane-' + b.dataset.opane).classList.add('on');
+  document.getElementById('o-contesto').style.display = b.dataset.opane === 'regole' ? 'none' : 'flex';
+}));
+/* /OUTFIT:JS */
 </script>
 </body>
 </html>
