@@ -218,17 +218,18 @@
     <header class="top">
       <div class="saluto">Health</div>
       <div class="data-oggi" id="dataOggi"></div>
-      <div class="stato"><span class="dot" id="dotStato"></span><span id="txtStato">sistema attivo</span></div>
+      <div class="stato"><span class="dot warn" id="dotStato"></span><span id="txtStato">accesso richiesto</span></div>
     </header>
 
     <nav class="tabs">
-      <button class="on" onclick="vista('oggi',this)">Oggi</button>
-      <button onclick="vista('trend',this);montaTrend()">Tendenza</button>
-      <button onclick="vista('corpo',this);montaCorpo()">Corpo</button>
-      <button onclick="vista('diario',this)">Diario</button>
-      <button onclick="vista('input',this)">Inserisci</button>
-      <button onclick="vista('coach',this)">Coach</button>
-      <button onclick="location.href='psicologa.html'">Psicologa</button>
+      <button class="on" data-vista="oggi" onclick="vista('oggi',this)">Oggi</button>
+      <button data-vista="trend" onclick="vista('trend',this);montaTrend()">Tendenza</button>
+      <button data-vista="corpo" onclick="vista('corpo',this);montaCorpo()">Corpo</button>
+      <button data-vista="diario" onclick="vista('diario',this)">Diario</button>
+      <button data-vista="input" onclick="vista('input',this)">Inserisci</button>
+      <button data-vista="coach" onclick="vista('coach',this)">Coach</button>
+      <!-- accesso a Psicologa: uno solo, nel dock a sinistra (visibile anche
+           a 390px: verificato nel banco). Qui era il doppione (06/09). -->
     </nav>
 
     <!-- ============ OGGI: card modulari ============ -->
@@ -418,24 +419,58 @@ function entra(){
 }
 
 function api(percorso, corpo){
-  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' } };
+  var controller = new AbortController();
+  var scadenza = setTimeout(function(){ controller.abort(); }, 120000);
+  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' }, signal:controller.signal };
   if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
   return fetch(API_BASE+percorso, opt).then(function(r){
     if(r.status===401){
       document.getElementById('login').style.display='flex';
       throw new Error('sessione scaduta: reinserisci il codice');
     }
-    if(!r.ok) return r.json().then(function(e){ throw new Error(e.errore||r.status); });
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(e){
+      throw new Error(e && typeof e.errore==='string' && e.errore.trim()
+        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').');
+    });
     return r.json();
-  });
+  }).catch(function(e){
+    if(controller.signal.aborted) throw new Error(corpo
+      ? 'Tempo di attesa scaduto. La richiesta potrebbe essere stata ricevuta: controlla lo storico prima di reinviare.'
+      : 'Tempo di attesa scaduto durante il caricamento dei dati.');
+    throw e;
+  }).finally(function(){ clearTimeout(scadenza); });
 }
 
 function vista(nome, btn){
+  var target=document.getElementById('v-'+nome);
+  if(!target) return;
   document.querySelectorAll('.vista').forEach(function(v){ v.classList.remove('on'); });
-  document.getElementById('v-'+nome).classList.add('on');
+  target.classList.add('on');
   document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('on'); });
-  btn.classList.add('on');
+  if(btn && btn.classList) btn.classList.add('on');
+  else{
+    var b2=document.querySelector('nav.tabs button[data-vista="'+nome+'"]');
+    if(b2) b2.classList.add('on');
+  }
 }
+
+/* Un rimando da Track deve APRIRE la vista, non solo cambiare l'indirizzo:
+   #tendenza, #oggi, #corpo... valgono anche a pagina appena caricata (06/09). */
+var ALIAS_VISTA={ tendenza:'trend', trend:'trend', oggi:'oggi', corpo:'corpo',
+                 diario:'diario', inserisci:'input', input:'input', coach:'coach' };
+function vistaDaAncora(){
+  var n=(location.hash||'').replace('#','').trim().toLowerCase();
+  if(!n) return;
+  var v=ALIAS_VISTA[n];
+  if(!v) return;                      /* ancora sconosciuta: si ignora */
+  vista(v, null);
+  /* le viste pesanti si montano al clic: da un rimando esterno vanno
+     montate qui, o si aprirebbero vuote */
+  try{ if(v==='trend' && typeof montaTrend==='function') montaTrend();
+       if(v==='corpo' && typeof montaCorpo==='function') montaCorpo(); }catch(e){}
+}
+window.addEventListener('hashchange', vistaDaAncora);
+document.addEventListener('DOMContentLoaded', vistaDaAncora);
 
 function fmt(n, dec){ return n==null ? '—' : Number(n).toFixed(dec==null?1:dec).replace('.',','); }
 function grafico(id,cfg){ if(grafici[id]) grafici[id].destroy(); var el=document.getElementById(id); if(el) grafici[id]=new Chart(el,cfg); }
@@ -462,6 +497,7 @@ var DEFAULT_CONFIG = { version:1, cards:[
 ]};
 
 var DATI = {};   // cache dei dati per le card
+var BOX_ASSORBITO=false;   // la card 'box' e stata assorbita dalla settimana?
 
 function configDash(ctx){
   try{
@@ -610,6 +646,21 @@ var CARD_TYPES = {
      più delle altre. Si mostra a che punto sono, senza verdetti sul giorno. */
   settimana: function(el){
     el.innerHTML='<h3>La settimana</h3>';
+    /* dettaglio del box qui dentro: era la card 'Box · settimana', che
+       contava la stessa cosa in un altro riquadro (06/09). Si mostra SOLO se
+       quella card e stata assorbita: se dash_health la teneva enabled:false,
+       una configurazione spenta di proposito non deve riapparire da qui. */
+    var b=BOX_ASSORBITO?DATI.box:null;
+    if(b){
+      var fatte=Number(b.fatte||0), saltate=Number(b.saltate||0), riposi=Number(b.riposi||0);
+      var hb='<div class="tacche">';
+      for(var i=0;i<4;i++) hb+='<div class="tacca'+(i<fatte?' piena':(i<fatte+saltate?' saltata':''))+'"></div>';
+      hb+='</div>';
+      var v=b.verdetto||'', parole={ottimo:'ottimo',buono:'buono',minimo:'minimo',sotto_minimo:'in costruzione'};
+      hb+='<div class="verdetto">'+fatte+'/4 <small>· '+(parole[v]||v)+
+          (riposi?' · '+riposi+' riposo':'')+' · 2 minimo, 3 buono, 4 ottimo</small></div>';
+      el.innerHTML+=hb;
+    }
     var s=DATI.settimana;
     if(!s){ el.innerHTML+='<span class="spin">…</span>'; return; }
     var gambe=[
@@ -645,6 +696,23 @@ function montaDash(){
   griglia.innerHTML='';
   var cards=(cfg.cards||[]).filter(function(c){ return c && c.enabled !== false && CARD_TYPES[c.type]; })
     .sort(function(a,b){ return (a.order||99)-(b.order||99); });
+  /* DUPLICATI (06/09, chiesto da Diego). Due regole di sola PRESENTAZIONE:
+     la configurazione in 'dash_health' NON si tocca e resta com'e nel DB.
+     1) lo stesso id due volte monta UNA card sola: una configurazione
+        sbagliata non deve raddoppiare la stessa informazione;
+     2) 'box' e 'settimana' contavano tutte e due la settimana di CrossFit:
+        quando ci sono entrambe si monta la sola settimana, che dentro porta
+        il dettaglio del box (tacche, verdetto e soglie), cosi non si perde
+        niente e si legge in un posto solo. */
+  var visti={};
+  cards=cards.filter(function(c){
+    var k=String(c.id||c.type);
+    if(visti[k]) return false; visti[k]=1; return true;
+  });
+  var haSettimana=cards.some(function(c){ return c.type==='settimana'; });
+  var haCounter=cards.some(function(c){ return c.type==='counter'; });
+  BOX_ASSORBITO=haSettimana&&haCounter;   /* solo cosi la settimana porta il box */
+  if(haSettimana) cards=cards.filter(function(c){ return c.type!=='counter'; });
   cards.forEach(function(c){
     var el=document.createElement('div');
     el.className='card sz-'+(['hero','wide','half','third'].indexOf(c.size)>=0?c.size:'wide');
@@ -659,9 +727,13 @@ function montaDash(){
 /* trend lunghi e tecnici: collassati, la frizione e voluta */
 function montaDettagli(){
   var box=document.getElementById('dettagli');
+  /* DUPLICATO CHIUSO (06/09): 'Peso 42 giorni' e 'Calorie 42 giorni' erano
+     gli stessi grafici di Tendenza (tPeso/tKcal), disegnati due volte sulle
+     stesse righe. Qui resta il RIEPILOGO in numeri piu il rimando che apre
+     davvero la vista; i grafici completi si guardano in un posto solo.
+     Sonno/recovery e TDEE NON si toccano: li vivono solo qui. */
   box.innerHTML=
-    '<details class="dett"><summary>Peso &middot; 42 giorni</summary><div class="corpo"><canvas id="gPeso" class="grande"></canvas></div></details>'+
-    '<details class="dett"><summary>Calorie &middot; 42 giorni</summary><div class="corpo"><canvas id="gKcal" class="grande"></canvas></div></details>'+
+    '<div class="lettura" id="riepPesoKcal"><span class="spin">&hellip;</span></div>'+
     '<details class="dett"><summary>Sonno e recovery</summary><div class="corpo"><canvas id="gRec" class="grande"></canvas></div></details>'+
     '<details class="dett"><summary>TDEE e pipeline</summary><div class="corpo"><div id="tdee" class="spin">&hellip;</div><div id="qualita" class="spin" style="margin-top:10px">&hellip;</div></div></details>';
   var righe=DATI.righe||[];
@@ -669,13 +741,7 @@ function montaDettagli(){
   var op={responsive:true,plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}}},
           scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
                   y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
-  /* media 7gg = la verita (spessa); il giorno = rumore (puntini attenuati) */
-  grafico('gPeso',{type:'line',data:{labels:lab,datasets:[
-    {label:'giorno',data:righe.map(function(r){return r.weight_kg;}),borderColor:'rgba(57,135,229,0)',pointRadius:2,pointBackgroundColor:'rgba(57,135,229,.3)',showLine:false},
-    {label:'media 7gg',data:righe.map(function(r){return r.peso_ma7;}),borderColor:'#a6e22e',pointRadius:0,borderWidth:3,spanGaps:true}]},options:op});
-  grafico('gKcal',{type:'bar',data:{labels:lab,datasets:[
-    {label:'kcal',data:righe.map(function(r){return r.calories_in;}),backgroundColor:'rgba(57,135,229,.45)'},
-    {label:'media 7gg',type:'line',data:righe.map(function(r){return r.kcal_ma7;}),borderColor:'#fab219',pointRadius:0,borderWidth:2,spanGaps:true}]},options:op});
+  riepilogoPesoKcal(righe);
   grafico('gRec',{type:'line',data:{labels:lab,datasets:[
     {label:'sonno (h)',data:righe.map(function(r){return r.sleep_duration_hours;}),borderColor:'#3987e5',pointRadius:2,borderWidth:1.5,spanGaps:true,yAxisID:'y'},
     {label:'recovery %',data:righe.map(function(r){return r.whoop_recovery_pct;}),borderColor:'#a6e22e',pointRadius:2,borderWidth:1.5,spanGaps:true,yAxisID:'y1'}]},
@@ -699,6 +765,38 @@ function montaDettagli(){
     if(righe.length===1) righe.push('<span class="ok">tutto regolare</span>');
     document.getElementById('qualita').innerHTML=righe.join('<br>');
   }).catch(function(){});
+}
+
+/* Riepilogo compatto di peso e calorie: gli stessi numeri che i due grafici
+   rimossi mostravano (ultimo giorno + media 7gg + delta), con il rimando che
+   APRE Tendenza, non solo cambia indirizzo. Nessun dato perso, una lettura sola. */
+function riepilogoPesoKcal(righe){
+  var el=document.getElementById('riepPesoKcal');
+  if(!el) return;
+  var rimando='<div style="margin-top:8px"><a href="#tendenza" id="vaiTendenza" '+
+    'style="color:var(--accent);text-decoration:none;font-weight:600" '+
+    'onclick="apriTendenza();return false;">Peso e calorie &middot; grafici completi in Tendenza &rarr;</a></div>';
+  if(!righe || !righe.length){
+    el.innerHTML='<span class="spin">Peso e calorie: ancora nessun giorno con dati.</span>'+rimando; return;
+  }
+  function ultimo(campo){
+    for(var i=righe.length-1;i>=0;i--) if(righe[i][campo]!=null) return righe[i][campo];
+    return null;
+  }
+  var peso=ultimo('weight_kg'), pma=ultimo('peso_ma7'), dlt=ultimo('delta_peso_ma7_su_7gg');
+  var kcal=ultimo('calories_in'), kma=ultimo('kcal_ma7');
+  var h='<b>Peso</b> '+fmt(peso,1)+' kg &middot; media 7gg <b>'+fmt(pma,1)+'</b>'+
+    (dlt==null?'':' <small>('+(dlt>0?'+':'')+fmt(dlt,2)+' in 7 giorni)</small>')+'<br>'+
+    '<b>Calorie</b> '+fmt(kcal,0)+' kcal &middot; media 7gg <b>'+fmt(kma,0)+'</b>'+
+    (DATI.targetKcal?' <small>(obiettivo '+DATI.targetKcal+')</small>':'')+
+    ' <small>&middot; '+righe.length+' giorni nell\u2019era</small>';
+  el.innerHTML=h+rimando;
+}
+function apriTendenza(){
+  /* l'indirizzo si aggiorna PRIMA: cosi un ricarico riapre la stessa vista */
+  if(location.hash!=='#tendenza') location.hash='#tendenza';
+  vista('trend', null);
+  montaTrend();
 }
 
 function giornoIso(d){
@@ -1054,17 +1152,27 @@ function letturaCorpo(date,vals,i){
 
 function carica(){
   /* si raccolgono i dati una volta, poi si montano le card */
+  document.getElementById('txtStato').textContent='caricamento dati';
+  document.getElementById('dotStato').className='dot warn';
+  var errori=[], erroreDati=null;
+  function manca(nome, campi){
+    return function(e){
+      errori.push(nome);
+      // Non presentare il dato del caricamento precedente come dato fresco.
+      Object.keys(campi).forEach(function(k){ DATI[k]=campi[k]; });
+      if(nome==='dati') erroreDati=e.message;
+    };
+  }
   var attese=[
     api('/api/contesto').then(function(c){
       DATI.contesto=c;
       var m=String(c.kcal_target_die||'').match(/(\d{3,5})/);
       DATI.targetKcal=m?parseInt(m[1],10):null;
-    }).catch(function(){}),
+    }).catch(manca('contesto',{contesto:{},targetKcal:null})),
     api('/api/dati?giorni=182').then(function(righe){
       righe.sort(function(a,b){ return a.date<b.date?-1:1; });
       DATI.righe182=righe;
       DATI.righe=righe.slice(-42);
-      document.getElementById('txtStato').textContent='sistema attivo';
       /* rientro gentile */
       var per={}; righe.forEach(function(r){ per[r.date]=r; });
       var oggi=new Date(); oggi.setHours(12,0,0,0); var vuoti=0;
@@ -1075,17 +1183,19 @@ function carica(){
         if(!ha) vuoti++;
       }
       if(vuoti===3) document.getElementById('bentornato').style.display='block';
-    }).catch(function(e){
-      document.getElementById('txtStato').textContent='errore: '+e.message;
-      document.getElementById('dotStato').className='dot warn';
-    }),
-    api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(function(){}),
-    api('/api/box').then(function(b){ DATI.box=b; }).catch(function(){}),
-    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(function(){}),
-    api('/api/settimana_buona').then(function(s){ DATI.settimana=s; }).catch(function(){}),
-    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(function(){})
+    }).catch(manca('dati',{righe:[],righe182:[]})),
+    api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(manca('semaforo',{semaforo:null})),
+    api('/api/box').then(function(b){ DATI.box=b; }).catch(manca('box',{box:null})),
+    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(manca('tracker',{tracker:null})),
+    api('/api/settimana_buona').then(function(s){ DATI.settimana=s; }).catch(manca('settimana',{settimana:null})),
+    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(manca('misure',{misure:[]}))
   ];
   Promise.all(attese).then(function(){
+    // Il verde richiede tutte le letture dashboard, non solo /api/dati.
+    // Non è comunque una verifica della disponibilità del fornitore AI.
+    document.getElementById('txtStato').textContent=erroreDati ? 'errore: '+erroreDati
+      : errori.length ? 'dati parziali: '+errori.join(', ')+' non disponibili' : 'dati caricati';
+    document.getElementById('dotStato').className=errori.length ? 'dot warn' : 'dot';
     montaDash();
     if(document.getElementById('v-trend').classList.contains('on')) montaTrend();
     if(document.getElementById('v-corpo').classList.contains('on')) montaCorpo();
@@ -1194,13 +1304,20 @@ function aggiungi(chi,testo){
 }
 
 function chiedi(){
+  // Il blocco vale anche per chiamate ripetute a questa funzione.
+  // La bozza successiva resta nel campo finché la richiesta in corso finisce.
+  var btn=document.getElementById('btnChiedi');
+  if(btn.disabled) return;
   var box=document.getElementById('dom'), q=box.value.trim();
   if(!q) return;
   box.value=''; aggiungi('io',q);
   var attesa=aggiungi('coach','…');
-  var btn=document.getElementById('btnChiedi'); btn.disabled=true;
+  btn.disabled=true;
   api('/api/chat',{domanda:q}).then(function(r){ attesa.textContent=r.risposta||'(vuoto)'; })
-  .catch(function(e){ attesa.textContent='Errore: '+e.message; })
+  .catch(function(e){
+    attesa.textContent='Errore: '+e.message;
+    if(!box.value) box.value=q;
+  })
   .finally(function(){ btn.disabled=false; });
 }
 

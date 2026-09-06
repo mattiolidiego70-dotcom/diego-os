@@ -611,8 +611,11 @@
         <div class="colonne">
           <div class="chartbox" style="margin:0">
             <h3>Peso — 90 giorni</h3>
-            <div class="sub">punti = pesate · linea = trend (media mobile) · tratteggio = obiettivo</div>
-            <div id="t-weight-chart"></div>
+            <!-- DUPLICATO (06/09): lo stesso grafico vive in HEALTH, che e il
+                 dettaglio principale del corpo. Qui resta il rimando, non una
+                 seconda copia. I dati NON si spostano fra i due backend. -->
+            <div class="sub">Il grafico completo del peso e in HEALTH, sotto Tendenza.</div>
+            <p><a href="salute.html#tendenza" style="color:var(--accent);text-decoration:none;font-weight:600">Apri Peso in HEALTH →</a></p>
           </div>
           <div>
             <div class="chartbox" style="margin-bottom:14px">
@@ -663,8 +666,9 @@
         <div class="colonne">
           <div class="chartbox" style="margin:0">
             <h3>Calorie — ultimi 14 giorni</h3>
-            <div class="sub">barre = kcal del giorno · linea = obiettivo</div>
-            <div id="t-kcal-chart"></div>
+            <!-- DUPLICATO (06/09): il grafico delle calorie e in HEALTH. -->
+            <div class="sub">Il grafico completo delle calorie e in HEALTH, sotto Tendenza.</div>
+            <p><a href="salute.html#tendenza" style="color:var(--accent);text-decoration:none;font-weight:600">Apri Calorie in HEALTH →</a></p>
           </div>
           <div><h3 class="sez">DIARIO</h3><div id="t-diario"></div></div>
         </div>
@@ -2002,6 +2006,7 @@ document.querySelectorAll('#track-tabs button').forEach(b=>b.addEventListener('c
 
 function drawWeight(series, goal){
   const el=document.getElementById('t-weight-chart');
+  if(!el) return;   /* il grafico ora vive in HEALTH: qui c'e un rimando */
   if(!series.length){ el.innerHTML='<div class="inbox-vuota">di\' ad Alfred "peso 82,4" per iniziare</div>'; return; }
   const W=Math.max(520,el.clientWidth||520), H=240, M={t:14,r:46,b:26,l:44};
   const vals=series.map(p=>p.peso).concat(goal?[goal]:[]);
@@ -2026,6 +2031,7 @@ function drawWeight(series, goal){
 
 function drawKcal(days, goal){
   const el=document.getElementById('t-kcal-chart');
+  if(!el) return;   /* idem: il grafico completo e in HEALTH */
   const rows=[...days].reverse();
   const W=Math.max(520,el.clientWidth||520), H=220, M={t:12,r:16,b:26,l:44};
   const hi=Math.max(goal||0,...rows.map(r=>r.kcal),100)*1.1;

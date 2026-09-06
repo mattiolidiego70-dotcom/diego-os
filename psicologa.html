@@ -119,7 +119,7 @@
 
     <!-- ============ NUOVO APPUNTO ============ -->
     <div class="scheda">
-      <h3>Nuovo blocco</h3>
+      <h3>Nuovo appunto</h3>
       <div class="sotto">Lo stesso posto dove scrive Alfred quando dici &laquo;segna per la psicologa&raquo;.</div>
       <div class="riga">
         <select id="nTipo">
@@ -244,9 +244,18 @@ function applicaFiltri(){
   rendi();
 }
 
+/* Dedup della SOLA vista, e solo per ID: due appunti diversi con lo stesso
+   testo restano due (06/09). Non si fonde niente per somiglianza. */
+function unaVoltaPerId(lista){
+  var visti={};
+  return (lista||[]).filter(function(v){
+    var k=String(v && v.id);
+    if(visti[k]) return false; visti[k]=1; return true;
+  });
+}
 function rendi(){
   var attivo=FILTRO.testo||FILTRO.tipo||FILTRO.dove;
-  var lc=filtra(CORRENTI), ls=filtra(STORICO);
+  var lc=unaVoltaPerId(filtra(CORRENTI)), ls=unaVoltaPerId(filtra(STORICO));
   document.getElementById('fConto').textContent = attivo
     ? 'mostrati '+lc.length+' su '+CORRENTI.length+' da portare e '+ls.length+' su '+STORICO.length+' portati'
     : '';
@@ -258,7 +267,7 @@ function rendi(){
       : 'Niente da portare, per ora. Aggiungi un blocco qui sopra o dillo ad Alfred.')+'</span>';
   } else {
     el.innerHTML=lc.map(function(v){
-      return '<div class="appunto" id="app-'+v.id+'">'+
+      return '<div class="appunto" id="app-'+v.id+'" data-appunto-id="'+v.id+'">'+
         '<input type="checkbox" data-id="'+v.id+'">'+
         '<div class="corpo"><div class="testo" id="testo-'+v.id+'"></div>'+
         '<div class="meta">'+badge(v.tipo)+quando(v.ts)+(v.modificato_il?' &middot; modificato':'')+' &middot; '+v.origine+'</div></div>'+
@@ -283,7 +292,7 @@ function rendi(){
     ls.forEach(function(v){
       var g=v.portato_il||'';
       if(g!==ultima){ html+='<div class="gruppo-data">seduta del '+(g?quando(g):'?')+'</div>'; ultima=g; }
-      html+='<div class="appunto"><div class="corpo"><div class="testo" id="stesto-'+v.id+'"></div>'+
+      html+='<div class="appunto" data-appunto-id="'+v.id+'"><div class="corpo"><div class="testo" id="stesto-'+v.id+'"></div>'+
         '<div class="meta">'+badge(v.tipo)+'scritto il '+quando(v.ts)+'</div></div>'+
         '<div class="azioni-mini">'+
           '<button title="modifica" onclick="modifica('+v.id+',true)">&#9998;</button>'+
