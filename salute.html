@@ -211,6 +211,8 @@
     <div class="mark">DIEGO_OS</div>
     <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
     <span class="mod active" title="Health">&#10084;<span class="lbl">HEALTH</span></span>
+    <a class="mod" href="spesa.html" title="Spesa">&#128722;<span class="lbl">SPESA</span></a>
+    <a class="mod" href="dieta.html" title="Dieta e stime">&#129379;<span class="lbl">DIETA</span></a>
     <a class="mod" href="psicologa.html" title="Psicologa">&#129504;<span class="lbl">PSI</span></a>
   </aside>
 
@@ -332,6 +334,39 @@
         <div id="cGraficoInfo" class="lettura">tocca un punto: qui appare la misura di quel giorno</div>
       </div>
 
+      <!-- PLICHE nella sezione CORPO (07/09): la plicometria e' il dato che
+           Diego guarda davvero, non puo' vivere solo dentro Tendenza. Stessa
+           sorgente di Tendenza (plichePerData), nessun secondo calcolo. -->
+      <div class="scheda" id="cPliche">
+        <h3>Pliche &middot; controlli del nutrizionista</h3>
+        <div id="cpUltimo" class="lettura" style="margin-top:0;margin-bottom:10px"></div>
+        <div class="periodi" id="cpPeriodi">
+          <button class="chip on" onclick="plichePeriodo('all',this)">tutti i controlli</button>
+          <button class="chip" onclick="plichePeriodo('ultimi3',this)">ultimi 3</button>
+          <button class="chip" onclick="plichePeriodo('latest',this)">solo l&rsquo;ultimo</button>
+        </div>
+        <canvas id="cpGrafico" class="grande"></canvas>
+        <div id="cpInfo" class="lettura">tocca un controllo: qui appaiono le sei pliche di quel giorno</div>
+        <div class="riga" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+          <label>confronta <select id="cpDa" onchange="montaConfrontoPliche()"></select></label>
+          <label>con <select id="cpA" onchange="montaConfrontoPliche()"></select></label>
+        </div>
+        <div id="cpConfronto" style="margin-top:8px"></div>
+        <details class="dett" style="margin-top:10px">
+          <summary>Tutti i controlli, dal piu&rsquo; recente</summary>
+          <div class="corpo" id="cpTabella"></div>
+        </details>
+      </div>
+
+      <!-- Le circonferenze prese fuori dalla finestra del protocollo non
+           spariscono: oggi sono TUTTE fuori protocollo, e una sezione vuota
+           senza spiegazione fa credere di non aver mai misurato. -->
+      <div class="scheda" id="cFuoriBox">
+        <h3>Circonferenze fuori protocollo</h3>
+        <div id="cFuoriInfo" class="lettura" style="margin-top:0"></div>
+        <div id="cFuoriLista" style="margin-top:8px"></div>
+      </div>
+
       <details class="dett">
         <summary>Il protocollo in breve</summary>
         <div class="corpo" id="cProtocollo"></div>
@@ -429,8 +464,42 @@ function api(percorso, corpo){
       throw new Error('sessione scaduta: reinserisci il codice');
     }
     if(!r.ok) return r.json().catch(function(){ return null; }).then(function(e){
-      throw new Error(e && typeof e.errore==='string' && e.errore.trim()
-        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').');
+      var msg = (e && typeof e.errore==='string' && e.errore.trim())
+        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').';
+      /* Tre esiti, tre frasi diverse. La distinzione che conta e fra
+         «il database ha detto di no» (certo) e «non ho ricevuto risposta»
+         (incerto): dire «non salvata» di una misura che potrebbe essere nel
+         database porta Diego a riscriverla, e due letture dello stesso giorno
+         non si sommano, si litigano. Per questo l incerta si CONTROLLA, non si
+         rimanda a occhi chiusi. */
+      var parti = [];
+      if(e && Array.isArray(e.confermate) && e.confermate.length){
+        parti.push('salvate: ' + e.confermate.map(function(x){ return x.misura; }).join(', '));
+      }
+      if(e && Array.isArray(e.incerte) && e.incerte.length){
+        /* Il testo si ferma al FATTO. L'esito vero lo aggiunge salvaCorpo DOPO
+           aver riletto il database: dire qui «guarda qui sopra» chiedeva un
+           controllo che la pagina non aveva ancora fatto (review 3, R2). */
+        parti.push('DA VERIFICARE: ' + e.incerte.map(function(x){ return x.misura; }).join(', ') +
+          ' — il database non ha risposto');
+      }
+      if(e && Array.isArray(e.rifiutate_dal_database) && e.rifiutate_dal_database.length){
+        parti.push('rifiutate: ' + e.rifiutate_dal_database.map(function(x){
+          return x.misura + ' (' + x.motivo + ')'; }).join('; '));
+      }
+      if(e && Array.isArray(e.non_tentate) && e.non_tentate.length){
+        parti.push('non inviate: ' + e.non_tentate.map(function(x){ return x.misura; }).join(', ') +
+          ' — mi sono fermato prima, queste puoi rimandarle');
+      }
+      /* forma vecchia della risposta (batch rifiutato prima di scrivere) */
+      if(e && Array.isArray(e.rifiutate) && e.rifiutate.length){
+        parti.push('nessuna scritta, da correggere: ' + e.rifiutate.map(function(f){
+          return f.nome + ' (' + f.motivo + ')'; }).join('; '));
+      }
+      if(parti.length) msg += ' — ' + parti.join('. ');
+      var err = new Error(msg);
+      err.dettaglio = e;
+      throw err;
     });
     return r.json();
   }).catch(function(e){
@@ -515,13 +584,27 @@ var CARD_TYPES = {
   score: function(el){
     var s=(DATI.semaforo&&DATI.semaforo.semaforo)||{}, rit=(DATI.semaforo&&DATI.semaforo.ritmo)||null;
     var liv=s.livello||'sconosciuto';
-    var h='<div class="score-liv liv-'+liv+'">'+liv+'</div>'+
-      '<div class="score-frase">'+(liv==='sconosciuto'
-        ? 'Ancora niente dati oggi: appena arriva qualcosa, il semaforo si accende.'
-        : (s.raccomandazione||''))+'</div>';
+    /* Il testo che arriva dal database e DATO, non markup. */
+    function scap(x){ return String(x==null?'':x).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    /* SCONOSCIUTO CON DATI PARZIALI (audit R07). Prima la card diceva «ancora
+       niente dati oggi» in OGNI caso sconosciuto, e ignorava la
+       raccomandazione: ma dal 07/09 `sconosciuto` significa quasi sempre
+       «ho dei dati, non abbastanza da dare un colore» — e la funzione SQL
+       manda gia la frase giusta, con l'elenco di cio che manca. Dirgli
+       «niente dati» mentre il sonno c'era e' una bugia rassicurante.
+       La frase del database vince; il ripiego serve solo se non c'e (API
+       vecchia): li «sconosciuto» resta «sconosciuto», senza inventare. */
+    var mancanti=(s.dati_mancanti||[]).map(function(n){ return scap(n); });
+    var racc=(typeof s.raccomandazione==='string' && s.raccomandazione.trim())
+      ? scap(s.raccomandazione.trim()) : '';
+    var frase = racc || (liv==='sconosciuto' ? 'Dati non sufficienti per il colore.' : '');
+    if(liv==='sconosciuto' && mancanti.length) frase += ' Mancano: '+mancanti.join(', ')+'.';
+    var h='<div class="score-liv liv-'+scap(liv)+'">'+scap(liv)+'</div>'+
+      '<div class="score-frase">'+frase+'</div>';
     var det='';
-    (s.marcatori||[]).forEach(function(m){ det+=m.nome+': '+fmt(m.valore)+' (soglia '+fmt(m.soglia)+')<br>'; });
-    (s.dati_mancanti||[]).forEach(function(n){ det+=n+': manca<br>'; });
+    (s.marcatori||[]).forEach(function(m){ det+=scap(m.nome)+': '+fmt(m.valore)+' (soglia '+fmt(m.soglia)+')<br>'; });
+    mancanti.forEach(function(n){ det+=n+': manca<br>'; });
     if(rit && rit.ma7_oggi!=null)
       det+='peso media 7gg: '+fmt(rit.ma7_oggi)+' kg · 14 giorni fa: '+fmt(rit.ma7_14g_fa)+' kg';
     if(det){
@@ -810,11 +893,13 @@ function giornoIso(d){
    Periodo a scelta con le chip; pliche dai controlli del nutrizionista.
    ════════════════════════════════════════════════════════════════════ */
 var TREND_G = 90;
-var PLICHE_LBL = { plica_a:'addome (a)', plica_p:'petto (p)', plica_b:'bicipite (b)',
-                   plica_t:'tricipite (t)', plica_s:'sottoscapola (s)', plica_g:'gamba (g)' };
-var PLICHE_COL = { plica_a:'#a6e22e', plica_p:'#3987e5', plica_b:'#9085e9',
-                   plica_t:'#d55181', plica_s:'#fab219', plica_g:'#ec835a' };
-
+/* Le sei pliche hanno DUE nomi: quello corto dello storico (plica_a) e quello
+   lungo che la app scrive dal 07/09 (plica_addome). Sono la stessa serie. Se il
+   grafico ne conosce uno solo, l'ultimo controllo sparisce senza dare errore:
+   e' esattamente quello che e' successo il 07/09. Qui gli alias si risolvono in
+   LETTURA; lo storico non si rinomina mai. Il registro e' chiuso: un nome che
+   non sta qui non finisce nel grafico per sbaglio.
+   L'ordine e' quello della scheda del nutrizionista (a p b t s g). */
 function dataIt(iso){
   return new Date(iso+'T12:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
 }
@@ -880,54 +965,198 @@ function letturaKcal(righe,i){
   document.getElementById('tKcalInfo').innerHTML=h;
 }
 
-function montaPliche(){
-  var mis=DATI.misure||[];
-  var perData={};
-  mis.forEach(function(m){
-    if(/^plica_/.test(m.nome)||m.nome==='peso_controllo'){
-      (perData[m.data]=perData[m.data]||{})[m.nome]=Number(m.valore);
-    }
+/* Il registro degli alias vive nel DATABASE (salute.plica_alias) e arriva da
+   GET /api/pliche gia risolto per serie. Qui restano SOLO i colori: un secondo
+   registro di alias in javascript, il giorno che diverge da quello SQL, rimette
+   il grafico monco senza dare nessun errore (review 1, F3). */
+var PLICHE_COLORI = { plica_addome:'#a6e22e', plica_petto:'#3987e5', plica_bicipite:'#9085e9',
+                      plica_tricipite:'#d55181', plica_sottoscapolare:'#fab219', plica_gamba:'#ec835a' };
+var PLICHE_FALLBACK = '#7f8c8d';
+
+/* Le serie da disegnare si ricavano dal payload del server: etichetta e ordine
+   li decide il registro SQL, non questa pagina. */
+function plicheSerie(){
+  var visti = {}, out = [];
+  (DATI.pliche||[]).forEach(function(x){
+    (x.pliche||[]).forEach(function(p){
+      if(visti[p.serie]) return;
+      visti[p.serie] = 1;
+      out.push({ k:p.serie, l:p.etichetta, o:Number(p.ordine),
+                 c:PLICHE_COLORI[p.serie]||PLICHE_FALLBACK });
+    });
   });
-  var date=Object.keys(perData).filter(function(d){
-    return Object.keys(perData[d]).some(function(k){ return /^plica_/.test(k); });
-  }).sort();
-  if(!date.length){
+  /* l'ordine e quello del registro SQL (a p b t s g), non quello di arrivo */
+  return out.sort(function(a,b){ return (isFinite(a.o)?a.o:99)-(isFinite(b.o)?b.o:99); });
+}
+
+/* La sorgente UNICA di Corpo e Tendenza. Normalizza il payload della rotta
+   /api/pliche in una forma comoda per i grafici, SENZA ricalcolare niente:
+   somma, completezza e conflitti li ha gia decisi il database.
+   Regole preservate: niente Number(null)=0, niente valore non finito, niente
+   interpolazione dei buchi, somma solo con sei serie valide. */
+function plichePerData(){
+  return (DATI.pliche||[]).map(function(x){
+    var v = {}, origine = {}, conflitti = [];
+    (x.pliche||[]).forEach(function(p){
+      var n = Number(p.valore);
+      if(p.valore === null || p.valore === undefined || p.valore === '' ||
+         typeof p.valore === 'boolean' || !isFinite(n)) return;
+      v[p.serie] = n;
+      origine[p.serie] = p.scritta_come;
+      if(p.conflitto) conflitti.push({ punto:p.etichetta, origine:p.scritta_come });
+    });
+    var peso = Number(x.peso_controllo);
+    return { data:x.data, v:v, origine:origine, conflitti:conflitti,
+      n: x.serie_presenti,
+      peso: (x.peso_controllo != null && isFinite(peso)) ? peso : null,
+      somma: (x.somma_6_pliche_mm != null && isFinite(Number(x.somma_6_pliche_mm)))
+             ? Number(x.somma_6_pliche_mm) : null };
+  }).filter(function(x){ return Object.keys(x.v).length > 0; })
+    .sort(function(a,b){ return a.data < b.data ? -1 : 1; });
+}
+
+function montaPliche(){
+  var g=plichePerData();
+  if(!g.length){
     document.getElementById('tPlicheInfo').textContent='Ancora nessun controllo con le pliche: arrivano con la scheda del nutrizionista.';
     return;
   }
-  var ds=Object.keys(PLICHE_LBL).map(function(k){
-    return {label:PLICHE_LBL[k],data:date.map(function(d){ return perData[d][k]!=null?perData[d][k]:null; }),
-      borderColor:PLICHE_COL[k],backgroundColor:PLICHE_COL[k],
-      pointRadius:4,pointHoverRadius:7,borderWidth:2,tension:.2,spanGaps:true};
+  disegnaPliche('tPliche', g, function(i){ letturaPliche(g,i,'tPlicheInfo'); });
+  letturaPliche(g,g.length-1,'tPlicheInfo');
+  /* dal primo all'ultimo controllo: la ricomposizione che la bilancia non mostra */
+  document.getElementById('tPlicheLista').innerHTML=
+    '<div class="banda-note" style="margin-bottom:4px">dal primo controllo ('+dataCorta(g[0].data)+
+    ') all\'ultimo ('+dataCorta(g[g.length-1].data)+')</div>'+righeConfronto(g[0],g[g.length-1],plicheSerie());
+}
+
+/* un solo disegnatore per Corpo e Tendenza: due funzioni gemelle divergono */
+function disegnaPliche(canvasId, g, onClick){
+  var ds=plicheSerie().map(function(se){
+    return { label:se.l, data:g.map(function(x){ return x.v[se.k]!=null?x.v[se.k]:null; }),
+      borderColor:se.c, backgroundColor:se.c,
+      pointRadius:4, pointHoverRadius:7, borderWidth:2, tension:.2, spanGaps:true };
   });
-  grafico('tPliche',{type:'line',data:{labels:date.map(dataCorta),datasets:ds},
+  grafico(canvasId,{type:'line',data:{labels:g.map(function(x){ return dataCorta(x.data); }),datasets:ds},
     options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false},
-      onClick:function(e,els){ if(els&&els.length) letturaPliche(date,perData,els[0].index); },
+      onClick:function(e,els){ if(els&&els.length&&onClick) onClick(els[0].index); },
       plugins:{legend:{labels:{color:'#85837c',boxWidth:10,font:{size:10}}},
         tooltip:{mode:'index',intersect:false}},
       scales:{x:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
               y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'},title:{display:true,text:'mm',color:'#85837c'}}}}});
-  letturaPliche(date,perData,date.length-1);
-  /* dal primo all'ultimo controllo: la ricomposizione che la bilancia non mostra */
-  var prima=perData[date[0]], ultima=perData[date[date.length-1]];
-  var righeL=Object.keys(PLICHE_LBL).map(function(k){
-    var da=prima[k], a=ultima[k];
-    var giu=(da!=null&&a!=null&&a<da);
-    return '<div class="voce"><div>'+PLICHE_LBL[k]+'</div><div>'+(da!=null?fmt(da,0):'—')+' → <b'+
-      (giu?' class="ok"':'')+'>'+(a!=null?fmt(a,0):'—')+' mm</b></div></div>';
-  }).join('');
-  document.getElementById('tPlicheLista').innerHTML=
-    '<div class="banda-note" style="margin-bottom:4px">dal primo controllo ('+dataCorta(date[0])+') all\'ultimo ('+dataCorta(date[date.length-1])+')</div>'+righeL;
 }
 
-function letturaPliche(date,perData,i){
-  var d=date[i], v=perData[d]; if(!v) return;
-  var h='<b>'+dataCorta(d)+'</b>';
-  Object.keys(PLICHE_LBL).forEach(function(k){
-    if(v[k]!=null) h+=' · '+k.replace('plica_','')+' <b>'+fmt(v[k],0)+'</b>';
+function letturaPliche(g,i,elId){
+  var x=g[i]; if(!x) return;
+  var h='<b>'+dataCorta(x.data)+'</b>';
+  plicheSerie().forEach(function(se){
+    if(x.v[se.k]!=null) h+=' · '+se.l+' <b>'+fmt(x.v[se.k],0)+'</b>';
   });
-  if(v.peso_controllo!=null) h+=' · peso in studio <b>'+fmt(v.peso_controllo,1)+' kg</b>';
-  document.getElementById('tPlicheInfo').innerHTML=h;
+  /* la somma si mostra solo se e' vera: sei serie, zero conflitti */
+  h+= x.somma!=null
+      ? ' · <b>somma 6 pliche '+fmt(x.somma,0)+' mm</b>'
+      : ' · <i>somma non calcolabile ('+x.n+' pliche su 6'+(x.conflitti.length?', con conflitto':'')+')</i>';
+  if(x.peso!=null) h+=' · peso da scheda <b>'+fmt(x.peso,1)+' kg</b>';
+  if(x.conflitti.length) h+='<div class="banda-note">'+x.conflitti.map(function(c){
+      return 'conflitto su '+c.punto+': tengo '+fmt(c.tenuto,0)+' mm e segnalo '+fmt(c.scartato,0)+' mm, non decido io quale vale'; }).join(' · ')+'</div>';
+  document.getElementById(elId).innerHTML=h;
+}
+
+function righeConfronto(da,a,serie){
+  return (serie||[]).map(function(se){
+    var d=da.v[se.k], b=a.v[se.k];
+    var giu=(d!=null&&b!=null&&b<d);
+    return '<div class="voce"><div>'+se.l+'</div><div>'+(d!=null?fmt(d,0):'—')+' → <b'+
+      (giu?' class="ok"':'')+'>'+(b!=null?fmt(b,0):'—')+' mm</b></div></div>';
+  }).join('');
+}
+
+/* ---- le pliche dentro la sezione CORPO -------------------------------- */
+var CP_FILTRO='all';
+function plichePeriodo(f,btn){
+  CP_FILTRO=f;
+  document.querySelectorAll('#cpPeriodi .chip').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  montaCorpoPliche();
+}
+function plicheFiltrate(){
+  var g=plichePerData();
+  if(CP_FILTRO==='latest') return g.slice(-1);
+  if(CP_FILTRO==='ultimi3') return g.slice(-3);
+  return g;
+}
+function montaCorpoPliche(){
+  var tutti=plichePerData();
+  var box=document.getElementById('cPliche'); if(!box) return;
+  if(!tutti.length){
+    document.getElementById('cpUltimo').textContent='Ancora nessun controllo con le pliche: arrivano con la scheda del nutrizionista.';
+    return;
+  }
+  var u=tutti[tutti.length-1];
+  document.getElementById('cpUltimo').innerHTML=
+    '<b>Ultimo controllo '+dataCorta(u.data)+'</b>'+
+    (u.peso!=null?' · peso da scheda <b>'+fmt(u.peso,1)+' kg</b>':'')+
+    (u.somma!=null?' · somma 6 pliche <b>'+fmt(u.somma,0)+' mm</b>'
+                  :' · <i>somma non calcolabile ('+u.n+'/6)</i>')+
+    '<div class="banda-note">'+plicheSerie().map(function(se){
+        return se.l+' '+(u.v[se.k]!=null?fmt(u.v[se.k],0)+' mm':'—'); }).join(' · ')+'</div>';
+
+  var g=plicheFiltrate();
+  disegnaPliche('cpGrafico', g, function(i){ letturaPliche(g,i,'cpInfo'); });
+  letturaPliche(g,g.length-1,'cpInfo');
+
+  /* tabella: la piu' RECENTE in alto, come chiesto; il grafico resta
+     cronologico perche' una linea al contrario non si legge */
+  document.getElementById('cpTabella').innerHTML=
+    '<div class="voce"><div><b>data</b></div><div><b>pliche (mm)</b></div></div>'+
+    tutti.slice().reverse().map(function(x){
+      var forme={};
+      Object.keys(x.origine).forEach(function(k){ forme[x.origine[k]]=1; });
+      return '<div class="voce"><div>'+dataCorta(x.data)+
+        (x.peso!=null?'<div class="banda-note">'+fmt(x.peso,1)+' kg da scheda</div>':'')+'</div>'+
+        '<div>'+plicheSerie().map(function(se){ return x.v[se.k]!=null?fmt(x.v[se.k],0):'—'; }).join(' · ')+
+        (x.somma!=null?' <b>= '+fmt(x.somma,0)+'</b>':' <i>(parziale)</i>')+
+        '<div class="banda-note">scritte come: '+Object.keys(forme).sort().join(', ')+'</div></div></div>';
+    }).join('');
+
+  /* confronto fra due controlli scelti da Diego */
+  ['cpDa','cpA'].forEach(function(id,n){
+    var sel=document.getElementById(id), pre=sel.value;
+    sel.innerHTML=tutti.map(function(x){ return '<option value="'+x.data+'">'+dataCorta(x.data)+'</option>'; }).join('');
+    sel.value=pre||(n===0?tutti[0].data:tutti[tutti.length-1].data);
+  });
+  montaConfrontoPliche();
+  montaFuoriProtocollo();
+}
+function montaConfrontoPliche(){
+  var t=plichePerData(), byd={};
+  t.forEach(function(x){ byd[x.data]=x; });
+  var a=byd[document.getElementById('cpDa').value], b=byd[document.getElementById('cpA').value];
+  if(!a||!b){ document.getElementById('cpConfronto').innerHTML=''; return; }
+  var somma = (a.somma!=null&&b.somma!=null)
+    ? '<div class="banda-note">somma 6 pliche: '+fmt(a.somma,0)+' → <b>'+fmt(b.somma,0)+' mm</b> ('+
+      (b.somma-a.somma>0?'+':'')+fmt(b.somma-a.somma,0)+')</div>'
+    : '<div class="banda-note">somma non confrontabile: un controllo non ha tutte e sei le pliche</div>';
+  document.getElementById('cpConfronto').innerHTML=
+    '<div class="banda-note" style="margin-bottom:4px">'+dataCorta(a.data)+' → '+dataCorta(b.data)+', stessa unita (mm)</div>'+
+    righeConfronto(a,b,plicheSerie())+somma;
+}
+
+/* Oggi TUTTE le circonferenze in archivio sono fuori protocollo: se la
+   sezione non le mostrasse, Diego vedrebbe un vuoto inspiegato. Si mostrano
+   etichettate e NON entrano in nessuna media del trend. */
+function montaFuoriProtocollo(){
+  var f=(DATI.misure||[]).filter(function(m){ return /^circ_.*_fuori$/.test(m.nome); });
+  var info=document.getElementById('cFuoriInfo'); if(!info) return;
+  if(!f.length){ info.textContent='Nessuna misura fuori protocollo in archivio.'; 
+    document.getElementById('cFuoriLista').innerHTML=''; return; }
+  info.innerHTML='Queste misure sono state prese <b>fuori</b> dalla finestra del protocollo '+
+    '(giovedì mattina, a digiuno, prima del box). Restano consultabili ma <b>non entrano nel trend '+
+    'e non fanno media</b> con le altre.';
+  document.getElementById('cFuoriLista').innerHTML=f.slice().sort(function(a,b){ return a.data<b.data?1:-1; })
+    .map(function(m){
+      return '<div class="voce"><div>'+m.nome.replace('circ_','').replace('_fuori','')+
+        '<div class="banda-note">'+dataCorta(m.data)+' · fuori protocollo</div></div>'+
+        '<div><b>'+fmt(Number(m.valore),1)+' cm</b></div></div>'; }).join('');
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -993,6 +1222,7 @@ function montaCorpo(){
     document.getElementById('cData').value=new Date().toISOString().slice(0,10);
   selezionaPunto(CORPO_SEL||'circ_vita');
   montaTrendCorpo(ultimaData);
+  montaCorpoPliche();          /* le pliche vivono QUI, non solo in Tendenza */
   var p=(DATI.contesto&&DATI.contesto.protocollo_misure)||'';
   document.getElementById('cProtocollo').textContent=p||'protocollo non ancora salvato nel contesto';
 }
@@ -1037,8 +1267,18 @@ function selezionaPunto(k){
   document.getElementById('cIstruzione').innerHTML='<b>'+m.l+'</b> — '+m.i;
 }
 
+/* Difesa contro il doppio invio: finche' il ciclo POST+GET non e' concluso il
+   pulsante non riparte. Senza, un secondo click mentre la rilettura e' in volo
+   rispedisce lo stesso batch e crea proprio il doppione che tutto questo giro
+   serve a evitare. Circoscritta a questa funzione: nessun refactor. */
+var CORPO_IN_VOLO=false;
 function salvaCorpo(){
   var out=document.getElementById('cEsito');
+  if(CORPO_IN_VOLO){
+    out.className='avviso';
+    out.textContent='Sto ancora aspettando la risposta del salvataggio precedente: non rimando niente finche non so com e finito.';
+    return;
+  }
   var data=document.getElementById('cData').value||undefined;
   var fuori=document.getElementById('cFuori').checked;
   var misure=[];
@@ -1047,6 +1287,10 @@ function salvaCorpo(){
     if(!isNaN(v)&&v>0) misure.push({nome:(fuori?m.k+'_fuori':m.k), valore:v, unita:'cm'});
   });
   if(!misure.length){ out.className='avviso'; out.textContent='Non hai scritto nessuna misura.'; return; }
+  CORPO_IN_VOLO=true;
+  var btn=document.querySelector('#v-corpo button.azione');
+  if(btn) btn.disabled=true;
+  var sblocca=function(){ CORPO_IN_VOLO=false; if(btn) btn.disabled=false; };
   api('/api/misura_corpo',{misure:misure,data:data}).then(function(r){
     /* il database marca da solo come fuori protocollo tutto quello che non e
        di giovedi: se succede senza che tu l'abbia spuntato devi saperlo, o
@@ -1059,8 +1303,106 @@ function salvaCorpo(){
              : '.');
     MISURE_CORPO.forEach(function(m){ document.getElementById('in-'+m.k).value=''; });
     document.getElementById('cFuori').checked=false;
-    return api('/api/misure_extra').then(function(mm){ DATI.misure=mm; montaCorpo(); });
-  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; });
+    return Promise.all([api('/api/misure_extra'), api('/api/pliche')])
+      .then(function(r){ DATI.misure=r[0]; DATI.pliche=r[1]; montaCorpo(); })
+      .then(sblocca, sblocca);
+  }).catch(function(e){
+    out.className='avviso';
+    var d=e.dettaglio||{};
+    var incerte=(d.incerte||[]).map(function(x){ return x.misura; });
+    /* montaCorpo() ricostruisce i campi da zero: quello che Diego aveva
+       scritto e che NON e' partito va rimesso a mano dopo il ridisegno,
+       altrimenti glielo cancello io. */
+    var scritti={};
+    MISURE_CORPO.forEach(function(m){ scritti[m.k]=document.getElementById('in-'+m.k).value; });
+    var daRimettere={};
+    (d.non_tentate||[]).forEach(function(x){
+      var m=MISURE_CORPO.filter(function(y){ return y.l.toLowerCase()===String(x.misura).toLowerCase(); })[0];
+      if(m) daRimettere[m.k]=scritti[m.k];
+    });
+    var rimetti=function(){
+      Object.keys(daRimettere).forEach(function(k){
+        var el=document.getElementById('in-'+k); if(el) el.value=daRimettere[k];
+      });
+    };
+    if(!incerte.length){
+      /* rifiuto certo o batch scartato prima di scrivere: niente da rileggere */
+      svuotaCampi(d); rimetti(); out.textContent=e.message; sblocca(); return;
+    }
+    /* Una GET non e' una seconda scrittura: e' l'unico modo di sapere se la
+       misura incerta e' finita nel database. Si rilegge PRIMA di parlare e si
+       ridisegna la scheda, cosi' quello che Diego vede e' il dato vero e non
+       quello di prima del salvataggio. Il confronto e' sulla TUPLA che ho
+       inviato, che l'handler mi rimanda in `richieste`. */
+    var tuple={};
+    (d.richieste||[]).forEach(function(x){ tuple[String(x.misura).toLowerCase()]=x; });
+    out.textContent=e.message+' — sto rileggendo il database…';
+    Promise.all([api('/api/misure_extra'), api('/api/pliche')])
+      .then(function(r){
+        DATI.misure=r[0]; DATI.pliche=r[1]; montaCorpo();
+        var frasi=[];
+        incerte.forEach(function(um){
+          var t=tuple[String(um).toLowerCase()];
+          if(!t){ frasi.push(um+': non ho la richiesta da confrontare, resta da verificare'); return; }
+          var es=esitoRilettura(t);
+          if(es.stato==='uguale'){
+            frasi.push(um+' risulta gia scritta nel database col valore che hai mandato ('+
+              t.valore+' '+t.unita+'): non toccarla');
+          } else if(es.stato==='altroValore'){
+            /* la riga c'e ma NON e la mia: dire «gia scritta» sarebbe falso, e
+               dire «riscrivila» sarebbe una ricetta che puo creare il doppione
+               se il commit era ancora in corso. Si dicono i due numeri e basta. */
+            frasi.push(um+': nel database risulta '+es.valore+(es.unita?' '+es.unita:'')+
+              ', la tua '+t.valore+' '+t.unita+' non risulta — esito ancora da verificare');
+          } else {
+            frasi.push(um+' non risulta alla rilettura, ma la scrittura poteva essere '+
+              'ancora in corso: resta da verificare');
+          }
+        });
+        out.textContent=e.message+' — '+frasi.join('; ')+'.';
+      })
+      .catch(function(){
+        /* se la rilettura fallisce NON si mostra il valore vecchio come prova */
+        out.textContent=e.message+' — non sono riuscito a rileggere il database, '+
+          'quindi non so dirti se e stata scritta: guarda piu tardi.';
+      })
+      .then(function(){ svuotaCampi(d); rimetti(); sblocca(); });
+  });
+}
+
+/* Dopo un esito parziale i campi gia CONFERMATI e quelli INCERTI si svuotano:
+   se restassero pieni, il prossimo click sul pulsante li rimanderebbe tutti in
+   blocco, ed e' cosi' che nasce il doppione. Le NON TENTATE restano scritte:
+   quelle si sa che non sono partite, e rimandarle e' sicuro. */
+function svuotaCampi(dettaglio){
+  var daTogliere={};
+  (dettaglio.confermate||[]).concat(dettaglio.incerte||[]).forEach(function(x){
+    daTogliere[String(x.misura).toLowerCase()]=1;
+  });
+  if(!Object.keys(daTogliere).length) return;
+  MISURE_CORPO.forEach(function(m){
+    if(daTogliere[m.l.toLowerCase()]) document.getElementById('in-'+m.k).value='';
+  });
+}
+
+/* Cosa dice il database sulla richiesta che ho fatto. Non basta che una riga
+   con quel nome e quel giorno esista: se ieri c'era 101 e oggi ho mandato 105,
+   la 101 NON attesta la 105. Si confronta la tupla intera, e si restituisce
+   cosa si e' trovato, non un si/no. */
+function esitoRilettura(t){
+  var nomi=[t.nome, t.nome+'_fuori'];
+  var riga=null;
+  (DATI.misure||[]).forEach(function(x){
+    if(x.data!==t.data || nomi.indexOf(x.nome)<0) return;
+    riga=x;
+  });
+  if(!riga) return { stato:'assente' };
+  var v=Number(riga.valore);
+  if(riga.valore===null || riga.valore==='' || typeof riga.valore==='boolean' || !isFinite(v))
+    return { stato:'assente' };
+  if(v!==Number(t.valore) || (riga.unita && t.unita && riga.unita!==t.unita))
+    return { stato:'altroValore', valore:v, unita:riga.unita };
+  return { stato:'uguale', valore:v };
 }
 
 function montaTrendCorpo(ultimaData){
@@ -1188,7 +1530,8 @@ function carica(){
     api('/api/box').then(function(b){ DATI.box=b; }).catch(manca('box',{box:null})),
     api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(manca('tracker',{tracker:null})),
     api('/api/settimana_buona').then(function(s){ DATI.settimana=s; }).catch(manca('settimana',{settimana:null})),
-    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(manca('misure',{misure:[]}))
+    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(manca('misure',{misure:[]})),
+    api('/api/pliche').then(function(p){ DATI.pliche=p; }).catch(manca('pliche',{pliche:[]}))
   ];
   Promise.all(attese).then(function(){
     // Il verde richiede tutte le letture dashboard, non solo /api/dati.

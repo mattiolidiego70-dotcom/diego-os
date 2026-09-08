@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Diego_OS · Spesa</title>
+<!-- JSZip vendorizzato, non da CDN: un .xlsx vero e uno ZIP, e la libreria che
+     lo scrive non deve arrivare dalla rete mentre stai scaricando un file
+     autenticato. Provenienza, licenza e sha256 in vendor/jszip-3.10.1/. -->
+<script src="vendor/jszip-3.10.1/jszip.min.js"></script>
+<style>
+  /* Stessi gettoni di salute.html: la Spesa e la stessa app, non un tema nuovo.
+     Nessuna regola globale condivisa e stata toccata: questa pagina porta la
+     sua copia, come gia fanno index.html e psicologa.html. */
+  :root{
+    --page:#101216; --surface:#16181d; --surface-2:#1c1f25;
+    --ink:#f2f1ec; --ink-2:#b9b7ae; --muted:#85837c;
+    --hairline:rgba(255,255,255,.08);
+    --accent:#a6e22e; --accent-dim:#7ab510;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --disp:"Futura","Avenir Next Condensed","Avenir Next",system-ui,sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+        display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
+  .dock .mark{font:700 15px/1 var(--disp);letter-spacing:.18em;color:var(--accent);
+              writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
+  .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
+       flex-direction:column;align-items:center;justify-content:center;gap:1px;
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
+  .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
+  .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
+  .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
+  main{padding:24px 22px 96px;max-width:1100px;width:100%}
+  header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .saluto{font:600 24px/1.1 var(--disp)}
+  .data-oggi{color:var(--muted);font-size:13px}
+  .stato{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-2);font-size:12.5px}
+  .stato .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .stato .dot.warn{background:var(--warning)}
+  nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--hairline);padding-bottom:8px}
+  nav.tabs button{background:none;border:0;color:var(--muted);font:500 13.5px var(--sans);padding:8px 14px;border-radius:8px;cursor:pointer}
+  nav.tabs button.on{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
+  .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;margin-bottom:14px}
+  .scheda h3{margin:0 0 10px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
+  input,select,textarea,button.azione{font:inherit;color:var(--ink);background:var(--page);
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;width:100%}
+  button.azione{background:var(--accent);color:#101216;font-weight:700;border:0;cursor:pointer}
+  button.secondario{background:var(--surface-2);color:var(--ink)}
+  button[disabled]{opacity:.5;cursor:progress}
+  .riga{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .riga>*{flex:1;min-width:130px}
+  .ok{color:var(--good);font-size:12px} .avviso{color:var(--warning);font-size:12px}
+  .spin{color:var(--muted);font-size:13px}
+  #login{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;
+         justify-content:center;padding:32px;gap:12px;z-index:10;max-width:420px;margin:0 auto}
+  #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
+  .vista{display:none}.vista.on{display:block}
+
+  /* la lista: una riga = una voce da comprare. Tocco largo, niente rosso. */
+  .gruppo-tit{font:600 11px var(--disp);letter-spacing:.16em;color:var(--muted);
+              text-transform:uppercase;margin:14px 0 6px}
+  .sp-riga{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--hairline)}
+  .sp-riga:last-child{border-bottom:0}
+  .sp-riga .corpo{flex:1;min-width:0}
+  .sp-riga .nome{font-size:14px}
+  .sp-riga.fatta .nome{color:var(--muted);text-decoration:line-through}
+  .sp-riga small{display:block;color:var(--muted);font-size:11.5px;line-height:1.5}
+  .flag{width:26px;height:26px;border-radius:8px;border:1px solid var(--hairline);
+        background:var(--surface-2);color:var(--ink);font-size:14px;cursor:pointer;flex:0 0 auto;padding:0}
+  .flag.on{background:var(--accent);color:#101216;border-color:transparent}
+  .flag.casa{background:var(--surface-2);color:var(--accent);border-color:var(--accent-dim)}
+  .mini{width:auto;padding:5px 9px;font-size:12px;border-radius:8px;background:var(--surface-2);
+        border:1px solid var(--hairline);color:var(--ink-2);cursor:pointer;flex:0 0 auto}
+  .quant{width:110px;flex:0 0 auto;padding:6px 8px;font-size:12.5px}
+  .pill{display:inline-block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+        border:1px solid var(--hairline);border-radius:999px;padding:1px 8px;color:var(--muted);margin-left:6px}
+  .pill.tolto{color:var(--serious);border-color:rgba(236,131,90,.4)}
+  .pill.mio{color:var(--accent);border-color:var(--accent-dim)}
+  .alt{border-bottom:1px solid var(--hairline);padding:9px 0;font-size:13.5px}
+  .alt:last-child{border-bottom:0}
+  .alt b{font:600 12px var(--disp);letter-spacing:.1em;color:var(--accent);margin-right:8px}
+  .delta{background:var(--surface-2);border:1px solid var(--hairline);border-radius:12px;padding:12px;margin-top:10px}
+  .delta ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px}
+  @media (max-width:720px){
+    main{padding:18px 14px 90px}
+    .quant{width:84px}
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="mark">DIEGO_OS</div>
+  <p class="spin">Codice di accesso. Resta salvato su questo dispositivo.</p>
+  <input id="tok" type="password" placeholder="codice" autocomplete="current-password">
+  <button class="azione" onclick="entra()">Entra</button>
+  <p id="loginErr" class="avviso"></p>
+</div>
+
+<div class="shell">
+  <aside class="dock">
+    <div class="mark">DIEGO_OS</div>
+    <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
+    <a class="mod" href="salute.html" title="Health">&#10084;<span class="lbl">HEALTH</span></a>
+    <span class="mod active" title="Spesa">&#128722;<span class="lbl">SPESA</span></span>
+    <a class="mod" href="dieta.html" title="Dieta e stime">&#129379;<span class="lbl">DIETA</span></a>
+    <a class="mod" href="psicologa.html" title="Psicologa">&#129504;<span class="lbl">PSI</span></a>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="saluto">Spesa</div>
+      <div class="data-oggi" id="dataOggi"></div>
+      <div class="stato"><span class="dot warn" id="dotStato"></span><span id="txtStato">accesso richiesto</span></div>
+    </header>
+
+    <nav class="tabs">
+      <button class="on" data-vista="lista" onclick="vista('lista',this)">Lista</button>
+      <button data-vista="catalogo" onclick="vista('catalogo',this)">Catalogo</button>
+      <button data-vista="piano" onclick="vista('piano',this)">Piano</button>
+      <button data-vista="storico" onclick="vista('storico',this)">Storico</button>
+    </nav>
+
+    <p id="esito" class="spin" role="status" aria-live="polite"></p>
+
+    <!-- ============ LISTA: il giro corrente ============ -->
+    <div id="v-lista" class="vista on">
+      <div class="scheda">
+        <h3>Giro di spesa</h3>
+        <div id="giroTesta" class="spin">Carico…</div>
+        <div class="riga" style="margin-top:10px">
+          <button class="azione secondario" id="btnNuovoGiro" onclick="nuovoGiro()">Nuovo giro</button>
+          <button class="azione secondario" id="btnRigenera" onclick="anteprimaRigenera()">Rigenera dalla dieta</button>
+          <button class="azione secondario" id="btnExcel" onclick="scaricaExcel()">Scarica Excel</button>
+        </div>
+        <div id="anteprima"></div>
+      </div>
+
+      <div class="scheda">
+        <h3>Da comprare</h3>
+        <div id="listaGiro" class="spin">Carico…</div>
+      </div>
+
+      <div class="scheda">
+        <h3>Aggiungi alla lista</h3>
+        <div class="riga">
+          <input id="nuovaVoce" placeholder="es. acqua frizzante" autocomplete="off">
+          <button class="azione" id="btnAggiungiVoce" onclick="aggiungiVoce()">Aggiungi</button>
+        </div>
+        <p class="spin">Le voci che aggiungi tu restano tue: la rigenerazione dalla dieta non le toglie.</p>
+      </div>
+    </div>
+
+    <!-- ============ CATALOGO: il master ============ -->
+    <div id="v-catalogo" class="vista">
+      <div class="scheda">
+        <h3>Catalogo dalla dieta</h3>
+        <p class="spin" id="catalogoNota"></p>
+        <label class="spin" style="display:block;margin:6px 0 10px">
+          <input type="checkbox" id="mostraTolti" onchange="carica()" style="width:auto;margin-right:6px">
+          mostra anche le voci che ho tolto
+        </label>
+        <div id="catalogo" class="spin">Carico…</div>
+      </div>
+      <div class="scheda">
+        <h3>Integratori — dalla scheda</h3>
+        <p class="spin">Trascritti dalla scheda del nutrizionista. Non sono consigli dell'app.</p>
+        <div id="integratori" class="spin">Carico…</div>
+      </div>
+    </div>
+
+    <!-- ============ PIANO: le 27 alternative ============ -->
+    <div id="v-piano" class="vista">
+      <div class="scheda">
+        <h3>Piano alimentare</h3>
+        <p class="spin" id="pianoTesta"></p>
+        <div id="piano" class="spin">Carico…</div>
+      </div>
+    </div>
+
+    <!-- ============ STORICO ============ -->
+    <div id="v-storico" class="vista">
+      <div class="scheda">
+        <h3>Giri precedenti</h3>
+        <div id="storico" class="spin">Carico…</div>
+      </div>
+      <div class="scheda" id="giroStoricoBox" style="display:none">
+        <h3 id="giroStoricoTit">Giro</h3>
+        <div id="giroStorico"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
+var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
+var DATI = {};          /* l'ultima lettura del server: e questa che si disegna */
+var IN_CORSO = false;   /* un gesto per volta: il doppio invio non parte proprio */
+
+document.getElementById('dataOggi').textContent =
+  new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+/* Il testo che arriva dal database e DATO, non markup: un nome che contiene
+   `<` non deve poter diventare un tag. Vale anche per i nomi che scrive Diego. */
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function entra(){
+  var t = document.getElementById('tok').value.trim();
+  if(!t) return;
+  TOK = t;
+  api('/api/lista_spesa?cosa=giri').then(function(){
+    localStorage.setItem('app_token', t); localStorage.setItem('dos_token', t);
+    document.getElementById('login').style.display='none';
+    carica();
+  }).catch(function(){ document.getElementById('loginErr').textContent='Codice sbagliato.'; });
+}
+
+function api(percorso, corpo){
+  var controller = new AbortController();
+  var scadenza = setTimeout(function(){ controller.abort(); }, 120000);
+  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' }, signal:controller.signal };
+  if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
+  return fetch(API_BASE+percorso, opt).then(function(r){
+    if(r.status===401){
+      document.getElementById('login').style.display='flex';
+      throw new Error('sessione scaduta: reinserisci il codice');
+    }
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(e){
+      throw new Error((e && typeof e.errore==='string' && e.errore.trim())
+        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').');
+    });
+    return r.json();
+  }).catch(function(e){
+    /* Consegna INCERTA: la richiesta puo essere arrivata. Non si rimanda alla
+       cieca — la chiave dell'operazione resta valida e si rilegge. */
+    if(controller.signal.aborted) throw new Error(corpo
+      ? 'Non ho ricevuto risposta. La richiesta potrebbe essere arrivata lo stesso: ricarico e controllo prima di rifarla.'
+      : 'Tempo di attesa scaduto durante il caricamento.');
+    throw e;
+  }).finally(function(){ clearTimeout(scadenza); });
+}
+
+function vista(nome, btn){
+  var t=document.getElementById('v-'+nome); if(!t) return;
+  document.querySelectorAll('.vista').forEach(function(v){ v.classList.remove('on'); });
+  t.classList.add('on');
+  document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+  else{ var b2=document.querySelector('nav.tabs button[data-vista="'+nome+'"]'); if(b2) b2.classList.add('on'); }
+}
+
+/* ═══════════════ IDENTITA DELL'OPERAZIONE ═══════════════
+   L'UUID nasce al PRIMO gesto e vive finche quel gesto non ha un esito noto.
+   Serve a due cose sole: un doppio clic non fa due operazioni, e una consegna
+   incerta si VERIFICA con la stessa chiave invece di essere ripetuta alla
+   cieca. Non e una seconda autorita sui dati: il contenuto della lista viene
+   sempre e solo dall'ultima lettura del server. */
+function nuovaChiave(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  /* ripiego senza crypto: comunque un UUID v4 formalmente valido */
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    var r=Math.random()*16|0, v=c==='x'?r:(r&0x3|0x8); return v.toString(16);
+  });
+}
+/* Impronta del contenuto. ATTENZIONE a cosa e e cosa NON e: dal 07/09 sera la
+   verita' la calcola il SERVER dai parametri che riceve davvero (azione + hash
+   canonico). Questa qui viaggia solo per compatibilita e per far vedere in un
+   log un eventuale disallineamento: non decide niente, e non ci si appoggia. */
+function impronta(o){
+  var s=JSON.stringify(o, Object.keys(o).sort()), h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<s.length;i++){ h1=(h1^s.charCodeAt(i))>>>0; h1=Math.imul(h1,16777619)>>>0;
+    h2=(h2+s.charCodeAt(i)*(i+1))>>>0; }
+  return ('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8);
+}
+var IN_VOLO_K='spesa_in_volo';
+function segnaInVolo(d){ try{ sessionStorage.setItem(IN_VOLO_K, JSON.stringify(d)); }catch(e){} }
+function togliInVolo(){ try{ sessionStorage.removeItem(IN_VOLO_K); }catch(e){} }
+
+function messaggio(testo, classe){
+  var el=document.getElementById('esito');
+  el.className = classe || 'spin';
+  el.textContent = testo || '';
+}
+
+/* Una scrittura = una chiamata + una RILETTURA. Non si disegna mai da quello
+   che «dovrebbe» essere successo: si ridisegna da cio che il database dice. */
+function gesto(percorso, corpo, descrizione){
+  if(IN_CORSO){
+    messaggio('Sto ancora aspettando la risposta di prima: aspetto quella, non ne mando un\'altra.', 'avviso');
+    return Promise.resolve(null);
+  }
+  IN_CORSO = true;
+  document.querySelectorAll('button').forEach(function(b){ b.disabled=true; });
+  corpo.operazione = corpo.operazione || nuovaChiave();
+  corpo.impronta = impronta(corpo);
+  segnaInVolo({ percorso:percorso, operazione:corpo.operazione, cosa:descrizione });
+  messaggio(descrizione+'…');
+  return api(percorso, corpo).then(function(r){
+    togliInVolo();
+    return carica().then(function(){
+      var e = r && r.esito;
+      if(e==='creato' || e==='aggiornato'){
+        messaggio(r.replay ? (descrizione+': era gia fatto, non ho salvato due volte.')
+                           : (descrizione+': fatto.'), 'ok');
+      }else{
+        /* niente «salvato» per una scrittura mai avvenuta: si dice cosa e
+           successo davvero, con le parole del database */
+        messaggio(descrizione+': non ho cambiato niente — '+
+          (r && (r.nota || r.esito) ? esc(r.nota || r.esito) : 'esito sconosciuto'), 'avviso');
+      }
+      return r;
+    });
+  }).catch(function(err){
+    messaggio(descrizione+': '+err.message, 'avviso');
+    return carica().catch(function(){});
+  }).finally(function(){
+    IN_CORSO = false;
+    document.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+  });
+}
+
+/* ═══════════════ LETTURA E DISEGNO ═══════════════ */
+function carica(){
+  var q = document.getElementById('mostraTolti') && document.getElementById('mostraTolti').checked ? '&disattivati=1' : '';
+  return api('/api/lista_spesa?cosa=tutto'+q).then(function(r){
+    DATI = r || {};
+    document.getElementById('dotStato').className='dot';
+    document.getElementById('txtStato').textContent='dati aggiornati';
+    disegnaGiro(); disegnaCatalogo(); disegnaPiano(); disegnaStorico();
+    return r;
+  }).catch(function(e){
+    document.getElementById('dotStato').className='dot warn';
+    document.getElementById('txtStato').textContent='errore: '+e.message;
+    throw e;
+  });
+}
+
+var ETICHETTA_STATO = { da_comprare:'da comprare', comprato:'comprato', in_casa:'ce l\'ho' };
+var ETICHETTA_PASTO = { colazione:'Colazione', spuntino_mattina:'Spuntino mattina',
+  pranzo:'Pranzo', spuntino_pomeriggio:'Spuntino pomeriggio', cena:'Cena' };
+
+function usiTesto(usi){
+  if(!usi || !usi.length) return '';
+  return usi.map(function(u){
+    var q = u.indeterminata ? 'quantita non prescritta'
+          : (u.quantita_min==null ? '' : (u.quantita_min===u.quantita_max
+              ? u.quantita_min+' '+(u.unita||'') : u.quantita_min+'–'+u.quantita_max+' '+(u.unita||'')));
+    return (ETICHETTA_PASTO[u.pasto]||u.pasto)+' '+u.lettera+(q?' · '+q:'')+
+           (u.preparazione?' ('+u.preparazione+')':'');
+  }).join(' · ');
+}
+
+function disegnaGiro(){
+  var g = DATI.giro, testa = document.getElementById('giroTesta'), box = document.getElementById('listaGiro');
+  if(!g){
+    testa.textContent = 'Nessun giro aperto. «Nuovo giro» crea la lista dal piano.';
+    box.innerHTML = '<span class="spin">Niente da comprare: apri un giro.</span>';
+    return;
+  }
+  var vive = g.righe || [], fatte = vive.filter(function(r){ return r.stato!=='da_comprare'; }).length;
+  testa.innerHTML = '<b>'+esc(g.titolo)+'</b> · '+vive.length+' voci · '+fatte+' segnate'+
+    (g.stato==='chiuso'?' <span class="pill">chiuso</span>':'')+
+    '<br><small class="spin">Le dosi della scheda sono per opzione, non per giornata: la quantita da comprare la scrivi tu.</small>';
+
+  if(!vive.length){ box.innerHTML='<span class="spin">Questo giro e vuoto.</span>'; return; }
+  var cat = {}, ordine = [];
+  vive.forEach(function(r){ if(!cat[r.categoria]){ cat[r.categoria]=[]; ordine.push(r.categoria); } cat[r.categoria].push(r); });
+  var h='';
+  ordine.forEach(function(c){
+    h += '<div class="gruppo-tit">'+esc(c.replace(/_/g,' '))+'</div>';
+    cat[c].forEach(function(r){
+      var fatto = r.stato!=='da_comprare';
+      h += '<div class="sp-riga'+(fatto?' fatta':'')+'" data-alimento="'+r.alimento_id+'">'+
+        '<button class="flag'+(r.stato==='comprato'?' on':'')+(r.stato==='in_casa'?' casa':'')+
+          '" title="'+esc(ETICHETTA_STATO[r.stato]||r.stato)+'" data-ruolo="spunta" '+
+          'onclick="spunta('+r.alimento_id+','+r.rev+')">'+(fatto?'&#10003;':'')+'</button>'+
+        '<div class="corpo"><div class="nome">'+esc(r.nome)+
+          (r.origine==='manuale'?'<span class="pill mio">mia</span>':'')+
+          (r.attivo_nel_master===false?'<span class="pill tolto">fuori catalogo</span>':'')+'</div>'+
+        '<small>'+(r.quantita_indeterminata?'quantita non prescritta dalla scheda · ':'')+
+          /* «aggiunta tua» solo se lo e davvero: gli integratori NON hanno usi
+             nel piano dei pasti, ma vengono dalla scheda del nutrizionista, e
+             attribuirli a Diego li trasformerebbe in un consiglio dell'app. */
+          (r.usi ? ('serve in '+r.usi+' '+(r.usi===1?'opzione':'opzioni'))
+                 : (r.categoria==='integratori' ? 'dalla scheda del nutrizionista' : 'aggiunta tua'))+
+          (r.requisito?' · '+esc(r.requisito):'')+
+          (r.nota?'<br>nota: '+esc(r.nota):'')+'</small></div>'+
+        '<input class="quant" value="'+esc(r.quantita||'')+'" placeholder="quanto?" '+
+          'data-ruolo="quantita" onchange="scriviQuantita('+r.alimento_id+','+r.rev+',this.value)">'+
+        '<button class="mini" data-ruolo="in-casa" onclick="statoRiga('+r.alimento_id+','+r.rev+',\'in_casa\')">ce l\'ho</button>'+
+        '<button class="mini" data-ruolo="togli" onclick="togliRiga('+r.alimento_id+','+r.rev+')">togli</button>'+
+        '</div>';
+    });
+  });
+  if((g.righe_tolte||[]).length){
+    h += '<div class="gruppo-tit">tolte da questo giro</div>';
+    g.righe_tolte.forEach(function(r){
+      h += '<div class="sp-riga"><div class="corpo"><div class="nome">'+esc(r.nome)+
+        '<span class="pill tolto">tolta</span></div></div>'+
+        '<button class="mini" onclick="rimettiRiga('+r.alimento_id+','+r.rev+')">rimetti</button></div>';
+    });
+  }
+  box.innerHTML = h;
+}
+
+function disegnaCatalogo(){
+  var m = DATI.master || [], box = document.getElementById('catalogo');
+  document.getElementById('catalogoNota').textContent =
+    m.length+' voci d\'acquisto. Togliere una voce dalla spesa non cambia la dieta: '+
+    'il piano del nutrizionista resta quello, e la voce si puo rimettere.';
+  if(!m.length){ box.innerHTML='<span class="spin">Catalogo vuoto.</span>'; return; }
+  var h='';
+  m.forEach(function(a){
+    h += '<div class="sp-riga" data-alimento="'+a.id+'"><div class="corpo">'+
+      '<div class="nome">'+esc(a.nome)+
+        (a.attivo===false?'<span class="pill tolto">fuori lista</span>':'')+
+        (a.origine==='manuale'?'<span class="pill mio">mia</span>':'')+'</div>'+
+      '<small>'+(a.usi&&a.usi.length ? esc(usiTesto(a.usi)) : 'aggiunta tua, non viene dalla scheda')+
+      (a.requisito?'<br>'+esc(a.requisito):'')+
+      (a.rinominato?'<br>sulla scheda: '+esc(a.nome_scheda):'')+'</small></div>'+
+      '<button class="mini" data-ruolo="rinomina" onclick="rinomina('+a.id+','+a.rev+')">rinomina</button>'+
+      (a.attivo===false
+        ? '<button class="mini" data-ruolo="ripristina" onclick="masterStato('+a.id+','+a.rev+',\'ripristina\')">rimetti</button>'
+        : '<button class="mini" data-ruolo="togli-master" onclick="masterStato('+a.id+','+a.rev+',\'togli\')">togli</button>')+
+      '</div>';
+  });
+  box.innerHTML=h;
+  var integ = DATI.integratori || [], bi = document.getElementById('integratori');
+  bi.innerHTML = integ.length ? integ.map(function(i){
+    return '<div class="sp-riga"><div class="corpo"><div class="nome">'+esc(i.nome)+'</div>'+
+      '<small>'+esc(i.dose||'')+' · '+esc(i.momento||'')+(i.indicazione?' · '+esc(i.indicazione):'')+'</small></div></div>';
+  }).join('') : '<span class="spin">Nessun integratore in scheda.</span>';
+}
+
+function disegnaPiano(){
+  var p = DATI.piano, box=document.getElementById('piano');
+  if(!p){ box.innerHTML='<span class="spin">Nessun piano attivo.</span>'; return; }
+  document.getElementById('pianoTesta').textContent =
+    p.titolo+' — scheda del '+p.data+'. '+p.nota;
+  var per={}, ordine=[];
+  (p.alternative||[]).forEach(function(a){ if(!per[a.pasto]){ per[a.pasto]=[]; ordine.push(a.pasto); } per[a.pasto].push(a); });
+  var h='';
+  ordine.forEach(function(pa){
+    h += '<div class="gruppo-tit">'+esc(ETICHETTA_PASTO[pa]||pa)+' — '+per[pa].length+' alternative</div>';
+    per[pa].forEach(function(a){
+      h += '<div class="alt"><b>'+esc(a.lettera)+'</b>'+esc(a.testo)+'</div>';
+    });
+  });
+  box.innerHTML=h;
+}
+
+function disegnaStorico(){
+  var g = DATI.giri || [], box=document.getElementById('storico');
+  box.innerHTML = g.length ? g.map(function(x){
+    return '<div class="sp-riga"><div class="corpo"><div class="nome">'+esc(x.titolo||('Giro '+x.id))+
+      (x.stato==='aperto'?'<span class="pill">aperto</span>':'')+'</div>'+
+      '<small>'+x.righe_vive+' voci · '+x.comprate+' segnate · '+
+      esc(String(x.creato||'').slice(0,10))+'</small></div>'+
+      '<button class="mini" onclick="apriGiro('+x.id+')">apri</button></div>';
+  }).join('') : '<span class="spin">Nessun giro ancora.</span>';
+}
+
+function apriGiro(id){
+  api('/api/lista_spesa?cosa=giro&giro='+id).then(function(r){
+    var g=r.giro; if(!g) return;
+    document.getElementById('giroStoricoBox').style.display='block';
+    document.getElementById('giroStoricoTit').textContent = g.titolo || ('Giro '+g.id);
+    document.getElementById('giroStorico').innerHTML = (g.righe||[]).map(function(x){
+      return '<div class="sp-riga"><div class="corpo"><div class="nome">'+esc(x.nome)+'</div>'+
+        '<small>'+esc(ETICHETTA_STATO[x.stato]||x.stato)+(x.quantita?' · '+esc(x.quantita):'')+'</small></div></div>';
+    }).join('') || '<span class="spin">Giro vuoto.</span>';
+  }).catch(function(e){ messaggio(e.message,'avviso'); });
+}
+
+/* ═══════════════ I GESTI ═══════════════ */
+function nuovoGiro(){ gesto('/api/lista_spesa/giro', { azione:'crea' }, 'Nuovo giro'); }
+
+function spunta(alimento, rev){
+  var r = (DATI.giro && (DATI.giro.righe||[]).filter(function(x){ return x.alimento_id===alimento; })[0]);
+  var nuovo = (r && r.stato==='da_comprare') ? 'comprato' : 'da_comprare';
+  statoRiga(alimento, rev, nuovo);
+}
+function statoRiga(alimento, rev, stato){
+  gesto('/api/lista_spesa/giro', { azione:'stato', alimento:alimento, rev:rev, stato:stato,
+    giro: DATI.giro && DATI.giro.id }, 'Segno la voce');
+}
+function togliRiga(alimento, rev){
+  gesto('/api/lista_spesa/giro', { azione:'togli_riga', alimento:alimento, rev:rev,
+    giro: DATI.giro && DATI.giro.id }, 'Tolgo dalla lista');
+}
+function rimettiRiga(alimento, rev){
+  gesto('/api/lista_spesa/giro', { azione:'aggiungi_riga', alimento:alimento, rev:rev,
+    giro: DATI.giro && DATI.giro.id }, 'Rimetto nella lista');
+}
+function scriviQuantita(alimento, rev, valore){
+  gesto('/api/lista_spesa/giro', { azione:'modifica', alimento:alimento, rev:rev,
+    quantita:String(valore||''), giro: DATI.giro && DATI.giro.id }, 'Scrivo la quantita');
+}
+function aggiungiVoce(){
+  var campo=document.getElementById('nuovaVoce'), nome=(campo.value||'').trim();
+  if(!nome){ messaggio('Scrivi cosa vuoi aggiungere.','avviso'); return; }
+  gesto('/api/lista_spesa/master', { azione:'aggiungi', nome:nome }, 'Aggiungo «'+nome+'»')
+    .then(function(r){
+      campo.value='';
+      /* la voce nuova entra anche nel giro aperto: e li che Diego la cerchera */
+      if(r && r.alimento_id && DATI.giro){
+        return gesto('/api/lista_spesa/giro', { azione:'aggiungi_riga', alimento:r.alimento_id,
+          giro: DATI.giro.id }, 'Metto «'+nome+'» nel giro');
+      }
+    });
+}
+function rinomina(id, rev){
+  var attuale=(DATI.master||[]).filter(function(a){ return a.id===id; })[0];
+  var nome = prompt('Come la vuoi chiamare?', attuale ? attuale.nome : '');
+  if(nome===null) return;
+  nome=nome.trim(); if(!nome) return;
+  gesto('/api/lista_spesa/master', { azione:'rinomina', alimento:id, rev:rev, nuovo_nome:nome }, 'Rinomino');
+}
+function masterStato(id, rev, azione){
+  gesto('/api/lista_spesa/master', { azione:azione, alimento:id, rev:rev },
+    azione==='togli' ? 'Tolgo dal catalogo' : 'Rimetto nel catalogo');
+}
+
+/* ═══════════════ RIGENERAZIONE: prima si guarda, poi si conferma ═══════════ */
+function anteprimaRigenera(){
+  if(!DATI.giro){ messaggio('Prima serve un giro aperto.','avviso'); return; }
+  var ripristina = false;
+  var esclusi = (DATI.master||[]).filter(function(a){ return a.attivo===false; }).length;
+  gesto('/api/lista_spesa/rigenera', { azione:'anteprima', giro:DATI.giro.id,
+    ripristina_esclusi:ripristina }, 'Preparo l\'anteprima').then(function(r){
+    if(!r || !r.anteprima_id) return;
+    mostraAnteprima(r);
+  });
+}
+function anteprimaConRipristino(){
+  if(!DATI.giro) return;
+  gesto('/api/lista_spesa/rigenera', { azione:'anteprima', giro:DATI.giro.id,
+    ripristina_esclusi:true }, 'Anteprima con i ripristini').then(function(r){
+    if(r && r.anteprima_id) mostraAnteprima(r);
+  });
+}
+function mostraAnteprima(r){
+  var d=r.delta||{}, box=document.getElementById('anteprima');
+  function elenco(v){
+    if(!v || !v.length) return '<li class="spin">niente</li>';
+    return v.map(function(x){ return '<li>'+esc(typeof x==='string'?x:x.nome)+'</li>'; }).join('');
+  }
+  box.innerHTML = '<div class="delta"><b>Anteprima — non ho ancora applicato niente</b>'+
+    '<div class="gruppo-tit">verranno aggiunte</div><ul>'+elenco(d.da_aggiungere)+'</ul>'+
+    '<div class="gruppo-tit">righe tolte che tornano</div><ul>'+elenco(d.da_ripristinare_nel_giro)+'</ul>'+
+    '<div class="gruppo-tit">voci del piano che avevi escluso</div><ul>'+elenco(d.esclusi_del_piano)+'</ul>'+
+    '<p class="spin">Verranno rimesse in catalogo: <b>'+(d.esclusi_verranno_ripristinati?'si':'no')+'</b>. '+
+    'Aggiunte tue conservate: '+((d.aggiunte_personali_conservate||[]).length)+'. '+
+    'Spunte conservate: '+(d.spunte_conservate||0)+'. Niente viene tolto.</p>'+
+    '<div class="riga">'+
+      '<button class="azione" onclick="confermaRigenera(\''+esc(r.anteprima_id)+'\','+
+        r.revisioni.piano+','+r.revisioni.master+','+r.revisioni.giro+')">Applica</button>'+
+      (d.esclusi_verranno_ripristinati ? ''
+        : '<button class="azione secondario" onclick="anteprimaConRipristino()">Rifai rimettendo gli esclusi</button>')+
+      '<button class="azione secondario" onclick="document.getElementById(\'anteprima\').innerHTML=\'\'">Lascia stare</button>'+
+    '</div></div>';
+}
+function confermaRigenera(id, pRev, mRev, gRev){
+  gesto('/api/lista_spesa/rigenera', { azione:'conferma', anteprima:id,
+    piano_rev:pRev, master_rev:mRev, giro_rev:gRev }, 'Applico la rigenerazione')
+    .then(function(){ document.getElementById('anteprima').innerHTML=''; });
+}
+
+/* ═══════════════ EXCEL VERO ═══════════════
+   Un .xlsx e uno ZIP di XML. Si costruisce QUI, nel browser, DOPO una lettura
+   autenticata: nessun token finisce nell'indirizzo o dentro il foglio, e non
+   puo capitare che una risposta 401 venga salvata con l'estensione sbagliata.
+   Ogni cella e una stringa: `=1+1` resta il testo «=1+1», non una formula. */
+function colonna(n){ var s=''; while(n>0){ var m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-1-m)/26; } return s; }
+function xmlEsc(s){
+  return String(s==null?'':s)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'')   /* caratteri che l'XML non ammette */
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function foglio(righe){
+  var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+  righe.forEach(function(r, i){
+    xml += '<row r="'+(i+1)+'">';
+    r.forEach(function(c, j){
+      /* t="inlineStr" = testo, sempre. E la difesa contro l'iniezione di
+         formule: un nome che comincia per =, +, - o @ resta un nome. */
+      xml += '<c r="'+colonna(j+1)+(i+1)+'" t="inlineStr"><is><t xml:space="preserve">'+
+             xmlEsc(c)+'</t></is></c>';
+    });
+    xml += '</row>';
+  });
+  return xml+'</sheetData></worksheet>';
+}
+function costruisciXlsx(fogli){
+  var zip = new JSZip();
+  zip.file('[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+    fogli.map(function(f,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+
+      '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('')+
+    '</Types>');
+  zip.folder('_rels').file('.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+    '</Relationships>');
+  var xl = zip.folder('xl');
+  xl.file('workbook.xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '+
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+
+    fogli.map(function(f,i){ return '<sheet name="'+xmlEsc(f.nome)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('')+
+    '</sheets></workbook>');
+  xl.file('styles.xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'+
+    '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'+
+    '<borders count="1"><border/></borders>'+
+    '<cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="1"><xf/></cellXfs>'+
+    '</styleSheet>');
+  xl.folder('_rels').file('workbook.xml.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    fogli.map(function(f,i){ return '<Relationship Id="rId'+(i+1)+
+      '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join('')+
+    '<Relationship Id="rId'+(fogli.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+    '</Relationships>');
+  var ws = xl.folder('worksheets');
+  fogli.forEach(function(f,i){ ws.file('sheet'+(i+1)+'.xml', foglio(f.righe)); });
+  return zip.generateAsync({ type:'blob',
+    mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+var NOTA_TESTA = 'Quantita PER OPZIONE, non per giornata: le alternative sono scelte (una per pasto).';
+
+function scaricaExcel(){
+  messaggio('Preparo il file…');
+  /* si RILEGGE dal server prima di scrivere il file: cosi il foglio non e la
+     fotografia di quello che c'era sullo schermo mezz'ora fa */
+  var q = document.getElementById('mostraTolti') && document.getElementById('mostraTolti').checked ? '&disattivati=1' : '';
+  api('/api/lista_spesa?cosa=tutto'+q).then(function(d){
+    DATI = d || {};
+    var piano = d.piano || {}, master = d.master || [], integ = d.integratori || [], giro = d.giro;
+    var catalogo = [['Alimento','Categoria','Unita','In lista','Requisito / nota','N. usi','Serve in']];
+    master.forEach(function(a){
+      catalogo.push([a.nome, a.categoria, a.unita, a.attivo===false?'no':'si',
+        a.requisito || (a.origine==='manuale'?'aggiunta personale':''),
+        String((a.usi||[]).length), usiTesto(a.usi)]);
+    });
+    integ.forEach(function(i){
+      catalogo.push([i.nome,'integratori (dalla scheda)', i.dose||'', i.attivo===false?'no':'si',
+        i.indicazione||'', '', i.momento||'']);
+    });
+    var usi = [['Alimento','Pasto','Alternativa','Quantita min','Quantita max','Unita','Preparazione','Nota','Testo della scheda']];
+    master.forEach(function(a){
+      (a.usi||[]).forEach(function(u){
+        usi.push([a.nome, ETICHETTA_PASTO[u.pasto]||u.pasto, u.lettera,
+          u.indeterminata ? 'non prescritta' : (u.quantita_min==null?'':String(u.quantita_min)),
+          u.indeterminata ? 'non prescritta' : (u.quantita_max==null?'':String(u.quantita_max)),
+          u.unita||'', u.preparazione||'',
+          (u.gruppo_scelta?'scelta fra alternative nella stessa riga':'')+(u.requisito?' '+u.requisito:''),
+          u.testo_fonte||'']);
+      });
+    });
+    var check = [['Giro','Alimento','Categoria','Quantita annotata','Stato','Nota']];
+    if(giro) (giro.righe||[]).forEach(function(r){
+      check.push([giro.titolo||('Giro '+giro.id), r.nome, r.categoria, r.quantita||'',
+        ETICHETTA_STATO[r.stato]||r.stato, r.nota||'']);
+    });
+    var pianoR = [['Pasto','Alternativa','Testo della scheda']];
+    (piano.alternative||[]).forEach(function(a){
+      pianoR.push([ETICHETTA_PASTO[a.pasto]||a.pasto, a.lettera, a.testo]);
+    });
+    var testa = ['Lista spesa Diego_OS — scheda del '+(piano.data||'?')+' ('+(piano.titolo||'')+')'];
+    return costruisciXlsx([
+      { nome:'Catalogo',  righe:[testa,[NOTA_TESTA],[]].concat(catalogo) },
+      { nome:'Usi',       righe:[testa,[NOTA_TESTA],[]].concat(usi) },
+      { nome:'Checklist', righe:[testa,[NOTA_TESTA],[]].concat(check) },
+      { nome:'Piano',     righe:[testa,[NOTA_TESTA],[]].concat(pianoR) }
+    ]);
+  }).then(function(blob){
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'spesa-diego.xlsx'; a.id='linkExcel';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 4000);
+    messaggio('File pronto: spesa-diego.xlsx ('+blob.size+' byte).','ok');
+  }).catch(function(e){ messaggio('Excel: '+e.message,'avviso'); });
+}
+
+/* ═══════════════ AVVIO ═══════════════ */
+if(TOK){
+  document.getElementById('login').style.display='none';
+  carica().catch(function(){ document.getElementById('login').style.display='flex'; });
+}
+/* Se un gesto era in volo quando la pagina si e chiusa, non lo si rifa: si
+   dice che c'era e si mostra lo stato VERO riletto dal database. */
+try{
+  var volo = JSON.parse(sessionStorage.getItem(IN_VOLO_K) || 'null');
+  if(volo) messaggio('L\'ultima operazione ('+esc(volo.cosa)+') non ha avuto una risposta: '+
+    'qui sotto c\'e lo stato vero riletto adesso, controlla prima di rifarla.','avviso');
+}catch(e){}
+</script>
+</body>
+</html>

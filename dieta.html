@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Diego_OS · Dieta e stime</title>
+<style>
+  /* Stessi gettoni delle altre pagine: la Dieta e la stessa app, non un tema
+     nuovo. Nessuna regola condivisa toccata: come index/salute/spesa, la
+     pagina porta la sua copia. */
+  :root{
+    --page:#101216; --surface:#16181d; --surface-2:#1c1f25;
+    --ink:#f2f1ec; --ink-2:#b9b7ae; --muted:#85837c;
+    --hairline:rgba(255,255,255,.08);
+    --accent:#a6e22e; --accent-dim:#7ab510;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --disp:"Futura","Avenir Next Condensed","Avenir Next",system-ui,sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+        display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
+  .dock .mark{font:700 15px/1 var(--disp);letter-spacing:.18em;color:var(--accent);
+              writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
+  .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
+       flex-direction:column;align-items:center;justify-content:center;gap:1px;
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
+  .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
+  .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
+  .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
+  main{padding:24px 22px 96px;max-width:1100px;width:100%}
+  header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .saluto{font:600 24px/1.1 var(--disp)}
+  .data-oggi{color:var(--muted);font-size:13px}
+  .stato{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-2);font-size:12.5px}
+  .stato .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .stato .dot.warn{background:var(--warning)}
+  nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--hairline);padding-bottom:8px}
+  nav.tabs button{background:none;border:0;color:var(--muted);font:500 13.5px var(--sans);padding:8px 14px;border-radius:8px;cursor:pointer}
+  nav.tabs button.on{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
+  .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;margin-bottom:14px}
+  .scheda h3{margin:0 0 10px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
+  input,select,button.azione{font:inherit;color:var(--ink);background:var(--page);
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;width:100%}
+  button.azione{background:var(--accent);color:#101216;font-weight:700;border:0;cursor:pointer}
+  button.secondario{background:var(--surface-2);color:var(--ink)}
+  button[disabled]{opacity:.5;cursor:progress}
+  .riga{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .riga>*{flex:1;min-width:130px}
+  .ok{color:var(--good);font-size:12px} .avviso{color:var(--warning);font-size:12px}
+  .spin{color:var(--muted);font-size:13px}
+  #login{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;
+         justify-content:center;padding:32px;gap:12px;z-index:10;max-width:420px;margin:0 auto}
+  #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
+  .vista{display:none}.vista.on{display:block}
+
+  .avvertenza{border:1px solid rgba(250,178,25,.35);background:rgba(250,178,25,.07);
+              border-radius:12px;padding:12px 14px;margin-bottom:14px;color:var(--ink-2);font-size:13px}
+  .avvertenza b{color:var(--warning)}
+  .avvertenza details{margin-top:6px}
+  .avvertenza summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+  .avvertenza details p{margin:8px 0 0}
+  .pasti{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .pasto{border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;background:var(--surface-2)}
+  .pasto .l{color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  .pasto .testo{font-size:12px;color:var(--ink-2);margin-top:6px;min-height:2.6em}
+  .totali{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px}
+  .num{border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;background:var(--surface-2)}
+  .num .l{color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  .num .v{font:600 20px/1.3 var(--sans);font-variant-numeric:tabular-nums}
+  .num .d{font-size:11px;color:var(--muted)}
+  .num.nd .v{color:var(--muted);font-size:15px}
+  .voce{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--hairline)}
+  .voce:last-child{border-bottom:0}
+  .voce .corpo{flex:1;min-width:0}
+  .voce small{display:block;color:var(--muted);font-size:11.5px;line-height:1.5}
+  .pill{display:inline-block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+        border:1px solid var(--hairline);border-radius:999px;padding:1px 8px;color:var(--muted);margin-left:6px}
+  .pill.proxy{color:var(--serious);border-color:rgba(236,131,90,.4)}
+  .pill.nd{color:var(--warning);border-color:rgba(250,178,25,.4)}
+  .pill.umano{color:var(--accent);border-color:var(--accent-dim)}
+  .mini{width:auto;padding:5px 9px;font-size:12px;border-radius:8px;background:var(--surface-2);
+        border:1px solid var(--hairline);color:var(--ink-2);cursor:pointer;flex:0 0 auto}
+  .campo{width:110px;flex:0 0 auto;padding:6px 8px;font-size:12.5px}
+  /* Ipotesi NON modificabile: il valore non e sempre un numero corto. C10 e un
+     testo di 31 caratteri («contate come zero, e dichiarate») e con `flex:0 0
+     auto` si prendeva 191 px dei 252 della riga: all'etichetta restava il 20%,
+     spezzato su 9 righe (misurato a 390 px, log/12). Ora il valore si
+     restringe, e sotto i 720 px va a capo sotto il testo invece di comprimerlo. */
+  .voce.fissa{flex-wrap:wrap}
+  .voce .fisso{flex:0 1 auto;min-width:0;max-width:46%;text-align:right;overflow-wrap:anywhere}
+  a{color:var(--accent)}
+  @media (max-width:720px){ main{padding:18px 14px 90px} .campo{width:88px}
+    .voce .fisso{flex:1 1 100%;max-width:100%;text-align:left;margin-top:4px;color:var(--ink-2)} }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="mark">DIEGO_OS</div>
+  <p class="spin">Codice di accesso. Resta salvato su questo dispositivo.</p>
+  <input id="tok" type="password" placeholder="codice" autocomplete="current-password">
+  <button class="azione" onclick="entra()">Entra</button>
+  <p id="loginErr" class="avviso"></p>
+</div>
+
+<div class="shell">
+  <aside class="dock">
+    <div class="mark">DIEGO_OS</div>
+    <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
+    <a class="mod" href="salute.html" title="Health">&#10084;<span class="lbl">HEALTH</span></a>
+    <a class="mod" href="spesa.html" title="Spesa">&#128722;<span class="lbl">SPESA</span></a>
+    <span class="mod active" title="Dieta e stime">&#129379;<span class="lbl">DIETA</span></span>
+    <a class="mod" href="psicologa.html" title="Psicologa">&#129504;<span class="lbl">PSI</span></a>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="saluto">Dieta e stime</div>
+      <div class="data-oggi" id="dataOggi"></div>
+      <div class="stato"><span class="dot warn" id="dotStato"></span><span id="txtStato">accesso richiesto</span></div>
+    </header>
+
+    <div class="avvertenza">
+      <b>Stime da fonti esterne, con ipotesi modificabili; non sono obiettivi prescritti.</b>
+      <details><summary>perché, in dettaglio</summary>
+        <p>La scheda del 07/09 non contiene calorie, non contiene macronutrienti e non contiene
+        nessuna soglia di carboidrati. Quello che vedi qui è calcolato su tabella esterna
+        (CREA, aggiornamento dichiarato dicembre 2019) e su etichette di prodotto, sotto le
+        ipotesi della scheda «Ipotesi» — che puoi cambiare. Scegliere un'opzione qui
+        <b>non registra</b> un pasto mangiato, e nessuna di queste cifre è un obiettivo.</p>
+      </details>
+    </div>
+
+    <nav class="tabs">
+      <button class="on" data-vista="stima" onclick="vista('stima',this)">Giornata</button>
+      <button data-vista="ipotesi" onclick="vista('ipotesi',this)">Ipotesi</button>
+      <button data-vista="fonti" onclick="vista('fonti',this)">Fonti per alimento</button>
+      <button data-vista="verdure" onclick="vista('verdure',this)">Verdure</button>
+    </nav>
+
+    <p id="esito" class="spin" role="status" aria-live="polite"></p>
+
+    <!-- ============ GIORNATA ============ -->
+    <div id="v-stima" class="vista on">
+      <div class="scheda">
+        <h3>Una lettera per pasto</h3>
+        <p class="spin" id="pianoTesta"></p>
+        <div class="pasti" id="scelte"></div>
+        <div class="riga" style="margin-top:12px">
+          <button class="azione secondario" id="btnCalcola" onclick="calcola()">Calcola la stima</button>
+          <button class="azione secondario" onclick="svuota()">Azzera le scelte</button>
+        </div>
+        <p class="spin">Le 27 alternative sono <b>scelte</b>: una per pasto. Sommarle tutte darebbe
+          più di cinque giornate insieme, cioè un numero senza significato.</p>
+      </div>
+      <div class="scheda">
+        <h3>Stima</h3>
+        <div id="risultato" class="spin">Scegli le alternative e premi «Calcola la stima».</div>
+      </div>
+      <div class="scheda" id="boxDettaglio" style="display:none">
+        <h3>Da dove viene questo numero</h3>
+        <div id="dettaglio"></div>
+      </div>
+    </div>
+
+    <!-- ============ IPOTESI ============ -->
+    <div id="v-ipotesi" class="vista">
+      <div class="scheda">
+        <h3>Le ipotesi — sono nostre, e le puoi cambiare</h3>
+        <p class="spin">Senza queste nessun totale esiste. Cambiane una e tutte le stime si
+          rifanno subito: non viene riscritta né la dieta né un pasto già registrato.</p>
+        <div id="ipotesi" class="spin">Carico…</div>
+      </div>
+    </div>
+
+    <!-- ============ FONTI ============ -->
+    <div id="v-fonti" class="vista">
+      <div class="scheda">
+        <h3>Fonte e valori per 100 g</h3>
+        <p class="spin">Ogni alimento della scheda con la sua fonte. <b>tracce</b>, <b>zero</b> e
+          <b>non disponibile</b> sono tre cose diverse e restano tre cose diverse.</p>
+        <div id="voci" class="spin">Carico…</div>
+      </div>
+    </div>
+
+    <!-- ============ VERDURE ============ -->
+    <div id="v-verdure" class="vista">
+      <div class="scheda">
+        <h3>Il mix delle verdure (M1)</h3>
+        <p class="spin">La scheda non dice mai quale verdura, e in 11 righe su 13 nemmeno quanta.
+          M1 è un <b>segnaposto dichiarato</b>: i suoi valori si calcolano dai componenti qui sotto.</p>
+        <div id="mix" class="spin">Carico…</div>
+        <div id="mixValori" class="totali"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
+var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
+var DATI = {}, SCELTE = {}, RAMO = null, IN_CORSO = false;
+var PASTI = ['colazione','spuntino_mattina','pranzo','spuntino_pomeriggio','cena'];
+var ETICHETTA_PASTO = { colazione:'Colazione', spuntino_mattina:'Spuntino mattina',
+  pranzo:'Pranzo', spuntino_pomeriggio:'Spuntino pomeriggio', cena:'Cena' };
+var ETICHETTA_NUTRIENTE = { kcal:'Calorie stimate', proteine:'Proteine',
+  carboidrati_disponibili:'Carboidrati disponibili', grassi:'Grassi', fibra:'Fibra' };
+
+document.getElementById('dataOggi').textContent =
+  new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+/* L'arrotondamento e SOLO presentazione: il calcolo resta a piena precisione
+   nel database, e cambiare un'ipotesi si vede fino all'ultima cifra. */
+function arr(n, dec){
+  if(n==null) return '—';
+  return Number(n).toFixed(dec==null?0:dec).replace('.',',');
+}
+/* Quando: serve dove la pagina deve dire da quanto sta la cosa che mostra
+   (per esempio il valore che una correzione detta in chat ha sostituito). */
+function dataOra(s){
+  var d = new Date(s);
+  if(!s || isNaN(d.getTime())) return String(s==null?'':s);
+  return d.toLocaleString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric',
+                                     hour:'2-digit', minute:'2-digit' });
+}
+
+function entra(){
+  var t = document.getElementById('tok').value.trim();
+  if(!t) return;
+  TOK = t;
+  api('/api/nutrizione?cosa=assunzioni').then(function(){
+    localStorage.setItem('app_token', t); localStorage.setItem('dos_token', t);
+    document.getElementById('login').style.display='none';
+    carica();
+  }).catch(function(){ document.getElementById('loginErr').textContent='Codice sbagliato.'; });
+}
+
+function api(percorso, corpo){
+  var controller = new AbortController();
+  var scadenza = setTimeout(function(){ controller.abort(); }, 120000);
+  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' }, signal:controller.signal };
+  if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
+  return fetch(API_BASE+percorso, opt).then(function(r){
+    if(r.status===401){ document.getElementById('login').style.display='flex';
+      throw new Error('sessione scaduta: reinserisci il codice'); }
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(e){
+      throw new Error((e && typeof e.errore==='string' && e.errore.trim())
+        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').');
+    });
+    return r.json();
+  }).catch(function(e){
+    /* consegna incerta: non si rimanda alla cieca, si rilegge */
+    if(controller.signal.aborted) throw new Error(corpo
+      ? 'Non ho ricevuto risposta. La modifica potrebbe essere arrivata lo stesso: ricarico e controllo prima di rifarla.'
+      : 'Tempo di attesa scaduto durante il caricamento.');
+    throw e;
+  }).finally(function(){ clearTimeout(scadenza); });
+}
+
+function vista(nome, btn){
+  var t=document.getElementById('v-'+nome); if(!t) return;
+  document.querySelectorAll('.vista').forEach(function(v){ v.classList.remove('on'); });
+  t.classList.add('on');
+  document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+}
+function messaggio(testo, classe){
+  var el=document.getElementById('esito'); el.className = classe || 'spin'; el.textContent = testo || '';
+}
+function nuovaChiave(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    var r=Math.random()*16|0, v=c==='x'?r:(r&0x3|0x8); return v.toString(16); });
+}
+
+/* Una modifica = una chiamata + una RILETTURA. Non si disegna mai da quello
+   che «dovrebbe» essere successo. */
+function modifica(corpo, descrizione){
+  if(IN_CORSO){ messaggio('Sto ancora aspettando la risposta di prima.','avviso'); return Promise.resolve(null); }
+  IN_CORSO = true;
+  document.querySelectorAll('button').forEach(function(b){ b.disabled=true; });
+  corpo.operazione = nuovaChiave();
+  messaggio(descrizione+'…');
+  return api('/api/nutrizione/modifica', corpo).then(function(r){
+    return carica().then(function(){
+      if(r && (r.esito==='aggiornato')){
+        messaggio(descrizione+': fatto. '+(r.nota?esc(r.nota):''), 'ok');
+        if(Object.keys(SCELTE).length) calcola(true);
+      } else {
+        messaggio(descrizione+': non ho cambiato niente — '+
+          (r && (r.nota || r.esito) ? esc(r.nota || r.esito) : 'esito sconosciuto'), 'avviso');
+      }
+      return r;
+    });
+  }).catch(function(e){
+    messaggio(descrizione+': '+e.message, 'avviso');
+    return carica().catch(function(){});
+  }).finally(function(){
+    IN_CORSO = false;
+    document.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+  });
+}
+
+function carica(){
+  return api('/api/nutrizione?cosa=tutto').then(function(r){
+    DATI = r || {};
+    document.getElementById('dotStato').className='dot';
+    document.getElementById('txtStato').textContent='fonti caricate';
+    disegnaScelte(); disegnaIpotesi(); disegnaVoci(); disegnaMix();
+    return r;
+  }).catch(function(e){
+    document.getElementById('dotStato').className='dot warn';
+    document.getElementById('txtStato').textContent='errore: '+e.message;
+    throw e;
+  });
+}
+
+function disegnaScelte(){
+  var p = DATI.piano || {}, box = document.getElementById('scelte');
+  document.getElementById('pianoTesta').textContent =
+    (p.titolo||'') + ' — scheda del ' + (p.data||'?') + '. ' + (p.nota||'');
+  var per = {};
+  (p.alternative||[]).forEach(function(a){ (per[a.pasto]=per[a.pasto]||[]).push(a); });
+  box.innerHTML = PASTI.map(function(pa){
+    var alt = per[pa] || [];
+    var scelta = SCELTE[pa] || '';
+    var testo = (alt.filter(function(a){ return a.lettera===scelta; })[0]||{}).testo || '';
+    return '<div class="pasto"><div class="l">'+esc(ETICHETTA_PASTO[pa]||pa)+'</div>'+
+      '<select data-pasto="'+pa+'" onchange="scegli(this)">'+
+      '<option value="">— scegli —</option>'+
+      alt.map(function(a){ return '<option value="'+esc(a.lettera)+'"'+
+        (a.lettera===scelta?' selected':'')+'>'+esc(a.lettera)+'</option>'; }).join('')+
+      '</select><div class="testo">'+esc(testo)+'</div></div>';
+  }).join('');
+}
+function scegli(sel){ SCELTE[sel.getAttribute('data-pasto')] = sel.value; RAMO = null; disegnaScelte(); }
+function svuota(){ SCELTE = {}; RAMO = null; disegnaScelte();
+  document.getElementById('risultato').innerHTML='<span class="spin">Scegli le alternative e premi «Calcola la stima».</span>';
+  document.getElementById('boxDettaglio').style.display='none'; }
+
+function calcola(silenzioso){
+  var q = PASTI.filter(function(p){ return SCELTE[p]; })
+               .map(function(p){ return p+'='+encodeURIComponent(SCELTE[p]); }).join('&');
+  if(!q){ messaggio('Scegli almeno un pasto.','avviso'); return; }
+  if(RAMO) q += '&ramo='+encodeURIComponent(RAMO);
+  if(!silenzioso) messaggio('Calcolo…');
+  return api('/api/nutrizione/stima?'+q).then(function(r){
+    if(r.esito === 'scelta_richiesta'){
+      document.getElementById('risultato').innerHTML =
+        '<p class="avviso">'+esc(r.nota)+'</p><div class="riga">'+
+        (r.rami||[]).map(function(x){ return '<button class="azione secondario" onclick="RAMO='+
+          JSON.stringify(x).replace(/"/g,'&quot;')+';calcola()">'+esc(x)+'</button>'; }).join('')+'</div>';
+      document.getElementById('boxDettaglio').style.display='none';
+      messaggio('');
+      return r;
+    }
+    if(r.esito !== 'letto'){ messaggio('Stima: '+esc(r.esito||'esito sconosciuto'),'avviso'); return r; }
+    disegnaStima(r); messaggio('');
+    return r;
+  }).catch(function(e){ messaggio('Stima: '+e.message,'avviso'); });
+}
+
+function cella(nome, e, dec){
+  if(!e) return '';
+  var nd = (e.nd_da||[]).length > 0;
+  if(nd) return '<div class="num nd" data-nutriente="'+nome+'"><div class="l">'+esc(ETICHETTA_NUTRIENTE[nome]||nome)+
+    '</div><div class="v">non disponibile</div><div class="d">manca il dato per: '+esc((e.nd_da||[]).join(', '))+'</div></div>';
+  var min=Number(e.min), max=Number(e.max);
+  var testo = (Math.abs(max-min) < 0.05) ? arr(min,dec) : arr(min,dec)+'–'+arr(max,dec);
+  return '<div class="num" data-nutriente="'+nome+'"><div class="l">'+esc(ETICHETTA_NUTRIENTE[nome]||nome)+
+    '</div><div class="v">'+testo+'</div><div class="d">'+
+    (e.tracce ? 'comprende tracce, contate come zero' : '&nbsp;')+'</div></div>';
+}
+
+function disegnaStima(r){
+  var g = r.giornata || r.giornata_parziale || {};
+  var h = '<p class="spin">'+esc(r.nota_giornata||'')+'</p><div class="totali" id="totali">'+
+    ['kcal','proteine','carboidrati_disponibili','grassi','fibra'].map(function(n){
+      return cella(n, g[n], n==='kcal'?0:1); }).join('')+'</div>'+
+    '<p class="spin" style="margin-top:10px">'+esc(r.etichetta||'')+'<br>'+esc(r.nota_soglie||'')+'</p>';
+  document.getElementById('risultato').innerHTML = h;
+
+  var d = '<p class="spin">Ipotesi usate: <b>'+esc((r.assunzioni_usate||[]).join(', ') || 'nessuna')+
+    '</b> — le trovi e le cambi nella scheda «Ipotesi».</p>';
+  (r.per_pasto||[]).forEach(function(p){
+    d += '<div class="voce"><div class="corpo"><div><b>'+esc(ETICHETTA_PASTO[p.pasto]||p.pasto)+' '+
+      esc(p.lettera)+'</b>'+(p.ramo_scelto?'<span class="pill">'+esc(p.ramo_scelto)+'</span>':'')+'</div>'+
+      '<small>'+esc(p.testo_scheda)+'</small><small>'+
+      (p.componenti||[]).map(function(c){
+        return esc(c.nome)+': '+esc(c.dose_scheda)+' → '+arr(c.grammi_stimati_min,0)+
+          (Math.abs(c.grammi_stimati_max-c.grammi_stimati_min)>0.05?'–'+arr(c.grammi_stimati_max,0):'')+' g'+
+          (c.indeterminata?' <i>(quantità non sulla scheda)</i>':'')+
+          (c.corrispondenza && c.corrispondenza!=='esatta'?' <i>('+esc(c.corrispondenza)+')</i>':'');
+      }).join(' · ')+'</small>'+
+      '<small>'+['kcal','proteine','carboidrati_disponibili','grassi'].map(function(n){
+        var e=(p.nutrienti||{})[n]; if(!e) return '';
+        if((e.nd_da||[]).length) return esc(ETICHETTA_NUTRIENTE[n])+': non disponibile';
+        return esc(ETICHETTA_NUTRIENTE[n])+' '+arr(e.min, n==='kcal'?0:1)+
+          (Math.abs(e.max-e.min)>0.05?'–'+arr(e.max, n==='kcal'?0:1):'');
+      }).filter(Boolean).join(' · ')+'</small></div></div>';
+  });
+  var fonti = {};
+  (r.fonti||[]).forEach(function(f){ if(f && f.chiave) fonti[f.chiave]=f; });
+  d += '<div style="margin-top:12px"><b style="font:600 11px var(--disp);letter-spacing:.16em;color:var(--muted)">FONTI USATE</b></div>';
+  Object.keys(fonti).sort().forEach(function(k){
+    var f = fonti[k];
+    d += '<div class="voce"><div class="corpo"><div>'+esc(f.nome)+
+      (f.corrispondenza && f.corrispondenza!=='esatta'?'<span class="pill proxy">'+esc(f.corrispondenza)+'</span>':'')+
+      (f.marca_verificata===false?'<span class="pill">marca non verificata</span>':'')+'</div>'+
+      '<small>per: '+esc(f.per)+(f.codice?' · codice '+esc(f.codice):'')+(f.versione?' · '+esc(f.versione):'')+
+      (f.url?'<br><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.url)+'</a>':'')+
+      (f.nota?'<br>'+esc(f.nota):'')+'</small></div></div>';
+  });
+  document.getElementById('dettaglio').innerHTML = d;
+  document.getElementById('boxDettaglio').style.display='block';
+}
+
+function disegnaIpotesi(){
+  var a = DATI.assunzioni || [], box = document.getElementById('ipotesi');
+  box.innerHTML = a.map(function(x){
+    var valore = (x.valore===null||x.valore===undefined) ? '' :
+      (typeof x.valore==='object' ? JSON.stringify(x.valore) : String(x.valore));
+    return '<div class="voce'+(x.modificabile?'':' fissa')+'" data-assunzione="'+esc(x.chiave)+'"><div class="corpo">'+
+      '<div><b>'+esc(x.chiave)+'</b> · '+esc(x.etichetta)+
+      (x.origine==='umano'?'<span class="pill umano">corretta da te</span>':'')+
+      (x.origine==='chat'?'<span class="pill">detta in chat</span>':'')+
+      (x.modificabile?'':'<span class="pill">non modificabile</span>')+
+      (x.consumata===false?'<span class="pill">solo dichiarata</span>':'')+'</div>'+
+      '<small>'+esc(x.motivo)+'</small>'+
+      '<small>'+(x.consumata===false
+        ? 'spiega perché è stata scelta questa fonte: cambiarla NON ricalcola da sola, va cambiata anche la fonte o il valore'
+        : 'il calcolo la usa davvero'+(x.tipo==='grammi'?' · qui ci vuole un numero di grammi':''))+'</small></div>'+
+      (x.modificabile
+        ? '<input class="campo" data-ruolo="valore" value="'+esc(valore)+'" '+
+          'onchange="salvaAssunzione(\''+esc(x.chiave)+'\','+x.rev+',this.value)">'+
+          '<span class="spin" style="flex:0 0 auto">'+esc(x.unita||'')+'</span>'
+        : '<span class="spin fisso">'+esc(valore)+'</span>')+
+      '</div>';
+  }).join('') || '<span class="spin">Nessuna ipotesi.</span>';
+}
+function salvaAssunzione(chiave, rev, valore){
+  modifica({ azione:'assunzione', chiave:chiave, rev:rev, valore:String(valore).trim() },
+    'Cambio l\'ipotesi '+chiave);
+}
+
+function disegnaVoci(){
+  var v = DATI.voci || [], box = document.getElementById('voci');
+  box.innerHTML = v.map(function(x){
+    var val = x.valori || {};
+    var righe = ['kcal','proteine','carboidrati_disponibili','grassi','fibra'].map(function(n){
+      var e = val[n]; if(!e) return esc(ETICHETTA_NUTRIENTE[n])+': —';
+      if(e.stato==='nd') return esc(ETICHETTA_NUTRIENTE[n])+': <b>non disponibile</b>';
+      if(e.stato==='tracce') return esc(ETICHETTA_NUTRIENTE[n])+': <b>tracce</b>';
+      if(e.stato==='zero') return esc(ETICHETTA_NUTRIENTE[n])+': 0';
+      return esc(ETICHETTA_NUTRIENTE[n])+': '+arr(e.valore,1)+
+        (e.origine==='umano'?' <i>(tuo)</i>':'')+(e.origine==='chat'?' <i>(da chat)</i>':'')+
+        (e.origine==='automatica'?' <i>(dizionario, non verificato)</i>':'');
+    }).join(' · ');
+    /* Una correzione detta in chat PUO sostituire un valore che Diego aveva
+       confermato dalla pagina: la scrittura vale, ma qui si deve vedere che
+       cosa c'era prima e di chi era, se no la sostituzione e silenziosa. Il
+       lettore lo porta gia in `valori.<nutriente>.sostituisce_valore_umano`.
+       Nessun ordine a Diego di rimetterlo: solo il fatto e da quando. */
+    var sostituiti = ['kcal','proteine','carboidrati_disponibili','grassi','fibra','zuccheri']
+      .map(function(n){
+        var e = val[n], s = e && e.sostituisce_valore_umano;
+        if(!s) return '';
+        var prima = (s.stato && s.stato!=='valore')
+          ? (s.stato==='nd' ? 'non disponibile' : s.stato==='tracce' ? 'tracce' : '0')
+          : arr(s.valore, 1);
+        return esc(ETICHETTA_NUTRIENTE[n]||n)+' — prima da te: '+prima+
+          (s.quando ? ' ('+esc(dataOra(s.quando))+')' : '');
+      }).filter(Boolean);
+    var f = x.fonte || {};
+    return '<div class="voce" data-voce="'+esc(x.chiave)+'"><div class="corpo">'+
+      '<div><b>'+esc(x.nome)+'</b>'+
+      (x.corrispondenza!=='esatta'?'<span class="pill proxy">'+esc(x.corrispondenza)+'</span>':'')+
+      (x.marca_verificata===false?'<span class="pill">marca non verificata</span>':'')+
+      (x.origine==='umano'?'<span class="pill umano">corretto da te</span>':'')+
+      (x.nome_in_lista && x.nome_in_lista!==x.nome
+        ? '<span class="pill">in lista: '+esc(x.nome_in_lista)+'</span>' : '')+'</div>'+
+      '<small>'+righe+' &nbsp;·&nbsp; per 100 g</small>'+
+      '<small>fonte: '+esc(f.nome||'—')+(f.codice?' ('+esc(f.codice)+')':'')+
+      (f.versione?' · '+esc(f.versione):'')+' · usato in '+x.usi_nel_piano+' opzioni'+
+      (f.url?'<br><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.url)+'</a>':'')+'</small>'+
+      (x.nota_onesta?'<small><i>'+esc(x.nota_onesta)+'</i></small>':'')+
+      ((x.valori_da_altre_fonti||[]).length
+        ? '<small class="avviso">attenzione: '+x.valori_da_altre_fonti.map(function(v){
+            return esc(v.nutriente)+' viene ancora da «'+esc(v.nome_fonte||v.fonte||'?')+'»'; }).join(' · ')+
+          ' — i numeri non sono stati riletti dalla fonte dichiarata qui sopra</small>'
+        : '')+
+      (sostituiti.length
+        ? '<small class="avviso">detto in chat al posto del tuo valore: '+sostituiti.join(' · ')+
+          '</small>'
+        : '')+'</div>'+
+      '<button class="mini" data-ruolo="correggi" onclick="correggi(\''+esc(x.chiave)+'\')">correggi</button>'+
+      '</div>';
+  }).join('') || '<span class="spin">Nessuna voce.</span>';
+}
+function correggi(chiave){
+  var v = (DATI.voci||[]).filter(function(x){ return x.chiave===chiave; })[0];
+  if(!v) return;
+  var nutriente = prompt('Quale valore correggo?\nkcal, proteine, carboidrati_disponibili, grassi, fibra', 'kcal');
+  if(nutriente===null) return;
+  nutriente = nutriente.trim();
+  var attuale = (v.valori||{})[nutriente] || {};
+  var valore = prompt('Nuovo valore per 100 g di '+v.nome+' ('+nutriente+').\n'+
+    'Scrivi un numero, oppure: tracce / nd / zero',
+    attuale.stato==='valore' ? String(attuale.valore) : (attuale.stato||''));
+  if(valore===null) return;
+  valore = valore.trim().toLowerCase();
+  var stato = (valore==='tracce'||valore==='nd'||valore==='zero') ? valore : 'valore';
+  var motivo = prompt('Perché? (resta scritto accanto alla correzione)', 'valore dall\'etichetta del prodotto');
+  modifica({ azione:'valore', chiave:chiave, nutriente:nutriente,
+             stato:stato, valore: stato==='valore' ? valore : null,
+             rev: (attuale.rev||null), motivo: motivo || null },
+    'Correggo '+nutriente+' di '+v.nome);
+}
+
+function disegnaMix(){
+  var m = DATI.mix || [], box = document.getElementById('mix');
+  box.innerHTML = m.map(function(x){
+    return '<div class="voce" data-componente="'+esc(x.componente)+'"><div class="corpo">'+
+      '<div><b>'+esc(x.componente)+'</b>'+(x.origine==='umano'?'<span class="pill umano">corretto da te</span>':'')+'</div>'+
+      '<small>'+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.nome_fonte||x.fonte||'')+'</a>':esc(x.nome_fonte||x.fonte||''))+'</small></div>'+
+      '<input class="campo" data-ruolo="quota" value="'+esc(x.quota_pct)+'" '+
+      'onchange="salvaQuota(\''+esc(x.mix)+'\',\''+esc(x.componente)+'\',this.value)">'+
+      '<span class="spin" style="flex:0 0 auto">% su 100 g</span></div>';
+  }).join('') || '<span class="spin">Nessun mix.</span>';
+  var p = DATI.mix_per100 || {};
+  var tot = DATI.quota_totale;
+  if(tot!=null && Number(tot)!==100){
+    box.innerHTML += '<p class="avviso" id="quotaTotale">Le quote sommano '+arr(tot,0)+
+      '%: i valori qui sotto sono normalizzati su quel totale, quindi restano veri mentre stai scrivendo.</p>';
+  }
+  document.getElementById('mixValori').innerHTML =
+    ['kcal','proteine','carboidrati_disponibili','grassi','fibra'].map(function(n){
+      var e = p[n]; if(!e) return '';
+      return '<div class="num" data-mix="'+n+'"><div class="l">'+esc(ETICHETTA_NUTRIENTE[n])+
+        '</div><div class="v">'+arr(e.valore, n==='kcal'?1:2)+'</div><div class="d">per 100 g di M1</div></div>';
+    }).join('');
+}
+function salvaQuota(mix, componente, quota){
+  modifica({ azione:'mix', chiave:mix, componente:componente, quota:Number(quota) },
+    'Cambio la quota di '+componente);
+}
+
+if(TOK){
+  document.getElementById('login').style.display='none';
+  carica().catch(function(){ document.getElementById('login').style.display='flex'; });
+}
+</script>
+</body>
+</html>
