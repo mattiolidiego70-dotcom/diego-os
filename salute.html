@@ -124,7 +124,10 @@ a{color:var(--accento);text-decoration:none}
 #colonna{position:relative;display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.14))}
 #testata{position:relative;display:flex;align-items:center;gap:14px;padding:11px 18px;background:var(--vetro);backdrop-filter:blur(40px) saturate(190%);-webkit-backdrop-filter:blur(40px) saturate(190%);border-bottom:1px solid rgba(255,255,255,.08);z-index:25}
 #testata .modulo{color:var(--testo1);font:500 13.5px var(--font-ui);letter-spacing:-.01em}
-#pillola{position:absolute;left:calc(50% - 33px);transform:translateX(-50%);width:410px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--vetro-forte);border:1px solid var(--bordo);border-radius:11px;padding:7px 12px;backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);color:var(--testo3);font:400 12.5px var(--font-ui);white-space:nowrap;cursor:pointer}
+/* la pillola col riquadro era brutta (collaudo Diego 13/09): resta SOLO la
+   sfera, come la barra chiusa — stesse forme, un tocco apre la barra */
+#pillola{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;background:none;border:none;padding:0;cursor:pointer}
+#pillola>span:not(.sfera){display:none}
 #contesto{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--testo2);font:400 12px var(--font-mono);white-space:nowrap}
 #striscia{padding:10px 24px 0}
 #tabs{display:inline-flex;padding:3px;border-radius:13px;background:linear-gradient(180deg,rgba(163,255,0,.10),rgba(163,255,0,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 0 0 1px rgba(255,255,255,.06)}
@@ -165,6 +168,8 @@ a{color:var(--accento);text-decoration:none}
 .icona-barra.lime{color:var(--accento)}
 #mobiletop,#dockMobile,#mobileTesta{display:none}
 /* risposta di Alfred: scheda in vetro sopra il contenuto */
+#alfredSuggerimenti{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);z-index:68;gap:6px;flex-wrap:wrap;justify-content:center;max-width:660px}
+#alfredSuggerimenti.si{display:flex}
 #alfredRisposta{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:660px;max-height:46%;z-index:69;background:rgba(20,20,24,.66);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:1px solid var(--bordo-forte);border-radius:16px;padding:14px;box-shadow:var(--ombra-alfred);flex-direction:column;gap:9px}
 #alfredRisposta.si{display:flex}
 #alfredRispTesto{color:var(--testo1);font:400 13px/1.55 var(--font-ui);overflow-y:auto;min-height:0;white-space:pre-wrap}
@@ -229,6 +234,28 @@ a{color:var(--accento);text-decoration:none}
    backdrop: quando il blur manca (Low Power, GPU off) il fondo restava
    semitrasparente e il contenuto sotto filtrava. Copertura garantita da qui. */
 [data-chart-overlay]{background:rgba(6,6,8,.94) !important}
+/* ═══ VISTA ALFRED — macro-area chat, simil Claude ═══ */
+#vistaAlfred{display:none;flex:1;min-height:0;padding:8px 24px 150px;gap:12px}
+#vistaAlfred.on{display:grid;grid-template-columns:280px minmax(0,1fr)}
+#alfLato{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;border-right:1px solid rgba(255,255,255,.08);padding-right:12px}
+#alfLato .sez{color:var(--testo4);font:400 10px var(--font-mono);letter-spacing:.05em;margin-top:6px}
+.alfChat{display:flex;flex-direction:column;gap:2px;padding:7px 9px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.alfChat:hover{background:rgba(255,255,255,.05)}
+.alfChat.on{background:var(--accento-fondo-16);border-color:var(--accento-bordo)}
+.alfChat .tit{color:var(--testo1);font:400 12px var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alfChat .sotto{display:flex;gap:7px;color:var(--testo4);font:400 10px var(--font-mono)}
+.alfChat .azioni{display:none;gap:6px}
+.alfChat:hover .azioni{display:flex}
+.alfChat .azioni b{font-weight:400;cursor:pointer;color:var(--testo4);font-size:11px}
+.alfChat .azioni b:hover{color:var(--accento)}
+#alfMsg{display:flex;flex-direction:column;gap:9px;min-height:0;overflow-y:auto;padding:4px 4px 20px}
+#alfTitolo{display:flex;align-items:baseline;gap:10px;padding:2px 4px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+@media (max-width:760px){
+  #vistaAlfred{padding:12px 16px 170px}
+  #vistaAlfred.on{display:flex;flex-direction:column}
+  #alfLato{border-right:none;border-bottom:1px solid rgba(255,255,255,.08);padding:0 0 10px;max-height:38%}
+  #alfredSuggerimenti{position:fixed;left:16px;right:16px;transform:none;bottom:calc(150px + env(safe-area-inset-bottom));max-width:none}
+}
 /* ═══ RIORDINO WIDGET (tieni premuto una scheda, come sul telefono) ═══ */
 @keyframes dondola{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
 .pane.riordino>[data-blocco]{animation:dondola .4s ease-in-out infinite;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -262,6 +289,7 @@ a{color:var(--accento);text-decoration:none}
       <div class="voce on" data-amb="salute"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nome">Salute</span></div>
       <div class="voce" data-amb="finance" onclick="location.href='index.html'"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg><span class="nome">Finance</span></div>
       <div class="voce" data-amb="outfit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg><span class="nome">Outfit</span></div>
+      <div class="voce" data-amb="alfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">Alfred</span></div>
     </div>
     <div style="margin-top:auto;color:rgba(255,255,255,.4);display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
   </aside>
@@ -270,7 +298,7 @@ a{color:var(--accento);text-decoration:none}
     <div id="testata">
       <span style="display:flex;color:rgba(255,255,255,.45)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></span>
       <div class="modulo">Salute</div>
-      <div id="pillola" onclick="document.getElementById('alfredTesto').focus()">
+      <div id="pillola" onclick="barraApri();document.getElementById('alfredTesto').focus()">
         <span class="sfera" style="width:20px;height:20px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span>
         <span>Chiedi ad Alfred, o dillo a voce</span>
       </div>
@@ -296,7 +324,18 @@ a{color:var(--accento);text-decoration:none}
 
     <div id="diario30"></div>
 
+    <section id="vistaAlfred">
+      <div id="alfLato">
+        <button class="bott" style="padding:8px" onclick="GIORNO_CHAT=oggiISO();caricaGiornoChat(GIORNO_CHAT);barraApri();document.getElementById('alfredTesto').focus()">Nuova chat (oggi)</button>
+        <div id="alfListe"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;min-height:0">
+        <div id="alfTitolo"></div>
+        <div id="alfMsg"></div>
+      </div>
+    </section>
     <div id="alfredRisposta"><div id="alfredRispTesto"></div><div id="alfredSeguiti"></div></div>
+    <div id="alfredSuggerimenti"></div>
     <div id="riordinoAvviso"></div>
 
     <div id="barraAlfred"><div class="dentro">
@@ -319,6 +358,7 @@ a{color:var(--accento);text-decoration:none}
       <div class="voce on"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="nome">SALUTE</span></div>
       <div class="voce" onclick="location.href='index.html'"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg></span><span class="nome">FINANCE</span></div>
       <div class="voce"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg></span><span class="nome">OUTFIT</span></div>
+      <div class="voce" id="dockAlfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">ALFRED</span></div>
     </div>
 
   </div>
@@ -428,6 +468,8 @@ function montaTabs(){
 }
 function vai(id){
   if(!TABS.some(function(t){return t.id===id;})) return;
+  if(typeof VISTA_ALFRED!=='undefined'&&VISTA_ALFRED) chiudiAlfred();
+  var cambio=TAB_ATTIVA!==null&&TAB_ATTIVA!==id;
   TAB_ATTIVA=id; location.hash=id; montaTabs();
   document.querySelectorAll('.pane').forEach(function(p){p.classList.toggle('on',p.dataset.pane===id);});
   var t=TABS.find(function(x){return x.id===id;});
@@ -436,6 +478,8 @@ function vai(id){
   document.getElementById('statoriga').classList.toggle('si',id==='obiettivi'&&!!(DATI.statoObiettivi||(DATI.obiettivi&&DATI.obiettivi.nota_dieta)));
   document.getElementById('diario30').classList.toggle('si',id==='obiettivi');
   RENDER[id]&&RENDER[id]();
+  /* al cambio pagina: 5 secondi di consigli, poi la barra torna pallina */
+  if(cambio&&typeof suggerimentiFlash==='function') suggerimentiFlash(id);
 }
 
 /* ═══ BLOCCHI ORDINABILI — lo stesso meccanismo di dash_health, esteso a
@@ -1658,7 +1702,7 @@ function seguitiPer(tab,risposta){
     coach:['Fammi il punto della giornata','Che aderenza ho oggi?']};
   return s[tab]||s.oggi;
 }
-/* la barra si chiude nella pallina dopo qualche secondo che non la usi;
+/* la barra si chiude nella pallina dopo 5 secondi che non la usi;
    un tocco sulla sfera la riapre. Mentre Alfred lavora o risponde resta aperta. */
 var TIMER_BARRA=null;
 function barraApri(){document.getElementById('barraAlfred').classList.remove('chiusa');barraArma();}
@@ -1670,7 +1714,7 @@ function barraArma(){
       document.getElementById('alfredRisposta').classList.contains('si');
     if(occupata){barraArma();return;}
     document.getElementById('barraAlfred').classList.add('chiusa');
-  },8000);
+  },5000);
 }
 document.getElementById('barraAlfred').addEventListener('click',function(e){
   if(this.classList.contains('chiusa')){barraApri();document.getElementById('alfredTesto').focus();}
@@ -1691,7 +1735,10 @@ function mandaAdAlfred(q){
   api('/api/chat',{domanda:q}).then(function(r){
     mostraRisposta(r.risposta||'(vuoto)',seguitiPer(TAB_ATTIVA,r.risposta));
     return caricaTutto();
-  }).then(function(){RENDER[TAB_ATTIVA]&&RENDER[TAB_ATTIVA]();})
+  }).then(function(){
+    RENDER[TAB_ATTIVA]&&RENDER[TAB_ATTIVA]();
+    if(typeof VISTA_ALFRED!=='undefined'&&VISTA_ALFRED){GIORNO_CHAT=oggiISO();caricaGiornoChat(GIORNO_CHAT);caricaArchivioChat();}
+  })
   .catch(function(e){
     /* la bozza torna nel campo solo se nel frattempo non ne hai scritta una nuova */
     var campo=document.getElementById('alfredTesto');
@@ -1852,15 +1899,148 @@ document.addEventListener('pointerup',function(e){
   }
 });
 
+/* ═══ VISTA ALFRED — chat con storico per giornate, pin e cartelle ═══ */
+var VISTA_ALFRED=false, GIORNO_CHAT=null, ORG_CHAT={pin:[],cartelle:{}};
+function oggiISO(){return new Date().toLocaleDateString('sv-SE');}
+function apriAlfred(){
+  VISTA_ALFRED=true; TAB_ATTIVA=null;
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('striscia').style.display='none';
+  var tm=document.getElementById('tabsMob'); if(tm) tm.style.display='none';
+  document.getElementById('statoriga').classList.remove('si');
+  document.getElementById('diario30').classList.remove('si');
+  document.getElementById('vistaAlfred').classList.add('on');
+  document.querySelectorAll('#rail .voce').forEach(function(v){v.classList.toggle('on',v.getAttribute('data-amb')==='alfred');});
+  document.querySelectorAll('#dockMobile .voce').forEach(function(v){v.classList.toggle('on',v.id==='dockAlfred');});
+  var mt=document.getElementById('mobTitolo'); if(mt) mt.textContent='Alfred';
+  var md=document.querySelector('#testata .modulo'); if(md) md.textContent='Alfred';
+  if(location.hash!=='#alfred') location.hash='alfred';
+  caricaArchivioChat();
+}
+function chiudiAlfred(){
+  VISTA_ALFRED=false;
+  document.getElementById('vistaAlfred').classList.remove('on');
+  document.getElementById('striscia').style.display='';
+  var tm=document.getElementById('tabsMob'); if(tm) tm.style.display='';
+  document.querySelectorAll('#rail .voce').forEach(function(v){v.classList.toggle('on',v.getAttribute('data-amb')==='salute');});
+  document.querySelectorAll('#dockMobile .voce').forEach(function(v){v.classList.toggle('on',v.classList.contains('on')===false&&false);});
+  var dv=document.querySelector('#dockMobile .voce'); if(dv) dv.classList.add('on');
+  var mt=document.getElementById('mobTitolo'); if(mt) mt.textContent='Salute';
+  var md=document.querySelector('#testata .modulo'); if(md) md.textContent='Salute';
+}
+function caricaArchivioChat(){
+  api('/api/chat_archivio?giorni=120').then(function(r){
+    DATI.chatArchivio=(r&&r.giornate)||[];
+    ORG_CHAT=(r&&r.org&&r.org.pin)?r.org:{pin:[],cartelle:{}};
+    if(!ORG_CHAT.pin)ORG_CHAT.pin=[]; if(!ORG_CHAT.cartelle)ORG_CHAT.cartelle={};
+    if(r&&r.nota_org) avvisoRiordino(r.nota_org);
+    renderListaChat();
+    if(!GIORNO_CHAT){GIORNO_CHAT=(DATI.chatArchivio[0]&&DATI.chatArchivio[0].giorno)||oggiISO();}
+    caricaGiornoChat(GIORNO_CHAT);
+  }).catch(function(e){
+    document.getElementById('alfListe').innerHTML=muto('archivio non leggibile ora: '+e.message);
+    document.getElementById('alfMsg').innerHTML='';
+  });
+}
+function etichettaChat(g){
+  var t=(g.apertura||'').trim()||'(conversazione)';
+  return '<span class="tit">'+esc(t)+'</span><span class="sotto"><span>'+esc(dataIT(g.giorno))+'</span><span>'+g.messaggi+' msg</span>'+
+    (ORG_CHAT.pin.indexOf(g.giorno)>=0?'<span style="color:var(--accento)">pinnata</span>':'')+'</span>'+
+    '<span class="azioni"><b onclick="event.stopPropagation();togglePin(\''+g.giorno+'\')">'+(ORG_CHAT.pin.indexOf(g.giorno)>=0?'togli pin':'pinna')+'</b>'+
+    '<b onclick="event.stopPropagation();mettiInCartella(\''+g.giorno+'\')">cartella</b></span>';
+}
+function cartellaDi(giorno){
+  var nomi=Object.keys(ORG_CHAT.cartelle);
+  for(var i=0;i<nomi.length;i++){if((ORG_CHAT.cartelle[nomi[i]]||[]).indexOf(giorno)>=0)return nomi[i];}
+  return null;
+}
+function renderListaChat(){
+  var out=document.getElementById('alfListe'); var giornate=DATI.chatArchivio||[];
+  function riga(g){return '<div class="alfChat'+(g.giorno===GIORNO_CHAT?' on':'')+'" onclick="GIORNO_CHAT=\''+g.giorno+'\';caricaGiornoChat(GIORNO_CHAT);renderListaChat()">'+etichettaChat(g)+'</div>';}
+  var perGiorno={}; giornate.forEach(function(g){perGiorno[g.giorno]=g;});
+  var h='';
+  var pinnate=ORG_CHAT.pin.map(function(d){return perGiorno[d];}).filter(Boolean);
+  if(pinnate.length){h+='<div class="sez">PINNATE</div>'+pinnate.map(riga).join('');}
+  Object.keys(ORG_CHAT.cartelle).sort().forEach(function(nome){
+    var dentro=(ORG_CHAT.cartelle[nome]||[]).map(function(d){return perGiorno[d];}).filter(Boolean);
+    h+='<div class="sez">'+esc(nome.toUpperCase())+' ('+dentro.length+')</div>'+dentro.map(riga).join('');
+  });
+  var libere=giornate.filter(function(g){return ORG_CHAT.pin.indexOf(g.giorno)<0&&!cartellaDi(g.giorno);});
+  h+='<div class="sez">CONVERSAZIONI (per giornata)</div>'+(libere.length?libere.map(riga).join(''):muto('lo storico si riempie parlando con Alfred'));
+  out.innerHTML=h;
+}
+function salvaOrgChat(){
+  return api('/api/chat_org',{pin:ORG_CHAT.pin,cartelle:ORG_CHAT.cartelle}).then(function(r){
+    if(!r||r.esito!=='salvato'){avvisoRiordino('Organizzazione NON salvata: '+((r&&r.esito)||'senza conferma'));}
+    else avvisoRiordino('Salvato ✓');
+  }).catch(function(e){avvisoRiordino('Organizzazione non salvata: '+e.message);});
+}
+function togglePin(giorno){
+  var i=ORG_CHAT.pin.indexOf(giorno);
+  if(i>=0)ORG_CHAT.pin.splice(i,1);else ORG_CHAT.pin.unshift(giorno);
+  renderListaChat(); salvaOrgChat();
+}
+function mettiInCartella(giorno){
+  var attuale=cartellaDi(giorno);
+  var nome=prompt('Cartella per questa conversazione (vuoto = nessuna).'+(attuale?' Ora: '+attuale:''),attuale||'');
+  if(nome===null)return;
+  Object.keys(ORG_CHAT.cartelle).forEach(function(n){
+    ORG_CHAT.cartelle[n]=(ORG_CHAT.cartelle[n]||[]).filter(function(d){return d!==giorno;});
+    if(!ORG_CHAT.cartelle[n].length)delete ORG_CHAT.cartelle[n];
+  });
+  nome=nome.trim();
+  if(nome){(ORG_CHAT.cartelle[nome]=ORG_CHAT.cartelle[nome]||[]).push(giorno);}
+  renderListaChat(); salvaOrgChat();
+}
+function caricaGiornoChat(giorno){
+  var out=document.getElementById('alfMsg');
+  document.getElementById('alfTitolo').innerHTML='<span style="color:var(--testo1);font:500 14px var(--font-ui)">'+esc(dataIT(giorno))+'</span>'+
+    '<span style="color:var(--testo4);font:400 10.5px var(--font-mono)">'+(giorno===oggiISO()?'oggi · scrivi qui sotto':'conversazione della giornata')+'</span>';
+  out.innerHTML='<div class="nota">carico…</div>';
+  api('/api/chat_giorno?data='+giorno).then(function(msgs){
+    if(!Array.isArray(msgs)||!msgs.length){out.innerHTML=muto('nessun messaggio in questa giornata');return;}
+    out.innerHTML=msgs.map(function(m){
+      return '<div class="'+(m.ruolo==='diego'?'msg-io':'msg-coach')+'">'+esc(String(m.testo||'').replace(/^\[[a-z_]+\]\s*/i,''))+
+        '<div style="color:'+(m.ruolo==='diego'?'rgba(11,18,0,.55)':'var(--testo4)')+';font:400 9px var(--font-mono);margin-top:3px">'+esc(String(m.ts||'').slice(11,16))+' · '+esc(m.canale||'')+'</div></div>';
+    }).join('');
+    out.scrollTop=out.scrollHeight;
+  }).catch(function(e){out.innerHTML=muto('giornata non leggibile: '+e.message);});
+}
+
+/* ═══ SUGGERIMENTI FLASH: al cambio pagina, 5 secondi di consigli ═══ */
+var TIMER_SUGG=null;
+function suggerimentiFlash(tab){
+  var box=document.getElementById('alfredSuggerimenti');
+  box.innerHTML=seguitiPer(tab).map(function(sg){
+    return '<button class="chip" onclick="chiudiSuggerimenti();document.getElementById(\'alfredTesto\').value=this.textContent;inviaAlfred()">'+esc(sg)+'</button>';
+  }).join('');
+  box.classList.add('si');
+  barraApri();
+  clearTimeout(TIMER_SUGG);
+  TIMER_SUGG=setTimeout(chiudiSuggerimenti,5000);
+}
+function chiudiSuggerimenti(){
+  clearTimeout(TIMER_SUGG);
+  document.getElementById('alfredSuggerimenti').classList.remove('si');
+}
+document.getElementById('alfredTesto').addEventListener('focus',chiudiSuggerimenti);
+
 /* ═══ AVVIO ═══ */
 function etichettaSchermo(){document.getElementById('app').setAttribute('data-screen-label',window.innerWidth<=760?'app mobile':'app desktop');}
 window.addEventListener('resize',etichettaSchermo);
 function avvia(){
   etichettaSchermo(); montaTabs();
   var h=(location.hash||'').replace('#','');
-  caricaTutto().then(function(){ vai(TABS.some(function(t){return t.id===h;})?h:'oggi'); });
+  caricaTutto().then(function(){
+    if(h==='alfred'){apriAlfred();return;}
+    vai(TABS.some(function(t){return t.id===h;})?h:'oggi');
+  });
 }
-window.addEventListener('hashchange',function(){var h=location.hash.replace('#','');if(TABS.some(function(t){return t.id===h;})&&h!==TAB_ATTIVA)vai(h);});
+window.addEventListener('hashchange',function(){
+  var h=location.hash.replace('#','');
+  if(h==='alfred'){if(!VISTA_ALFRED)apriAlfred();return;}
+  if(TABS.some(function(t){return t.id===h;})&&h!==TAB_ATTIVA)vai(h);
+});
 if(!TOK) document.getElementById('login').classList.add('si');
 else avvia();
 </script>
