@@ -292,9 +292,13 @@ function api(p,corpo){
   var o={headers:{'x-app-token':TOK,'content-type':'application/json'},signal:c.signal};
   if(corpo){o.method='POST';o.body=JSON.stringify(corpo);}
   return fetch(API_BASE+p,o).then(function(r){
-    if(r.status===401){document.getElementById('login').classList.add('si');throw new Error('sessione scaduta');}
+    if(r.status===401){document.getElementById('login').classList.add('si');var e401=new Error('sessione scaduta');e401.stato=401;throw e401;}
     if(!r.ok) return r.json().catch(function(){return null;}).then(function(e){
-      throw new Error((e&&e.errore)||('Servizio non disponibile (HTTP '+r.status+')'));});
+      /* i FATTI dell'errore viaggiano strutturati (design R9): chi consuma
+         classifica su stato e corpo, mai sul testo del messaggio */
+      var err=new Error((e&&e.errore)||('Servizio non disponibile (HTTP '+r.status+')'));
+      err.stato=r.status; err.corpo=e;
+      throw err;});
     return r.json();
   }).catch(function(e){
     if(scaduto){var err=new Error('il caricamento dei dati è scaduto dopo 2 minuti: esito incerto');err.scaduto=true;throw err;}
@@ -344,6 +348,17 @@ var cursore='<i data-chart-cursor style="position:absolute;top:0;bottom:0;width:
 var svgEspandi='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
 var svgMatita='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 function muto(msg){return '<div class="nota">'+esc(msg||'la fonte tace: nessun dato da mostrare')+'</div>';}
+/* design R9: UNICA definizione della qualifica di un intervallo stimato
+   {min,max,tracce,nd_da}. Ogni scheda che mostra una stima passa da qui:
+   niente copie della regola che possano divergere (kcal si', proteine no). */
+function qualificaIntervallo(v,unita){
+  if(!v||v.min==null) return {testo:'—',degradato:false,nd:0};
+  var nd=Array.isArray(v.nd_da)?v.nd_da.length:0;
+  var t=fmtInt(v.min)+'-'+fmtInt(v.max)+(unita?' '+unita:'');
+  if(v.tracce) t+=' · tracce';
+  if(nd) t+=' · parziale ('+nd+' ND)';
+  return {testo:t,degradato:!!(nd||v.tracce),nd:nd};
+}
 
 /* ═══ LE SETTE TAB — generate da UNA lista (mai markup ripetuto) ═══ */
 var TABS=[
@@ -745,13 +760,17 @@ function salvaMisure(btn){
   if(sede&&sv) invii.push(api('/api/misura_corpo',{misure:[{nome:sede,valore:Number(sv)}]}));
   if(!invii.length){out.textContent='Niente da salvare: compila almeno un campo.';return;}
   Promise.allSettled(invii).then(function(ris){
-    /* tre esiti DISTINTI: confermata, rifiutata, INCERTA (l'edge risponde 409
-       «senza conferma»: potrebbe essere scritta, ripeterla farebbe un doppione) */
+    /* design R9: l'esito si classifica per STRUTTURA, mai per testo.
+       RIFIUTATA solo se il server ha risposto 4xx (fail-before-write);
+       incerte[] dichiarate dal server restano incerte; tutto lo sconosciuto
+       (rete persa, timeout, 5xx) e' INCERTO, fail-closed. */
     var salvate=0,rifiutate=0,incerte=0;
     ris.forEach(function(r){
       if(r.status==='fulfilled'){salvate++;return;}
-      var msg=String(r.reason&&r.reason.message||'');
-      if(/senza conferma|potrebbe essere/i.test(msg)) incerte++; else rifiutate++;
+      var e=r.reason||{};
+      if(e.corpo&&Array.isArray(e.corpo.incerte)&&e.corpo.incerte.length){incerte++;return;}
+      if(e.stato>=400&&e.stato<500){rifiutate++;return;}
+      incerte++;
     });
     out.textContent=salvate+' salvat'+(salvate===1?'a':'e')+
       (rifiutate?' · '+rifiutate+' RIFIUTATE (guardia del registro)':'')+
@@ -906,10 +925,10 @@ REGISTRO.dieta={
       var alts=perPasto[p]||[]; if(!alts.length) return; vuoto=false;
       var scelta=(D.stimaScelte&&D.stimaScelte[p])||scelte[p]||alts[0].lettera;
       var a=alts.find(function(x){return x.lettera===scelta;})||alts[0];
-      var st=perPastoStima[p]; var nk=st&&st.nutrienti&&st.nutrienti.kcal, np=st&&st.nutrienti&&st.nutrienti.proteine;
-      var kcalND=nk&&Array.isArray(nk.nd_da)&&nk.nd_da.length;
-      var kcalTxt=nk&&nk.min!=null?fmtInt(nk.min)+'-'+fmtInt(nk.max)+(kcalND?' ND':''):'—';
-      var protTxt=np&&np.min!=null?fmtInt(np.min)+'-'+fmtInt(np.max)+' P'+(np.tracce?' tr.':''):'';
+      var st=perPastoStima[p];
+      var qk=qualificaIntervallo(st&&st.nutrienti&&st.nutrienti.kcal,'');
+      var qp=qualificaIntervallo(st&&st.nutrienti&&st.nutrienti.proteine,'P');
+      var kcalTxt=qk.testo, protTxt=qp.testo==='—'?'':qp.testo;
       h+='<div class="cliccabile" onclick="scegliAlternativa(\''+p+'\')" style="display:flex;gap:11px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:7px">'+
         '<span style="width:26px;height:26px;border-radius:8px;background:var(--accento-fondo-16);border:1px solid var(--accento-bordo);color:var(--accento);display:flex;align-items:center;justify-content:center;font:600 12px var(--font-mono);flex:none">'+esc(a.lettera||'?')+'</span>'+
         '<div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="color:var(--testo1);font:500 12.5px var(--font-ui)">'+esc(nomi[p]||p)+'</span><span style="color:var(--testo4);font:400 10px var(--font-ui)">'+alts.length+' alternative</span></div>'+
@@ -930,15 +949,11 @@ REGISTRO.dieta={
     var conND=[];
     if(!tot) h+=muto('la stima arriva col piano caricato (lettere per pasto)');
     else [['Kcal','kcal'],['Proteine','proteine','g'],['Carboidrati','carboidrati_disponibili','g'],['Grassi','grassi','g'],['Fibra','fibra','g']].forEach(function(r){
-      var v=tot[r[1]];
-      /* il contratto dice quando la somma e' MONCA (nd_da) o solo tracce:
-         nasconderlo farebbe leggere 0-0 come uno zero misurato */
-      var nd=v&&Array.isArray(v.nd_da)?v.nd_da.length:0;
-      if(nd) conND.push(r[0]+' ('+nd+' ND)');
-      var testo=v&&v.min!=null?fmtInt(v.min)+'-'+fmtInt(v.max)+(r[2]?' '+r[2]:''):'—';
-      if(v&&v.tracce) testo+=' · tracce';
-      if(nd) testo+=' · parziale';
-      h+='<div class="riga"><span class="k">'+r[0]+'</span><span class="v"'+(nd||v&&v.tracce?' style="color:var(--attenzione)"':'')+'>'+esc(testo)+'</span></div>';
+      /* la qualifica (parziale/ND/tracce) esce SEMPRE da qualificaIntervallo:
+         una regola sola per Totali, Giornata e chiunque altro (design R9) */
+      var q=qualificaIntervallo(tot[r[1]],r[2]||'');
+      if(q.nd) conND.push(r[0]+' ('+q.nd+' ND)');
+      h+='<div class="riga"><span class="k">'+r[0]+'</span><span class="v"'+(q.degradato?' style="color:var(--attenzione)"':'')+'>'+esc(q.testo)+'</span></div>';
     });
     h+='<div class="nota">'+esc((st&&st.nota_giornata)||'Intervallo, non un numero secco: dipende dalle alternative scelte.')+
       (conND.length?' <span style="color:var(--attenzione)">Somma incompleta: '+esc(conND.join(', '))+' — ingredienti senza dato nella fonte.</span>':'')+'</div>';
