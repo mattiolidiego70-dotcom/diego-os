@@ -148,10 +148,17 @@ a{color:var(--accento);text-decoration:none}
   transition:width .28s cubic-bezier(.2,.8,.2,1),padding .28s ease,border-radius .28s ease,left .28s ease,transform .28s ease}
 #barraAlfred .dentro{display:flex;align-items:center;gap:11px}
 /* la barra si CHIUDE nella sfera quando non la usi: resta solo la pallina,
-   un tocco la riapre (collaudo Diego 13/09) */
-#barraAlfred.chiusa{width:58px;padding:6px;border-radius:50%;left:auto;right:30px;transform:none;cursor:pointer}
+   CENTRATA in basso, un tocco la riapre (collaudo Diego 13/09, x2) */
+#barraAlfred.chiusa{width:58px;padding:6px;border-radius:50%;left:50%;transform:translateX(-50%);cursor:pointer}
 #barraAlfred.chiusa .dentro{justify-content:center;gap:0}
 #barraAlfred.chiusa .dentro>*:not(.sfera){display:none !important}
+/* la sfera si ANIMA solo quando Alfred parla o lavora: da ferma e' quieta */
+.sfera .rosa,.sfera .blu{animation-play-state:paused}
+#appfusto.ascolta .sfera .rosa,#appfusto.ascolta .sfera .blu{animation-play-state:running}
+#onde{visibility:hidden}
+#appfusto.ascolta #onde{visibility:visible}
+#onde b{animation-play-state:paused}
+#appfusto.ascolta #onde b{animation-play-state:running}
 #alfredTesto{flex:1;background:none;border:none;color:var(--testo1);font:400 13px var(--font-ui);outline:none;min-width:0}
 #alfredTesto::placeholder{color:var(--testo3)}
 .icona-barra{display:flex;color:rgba(255,255,255,.55);cursor:pointer;background:none;border:none;padding:0}
@@ -199,7 +206,7 @@ a{color:var(--accento);text-decoration:none}
   .pane[data-pane="oggi"]>[data-blocco="tdee"]{order:10}
   #diario30.si{padding:6px 16px 10px}
   #barraAlfred{position:relative;left:0;bottom:0;transform:none;width:auto;margin:9px 16px 0;border-radius:22px;padding:9px 12px;flex:none}
-  #barraAlfred.chiusa{width:54px;margin-left:auto;right:0;border-radius:50%}
+  #barraAlfred.chiusa{width:54px;margin:9px auto 0;left:0;transform:none;border-radius:50%}
   /* la risposta sta SOPRA tutto, ancorata alla barra, non persa nel flusso */
   #alfredRisposta{position:fixed;left:16px;right:16px;width:auto;transform:none;bottom:calc(150px + env(safe-area-inset-bottom));max-height:56%}
   #dockMobile{display:flex;align-items:center;justify-content:space-around;margin:9px 16px 10px;background:var(--vetro);backdrop-filter:blur(46px) saturate(180%);-webkit-backdrop-filter:blur(46px) saturate(180%);border:1px solid var(--bordo);border-radius:22px;padding:8px 8px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
