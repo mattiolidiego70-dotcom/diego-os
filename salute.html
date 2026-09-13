@@ -273,7 +273,10 @@ var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
 var TOK=localStorage.getItem('app_token')||localStorage.getItem('dos_token')||'';
 function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function api(p,corpo){
-  var c=new AbortController(); var t=setTimeout(function(){c.abort();},120000);
+  /* il flag serve perché l'abort può scattare anche mentre si legge il CORPO
+     della risposta: il segnale copre tutta la richiesta, non solo gli header */
+  var c=new AbortController(); var scaduto=false;
+  var t=setTimeout(function(){scaduto=true;c.abort();},120000);
   var o={headers:{'x-app-token':TOK,'content-type':'application/json'},signal:c.signal};
   if(corpo){o.method='POST';o.body=JSON.stringify(corpo);}
   return fetch(API_BASE+p,o).then(function(r){
@@ -281,6 +284,9 @@ function api(p,corpo){
     if(!r.ok) return r.json().catch(function(){return null;}).then(function(e){
       throw new Error((e&&e.errore)||('Servizio non disponibile (HTTP '+r.status+')'));});
     return r.json();
+  }).catch(function(e){
+    if(scaduto){var err=new Error('il caricamento dei dati è scaduto dopo 2 minuti: esito incerto');err.scaduto=true;throw err;}
+    throw e;
   }).finally(function(){clearTimeout(t);});
 }
 function entra(){
@@ -1160,6 +1166,8 @@ var RENDER={
 /* ═══ CARICAMENTO DATI — ogni fonte che tace resta dichiarata, mai zero ═══ */
 function tenta(p){return p.catch(function(e){return {__errore:e.message};});}
 function ok(x){return x&&!x.__errore?x:null;}
+/* una fonte in ERRORE non è una fonte VUOTA: l'elenco resta dichiarato in testata */
+var FONTI_MUTE=[];
 function caricaSpesa(){
   return Promise.all([tenta(api('/api/lista_spesa?cosa=tutto')),tenta(api('/api/lista_spesa?cosa=variabile')),tenta(api('/api/lista_spesa?cosa=giri'))])
     .then(function(r){
@@ -1207,6 +1215,8 @@ function caricaTutto(){
     DATI.chatStoria=Array.isArray(ok(r[12]))?ok(r[12]):((ok(r[12])||{}).messaggi||[]);
     DATI.obiettivi=ok(r[13])||null; DATI.checkStats=ok(r[14])||null;
     DATI.statoObiettivi=DATI.obiettivi&&DATI.obiettivi.stato?DATI.obiettivi.stato:null;
+    var nomi=['contesto','dati','semaforo','tdee','qualità','aderenza 7gg','aderenza 28gg','box','abitudini','pliche','misure','nutrizione','chat','obiettivi','check'];
+    FONTI_MUTE=nomi.filter(function(n,i){return r[i]&&r[i].__errore;});
     aggiornaContesto();
   });
 }
@@ -1225,8 +1235,13 @@ function aggiornaContesto(){
   var d=new Date();
   var giorni=['dom','lun','mar','mer','gio','ven','sab'];
   var t=giorni[d.getDay()]+' '+d.getDate()+' '+['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][d.getMonth()]+' · '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-  document.getElementById('contestoTesto').textContent=t;
-  document.getElementById('mobData').textContent=giorni[d.getDay()]+' '+d.getDate()+' '+['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][d.getMonth()];
+  if(FONTI_MUTE.length)
+    document.getElementById('contestoTesto').innerHTML=esc(t)+' · <span style="color:var(--attenzione)">dati parziali: '+esc(FONTI_MUTE.join(', '))+'</span>';
+  else document.getElementById('contestoTesto').textContent=t;
+  var md=giorni[d.getDay()]+' '+d.getDate()+' '+['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][d.getMonth()];
+  if(FONTI_MUTE.length)
+    document.getElementById('mobData').innerHTML=esc(md)+' · <span style="color:var(--attenzione)">dati parziali</span>';
+  else document.getElementById('mobData').textContent=md;
 }
 
 /* ═══ ALFRED — barra, risposta in vetro, seguiti, foto/allegati, voce ═══ */
@@ -1268,7 +1283,14 @@ function mandaAdAlfred(q){
     mostraRisposta(r.risposta||'(vuoto)',seguitiPer(TAB_ATTIVA,r.risposta));
     return caricaTutto();
   }).then(function(){RENDER[TAB_ATTIVA]&&RENDER[TAB_ATTIVA]();})
-  .catch(function(e){mostraRisposta('Non ho potuto rispondere: '+e.message,[]);})
+  .catch(function(e){
+    /* la bozza torna nel campo solo se nel frattempo non ne hai scritta una nuova */
+    var campo=document.getElementById('alfredTesto');
+    if(!campo.value.trim()) campo.value=q;
+    mostraRisposta(e&&e.scaduto
+      ?'Nessuna conferma entro 2 minuti: la domanda potrebbe essere stata ricevuta comunque. Aspetta un momento e ricarica; non la rimando da solo.'
+      :'Non ho potuto rispondere: '+e.message,[]);
+  })
   .finally(function(){ALFRED_OCCUPATO=false;});
 }
 function inviaFile(file,tipo){
