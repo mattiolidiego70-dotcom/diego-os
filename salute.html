@@ -286,7 +286,7 @@ a{color:var(--accento);text-decoration:none}
   <aside id="rail">
     <div class="logo">D</div>
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
-      <div class="voce on" data-amb="salute"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nome">Salute</span></div>
+      <div class="voce on" data-amb="salute" onclick="tornaSalute()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nome">Salute</span></div>
       <div class="voce" data-amb="finance" onclick="location.href='index.html'"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg><span class="nome">Finance</span></div>
       <div class="voce" data-amb="outfit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg><span class="nome">Outfit</span></div>
       <div class="voce" data-amb="alfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">Alfred</span></div>
@@ -326,7 +326,7 @@ a{color:var(--accento);text-decoration:none}
 
     <section id="vistaAlfred">
       <div id="alfLato">
-        <button class="bott" style="padding:8px" onclick="GIORNO_CHAT=oggiISO();caricaGiornoChat(GIORNO_CHAT);barraApri();document.getElementById('alfredTesto').focus()">Nuova chat (oggi)</button>
+        <button class="bott" style="padding:8px" onclick="CONV_CHAT=nuovaConversazione();caricaConversazione(CONV_CHAT);renderListaChat();barraApri();document.getElementById('alfredTesto').focus()">Nuova chat</button>
         <div id="alfListe"></div>
       </div>
       <div style="display:flex;flex-direction:column;min-height:0">
@@ -355,7 +355,7 @@ a{color:var(--accento);text-decoration:none}
     </div></div>
 
     <div id="dockMobile">
-      <div class="voce on"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="nome">SALUTE</span></div>
+      <div class="voce on" onclick="tornaSalute()"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="nome">SALUTE</span></div>
       <div class="voce" onclick="location.href='index.html'"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg></span><span class="nome">FINANCE</span></div>
       <div class="voce"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg></span><span class="nome">OUTFIT</span></div>
       <div class="voce" id="dockAlfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">ALFRED</span></div>
@@ -1732,12 +1732,15 @@ function mandaAdAlfred(q){
   ALFRED_OCCUPATO=true;
   document.getElementById('appfusto').classList.add('ascolta');
   mostraRisposta('…',[]);
-  api('/api/chat',{domanda:q}).then(function(r){
+  /* ogni messaggio dal SITO vive in una chat del sito, separata da Telegram:
+     se non ce n'e' una attiva, nasce ADESSO (modello di Diego 13/09) */
+  if(!CONV_CHAT||CONV_CHAT.indexOf('app:c')!==0){CONV_CHAT=nuovaConversazione();}
+  api('/api/chat',{domanda:q,conversazione:CONV_CHAT}).then(function(r){
     mostraRisposta(r.risposta||'(vuoto)',seguitiPer(TAB_ATTIVA,r.risposta));
     return caricaTutto();
   }).then(function(){
     RENDER[TAB_ATTIVA]&&RENDER[TAB_ATTIVA]();
-    if(typeof VISTA_ALFRED!=='undefined'&&VISTA_ALFRED){GIORNO_CHAT=oggiISO();caricaGiornoChat(GIORNO_CHAT);caricaArchivioChat();}
+    if(typeof VISTA_ALFRED!=='undefined'&&VISTA_ALFRED){caricaConversazione(CONV_CHAT);caricaArchivioChat();}
   })
   .catch(function(e){
     /* la bozza torna nel campo solo se nel frattempo non ne hai scritta una nuova */
@@ -1899,9 +1902,12 @@ document.addEventListener('pointerup',function(e){
   }
 });
 
-/* ═══ VISTA ALFRED — chat con storico per giornate, pin e cartelle ═══ */
-var VISTA_ALFRED=false, GIORNO_CHAT=null, ORG_CHAT={pin:[],cartelle:{}};
+/* ═══ VISTA ALFRED — conversazioni, pin e cartelle (modello di Diego 13/09):
+   TELEGRAM e' UNA chat continua; le chat aperte dal sito sono SEPARATE
+   (chiave app:c<id>); la memoria del coach e' totalmente condivisa. ═══ */
+var VISTA_ALFRED=false, CONV_CHAT=null, ORG_CHAT=null, SEQ_CONV=0;
 function oggiISO(){return new Date().toLocaleDateString('sv-SE');}
+function nuovaConversazione(){return 'app:c'+Math.random().toString(36).slice(2,10);}
 function apriAlfred(){
   VISTA_ALFRED=true; TAB_ATTIVA=null;
   document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
@@ -1923,90 +1929,119 @@ function chiudiAlfred(){
   document.getElementById('striscia').style.display='';
   var tm=document.getElementById('tabsMob'); if(tm) tm.style.display='';
   document.querySelectorAll('#rail .voce').forEach(function(v){v.classList.toggle('on',v.getAttribute('data-amb')==='salute');});
-  document.querySelectorAll('#dockMobile .voce').forEach(function(v){v.classList.toggle('on',v.classList.contains('on')===false&&false);});
-  var dv=document.querySelector('#dockMobile .voce'); if(dv) dv.classList.add('on');
+  document.querySelectorAll('#dockMobile .voce').forEach(function(v,i){v.classList.toggle('on',i===0);});
   var mt=document.getElementById('mobTitolo'); if(mt) mt.textContent='Salute';
   var md=document.querySelector('#testata .modulo'); if(md) md.textContent='Salute';
 }
+function tornaSalute(){if(VISTA_ALFRED)vai('oggi');}
 function caricaArchivioChat(){
-  api('/api/chat_archivio?giorni=120').then(function(r){
-    DATI.chatArchivio=(r&&r.giornate)||[];
-    ORG_CHAT=(r&&r.org&&r.org.pin)?r.org:{pin:[],cartelle:{}};
-    if(!ORG_CHAT.pin)ORG_CHAT.pin=[]; if(!ORG_CHAT.cartelle)ORG_CHAT.cartelle={};
+  api('/api/chat_archivio?giorni=365').then(function(r){
+    DATI.chatArchivio=(r&&r.conversazioni)||[];
+    /* org ASSENTE o GUASTA = null = SOLA LETTURA: mai una vuota sovrascrivibile */
+    var o=r&&r.org;
+    var forma=o&&Array.isArray(o.pin)&&o.cartelle&&typeof o.cartelle==='object'&&!Array.isArray(o.cartelle)&&
+      Object.keys(o.cartelle).every(function(n){return Array.isArray(o.cartelle[n]);});
+    ORG_CHAT=forma?o:null;
     if(r&&r.nota_org) avvisoRiordino(r.nota_org);
     renderListaChat();
-    if(!GIORNO_CHAT){GIORNO_CHAT=(DATI.chatArchivio[0]&&DATI.chatArchivio[0].giorno)||oggiISO();}
-    caricaGiornoChat(GIORNO_CHAT);
+    if(!CONV_CHAT){var prima=(DATI.chatArchivio[0]&&DATI.chatArchivio[0].chiave)||'telegram';CONV_CHAT=prima;}
+    caricaConversazione(CONV_CHAT);
   }).catch(function(e){
+    ORG_CHAT=null;
     document.getElementById('alfListe').innerHTML=muto('archivio non leggibile ora: '+e.message);
     document.getElementById('alfMsg').innerHTML='';
   });
 }
-function etichettaChat(g){
-  var t=(g.apertura||'').trim()||'(conversazione)';
-  return '<span class="tit">'+esc(t)+'</span><span class="sotto"><span>'+esc(dataIT(g.giorno))+'</span><span>'+g.messaggi+' msg</span>'+
-    (ORG_CHAT.pin.indexOf(g.giorno)>=0?'<span style="color:var(--accento)">pinnata</span>':'')+'</span>'+
-    '<span class="azioni"><b onclick="event.stopPropagation();togglePin(\''+g.giorno+'\')">'+(ORG_CHAT.pin.indexOf(g.giorno)>=0?'togli pin':'pinna')+'</b>'+
-    '<b onclick="event.stopPropagation();mettiInCartella(\''+g.giorno+'\')">cartella</b></span>';
+function nomeConversazione(c){
+  if(c.chiave==='telegram') return 'Telegram · chat continua';
+  if(c.chiave==='app') return 'Sito · storico';
+  return (c.apertura||'').trim()||'(conversazione nuova)';
 }
-function cartellaDi(giorno){
+function pinnata(chiave){return !!(ORG_CHAT&&ORG_CHAT.pin.indexOf(chiave)>=0);}
+function cartellaDi(chiave){
+  if(!ORG_CHAT) return null;
   var nomi=Object.keys(ORG_CHAT.cartelle);
-  for(var i=0;i<nomi.length;i++){if((ORG_CHAT.cartelle[nomi[i]]||[]).indexOf(giorno)>=0)return nomi[i];}
+  for(var i=0;i<nomi.length;i++){if((ORG_CHAT.cartelle[nomi[i]]||[]).indexOf(chiave)>=0)return nomi[i];}
   return null;
 }
+function etichettaChat(c){
+  var azioni=ORG_CHAT?'<span class="azioni"><b onclick="event.stopPropagation();togglePin(\''+c.chiave+'\')">'+(pinnata(c.chiave)?'togli pin':'pinna')+'</b>'+
+    '<b onclick="event.stopPropagation();mettiInCartella(\''+c.chiave+'\')">cartella</b></span>':'';
+  return '<span class="tit">'+esc(nomeConversazione(c))+'</span><span class="sotto"><span>'+esc(dataIT(String(c.fine||'').slice(0,10)))+'</span><span>'+c.messaggi+' msg</span>'+
+    (pinnata(c.chiave)?'<span style="color:var(--accento)">pinnata</span>':'')+'</span>'+azioni;
+}
 function renderListaChat(){
-  var out=document.getElementById('alfListe'); var giornate=DATI.chatArchivio||[];
-  function riga(g){return '<div class="alfChat'+(g.giorno===GIORNO_CHAT?' on':'')+'" onclick="GIORNO_CHAT=\''+g.giorno+'\';caricaGiornoChat(GIORNO_CHAT);renderListaChat()">'+etichettaChat(g)+'</div>';}
-  var perGiorno={}; giornate.forEach(function(g){perGiorno[g.giorno]=g;});
+  var out=document.getElementById('alfListe'); var conv=DATI.chatArchivio||[];
+  function riga(c){return '<div class="alfChat'+(c.chiave===CONV_CHAT?' on':'')+'" onclick="CONV_CHAT=\''+c.chiave+'\';caricaConversazione(CONV_CHAT);renderListaChat()">'+etichettaChat(c)+'</div>';}
+  var perChiave={}; conv.forEach(function(c){perChiave[c.chiave]=c;});
   var h='';
-  var pinnate=ORG_CHAT.pin.map(function(d){return perGiorno[d];}).filter(Boolean);
-  if(pinnate.length){h+='<div class="sez">PINNATE</div>'+pinnate.map(riga).join('');}
-  Object.keys(ORG_CHAT.cartelle).sort().forEach(function(nome){
-    var dentro=(ORG_CHAT.cartelle[nome]||[]).map(function(d){return perGiorno[d];}).filter(Boolean);
-    h+='<div class="sez">'+esc(nome.toUpperCase())+' ('+dentro.length+')</div>'+dentro.map(riga).join('');
-  });
-  var libere=giornate.filter(function(g){return ORG_CHAT.pin.indexOf(g.giorno)<0&&!cartellaDi(g.giorno);});
-  h+='<div class="sez">CONVERSAZIONI (per giornata)</div>'+(libere.length?libere.map(riga).join(''):muto('lo storico si riempie parlando con Alfred'));
+  if(!ORG_CHAT) h+='<div class="nota" style="color:var(--attenzione)">organizzazione non leggibile: pin e cartelle in SOLA LETTURA finché non torna</div>';
+  if(ORG_CHAT){
+    var pinnate=ORG_CHAT.pin.map(function(k){return perChiave[k];}).filter(Boolean);
+    if(pinnate.length){h+='<div class="sez">PINNATE</div>'+pinnate.map(riga).join('');}
+    Object.keys(ORG_CHAT.cartelle).sort().forEach(function(nome){
+      var dentro=(ORG_CHAT.cartelle[nome]||[]).map(function(k){return perChiave[k];}).filter(Boolean);
+      h+='<div class="sez">'+esc(nome.toUpperCase())+' ('+dentro.length+')</div>'+dentro.map(riga).join('');
+    });
+  }
+  var libere=conv.filter(function(c){return !pinnata(c.chiave)&&!cartellaDi(c.chiave);});
+  h+='<div class="sez">CONVERSAZIONI</div>'+(libere.length?libere.map(riga).join(''):muto('parla con Alfred e lo storico si riempie'));
+  h+='<div class="nota" style="margin-top:6px">La memoria di Alfred è UNICA: ogni chat vede tutto.</div>';
   out.innerHTML=h;
 }
 function salvaOrgChat(){
+  if(!ORG_CHAT){avvisoRiordino('Organizzazione non leggibile: niente modifiche finché non torna.');return Promise.resolve();}
   return api('/api/chat_org',{pin:ORG_CHAT.pin,cartelle:ORG_CHAT.cartelle}).then(function(r){
     if(!r||r.esito!=='salvato'){avvisoRiordino('Organizzazione NON salvata: '+((r&&r.esito)||'senza conferma'));}
     else avvisoRiordino('Salvato ✓');
   }).catch(function(e){avvisoRiordino('Organizzazione non salvata: '+e.message);});
 }
-function togglePin(giorno){
-  var i=ORG_CHAT.pin.indexOf(giorno);
-  if(i>=0)ORG_CHAT.pin.splice(i,1);else ORG_CHAT.pin.unshift(giorno);
+function togglePin(chiave){
+  if(!ORG_CHAT){avvisoRiordino('Organizzazione non leggibile: niente modifiche finché non torna.');return;}
+  var i=ORG_CHAT.pin.indexOf(chiave);
+  if(i>=0)ORG_CHAT.pin.splice(i,1);else ORG_CHAT.pin.unshift(chiave);
   renderListaChat(); salvaOrgChat();
 }
-function mettiInCartella(giorno){
-  var attuale=cartellaDi(giorno);
+function mettiInCartella(chiave){
+  if(!ORG_CHAT){avvisoRiordino('Organizzazione non leggibile: niente modifiche finché non torna.');return;}
+  var attuale=cartellaDi(chiave);
   var nome=prompt('Cartella per questa conversazione (vuoto = nessuna).'+(attuale?' Ora: '+attuale:''),attuale||'');
   if(nome===null)return;
   Object.keys(ORG_CHAT.cartelle).forEach(function(n){
-    ORG_CHAT.cartelle[n]=(ORG_CHAT.cartelle[n]||[]).filter(function(d){return d!==giorno;});
+    ORG_CHAT.cartelle[n]=(ORG_CHAT.cartelle[n]||[]).filter(function(k){return k!==chiave;});
     if(!ORG_CHAT.cartelle[n].length)delete ORG_CHAT.cartelle[n];
   });
   nome=nome.trim();
-  if(nome){(ORG_CHAT.cartelle[nome]=ORG_CHAT.cartelle[nome]||[]).push(giorno);}
+  if(nome){
+    /* accesso SICURO: 'constructor' e simili non sono le nostre cartelle (R12-4) */
+    var attuali=Object.prototype.hasOwnProperty.call(ORG_CHAT.cartelle,nome)?ORG_CHAT.cartelle[nome]:[];
+    ORG_CHAT.cartelle[nome]=attuali.concat([chiave]);
+  }
   renderListaChat(); salvaOrgChat();
 }
-function caricaGiornoChat(giorno){
+function oraIT(ts){
+  try{return new Date(ts).toLocaleTimeString('it-IT',{timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit'});}
+  catch(e){return String(ts||'').slice(11,16);}
+}
+function caricaConversazione(chiave){
+  var mia=++SEQ_CONV;                     /* la risposta VECCHIA non vince (R12-3) */
   var out=document.getElementById('alfMsg');
-  document.getElementById('alfTitolo').innerHTML='<span style="color:var(--testo1);font:500 14px var(--font-ui)">'+esc(dataIT(giorno))+'</span>'+
-    '<span style="color:var(--testo4);font:400 10.5px var(--font-mono)">'+(giorno===oggiISO()?'oggi · scrivi qui sotto':'conversazione della giornata')+'</span>';
+  var nuova=!((DATI.chatArchivio||[]).some(function(c){return c.chiave===chiave;}));
+  document.getElementById('alfTitolo').innerHTML='<span style="color:var(--testo1);font:500 14px var(--font-ui)">'+
+    esc(chiave==='telegram'?'Telegram · chat continua':(chiave==='app'?'Sito · storico':'Chat del sito'))+'</span>'+
+    '<span style="color:var(--testo4);font:400 10.5px var(--font-mono)">'+(nuova?'nuova conversazione: scrivi qui sotto':'scrivi qui sotto per continuare')+'</span>';
+  if(nuova){out.innerHTML=muto('conversazione nuova: il primo messaggio la fa nascere');return;}
   out.innerHTML='<div class="nota">carico…</div>';
-  api('/api/chat_giorno?data='+giorno).then(function(msgs){
-    if(!Array.isArray(msgs)||!msgs.length){out.innerHTML=muto('nessun messaggio in questa giornata');return;}
+  api('/api/chat_conversazione?chiave='+encodeURIComponent(chiave)).then(function(msgs){
+    if(mia!==SEQ_CONV) return;
+    if(!Array.isArray(msgs)||!msgs.length){out.innerHTML=muto('nessun messaggio qui');return;}
     out.innerHTML=msgs.map(function(m){
       return '<div class="'+(m.ruolo==='diego'?'msg-io':'msg-coach')+'">'+esc(String(m.testo||'').replace(/^\[[a-z_]+\]\s*/i,''))+
-        '<div style="color:'+(m.ruolo==='diego'?'rgba(11,18,0,.55)':'var(--testo4)')+';font:400 9px var(--font-mono);margin-top:3px">'+esc(String(m.ts||'').slice(11,16))+' · '+esc(m.canale||'')+'</div></div>';
+        '<div style="color:'+(m.ruolo==='diego'?'rgba(11,18,0,.55)':'var(--testo4)')+';font:400 9px var(--font-mono);margin-top:3px">'+esc(dataIT(String(m.ts||'').slice(0,10)))+' '+esc(oraIT(m.ts))+' · '+esc(m.canale||'')+'</div></div>';
     }).join('');
     out.scrollTop=out.scrollHeight;
-  }).catch(function(e){out.innerHTML=muto('giornata non leggibile: '+e.message);});
+  }).catch(function(e){if(mia===SEQ_CONV)out.innerHTML=muto('conversazione non leggibile: '+e.message);});
 }
-
 /* ═══ SUGGERIMENTI FLASH: al cambio pagina, 5 secondi di consigli ═══ */
 var TIMER_SUGG=null;
 function suggerimentiFlash(tab){
