@@ -132,23 +132,33 @@ a{color:var(--accento);text-decoration:none}
 #tabs .tab.on{background:var(--accento-fondo);border-color:var(--accento-bordo);color:var(--accento);font-weight:500}
 #statoriga{display:none;align-items:center;gap:9px;padding:8px 24px 0;color:var(--testo2);font:400 13px var(--font-ui)}
 #statoriga.si{display:flex}
-.pane{display:none;flex:1;min-height:0;overflow:hidden;padding:8px 24px 84px}
-.pane.on{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.pane[data-pane="oggi"].on{grid-template-rows:repeat(5,minmax(0,1fr))}
-.pane[data-pane="corpo"].on,.pane[data-pane="dieta"].on,.pane[data-pane="spesa"].on,.pane[data-pane="coach"].on{grid-template-rows:repeat(3,minmax(0,1fr))}
-.pane[data-pane="obiettivi"].on{grid-template-rows:1.12fr 1fr .66fr;padding-top:0}
-.pane[data-pane="brain"].on{grid-template-rows:minmax(0,1fr) minmax(0,1fr) minmax(0,1.22fr)}
+/* overflow-y:auto anche su desktop: con una finestra piu' bassa del mockup
+   la griglia non si taglia, scorre (collaudo Diego 13/09) */
+.pane{display:none;flex:1;min-height:0;overflow-y:auto;padding:8px 24px 84px}
+.pane.on{display:grid;grid-template-columns:1fr 1fr 1fr;grid-auto-rows:minmax(126px,auto);gap:10px}
+.card{overflow:hidden}
+/* minimi per riga: sotto quella soglia la PANE scorre invece di tagliare le card */
+.pane[data-pane="oggi"].on{grid-template-rows:repeat(5,minmax(134px,1fr))}
+.pane[data-pane="corpo"].on,.pane[data-pane="dieta"].on,.pane[data-pane="spesa"].on,.pane[data-pane="coach"].on{grid-template-rows:repeat(3,minmax(212px,1fr))}
+.pane[data-pane="obiettivi"].on{grid-template-rows:minmax(235px,1.12fr) minmax(205px,1fr) minmax(138px,.66fr);padding-top:0}
+.pane[data-pane="brain"].on{grid-template-rows:minmax(205px,1fr) minmax(205px,1fr) minmax(252px,1.22fr)}
 #diario30{display:none;align-items:center;gap:12px;padding:6px 24px 14px;border-top:1px solid rgba(255,255,255,.08)}
 #diario30.si{display:flex}
-#barraAlfred{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:660px;background:var(--vetro);backdrop-filter:var(--vetro-filtro-forte);-webkit-backdrop-filter:var(--vetro-filtro-forte);border:1px solid var(--bordo-forte);border-radius:16px;padding:11px 14px;box-shadow:var(--ombra-alfred),inset 0 1px 0 rgba(255,255,255,.09);z-index:30}
+#barraAlfred{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:660px;background:var(--vetro);backdrop-filter:var(--vetro-filtro-forte);-webkit-backdrop-filter:var(--vetro-filtro-forte);border:1px solid var(--bordo-forte);border-radius:16px;padding:11px 14px;box-shadow:var(--ombra-alfred),inset 0 1px 0 rgba(255,255,255,.09);z-index:70;
+  transition:width .28s cubic-bezier(.2,.8,.2,1),padding .28s ease,border-radius .28s ease,left .28s ease,transform .28s ease}
 #barraAlfred .dentro{display:flex;align-items:center;gap:11px}
+/* la barra si CHIUDE nella sfera quando non la usi: resta solo la pallina,
+   un tocco la riapre (collaudo Diego 13/09) */
+#barraAlfred.chiusa{width:58px;padding:6px;border-radius:50%;left:auto;right:30px;transform:none;cursor:pointer}
+#barraAlfred.chiusa .dentro{justify-content:center;gap:0}
+#barraAlfred.chiusa .dentro>*:not(.sfera){display:none !important}
 #alfredTesto{flex:1;background:none;border:none;color:var(--testo1);font:400 13px var(--font-ui);outline:none;min-width:0}
 #alfredTesto::placeholder{color:var(--testo3)}
 .icona-barra{display:flex;color:rgba(255,255,255,.55);cursor:pointer;background:none;border:none;padding:0}
 .icona-barra.lime{color:var(--accento)}
 #mobiletop,#dockMobile,#mobileTesta{display:none}
 /* risposta di Alfred: scheda in vetro sopra il contenuto */
-#alfredRisposta{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:660px;max-height:46%;z-index:29;background:rgba(20,20,24,.66);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:1px solid var(--bordo-forte);border-radius:16px;padding:14px;box-shadow:var(--ombra-alfred);flex-direction:column;gap:9px}
+#alfredRisposta{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:660px;max-height:46%;z-index:69;background:rgba(20,20,24,.66);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:1px solid var(--bordo-forte);border-radius:16px;padding:14px;box-shadow:var(--ombra-alfred);flex-direction:column;gap:9px}
 #alfredRisposta.si{display:flex}
 #alfredRispTesto{color:var(--testo1);font:400 13px/1.55 var(--font-ui);overflow-y:auto;min-height:0;white-space:pre-wrap}
 #alfredSeguiti{display:flex;gap:6px;flex-wrap:wrap}
@@ -157,7 +167,12 @@ a{color:var(--accento);text-decoration:none}
 /* ═══ MOBILE (≤760px) ═══ */
 @media (max-width:760px){
   #sfondo{background:var(--fondo-mobile)}
-  #app{inset:0;border-radius:0;display:flex;flex-direction:column;box-shadow:none;background:none}
+  /* 100dvh, non 100vh: su iPhone la barra di Safari mangiava il fondo pagina */
+  #app{inset:0;height:100dvh;border-radius:0;display:flex;flex-direction:column;box-shadow:none;background:none}
+  /* la CATENA delle altezze: senza questo vincolo la colonna cresceva a
+     1700px dentro un overflow:hidden e la pagina "non scorreva" (collaudo
+     Diego 13/09): barra e dock finivano invisibili sotto il taglio */
+  #colonna{flex:1 1 0;min-height:0}
   #rail,#testata,#striscia{display:none}
   #mobileTesta{display:block;position:relative;z-index:20;padding:14px 16px 0}
   #mobileTesta .sopra{display:flex;align-items:center;justify-content:space-between}
@@ -183,8 +198,10 @@ a{color:var(--accento);text-decoration:none}
   .pane[data-pane="oggi"]>[data-blocco="lasettimana"]{order:9}
   .pane[data-pane="oggi"]>[data-blocco="tdee"]{order:10}
   #diario30.si{padding:6px 16px 10px}
-  #barraAlfred{position:relative;left:0;bottom:0;transform:none;width:auto;margin:9px 16px 0;border-radius:22px;padding:9px 12px}
-  #alfredRisposta{left:16px;right:16px;width:auto;transform:none;bottom:150px}
+  #barraAlfred{position:relative;left:0;bottom:0;transform:none;width:auto;margin:9px 16px 0;border-radius:22px;padding:9px 12px;flex:none}
+  #barraAlfred.chiusa{width:54px;margin-left:auto;right:0;border-radius:50%}
+  /* la risposta sta SOPRA tutto, ancorata alla barra, non persa nel flusso */
+  #alfredRisposta{position:fixed;left:16px;right:16px;width:auto;transform:none;bottom:calc(150px + env(safe-area-inset-bottom));max-height:56%}
   #dockMobile{display:flex;align-items:center;justify-content:space-around;margin:9px 16px 10px;background:var(--vetro);backdrop-filter:blur(46px) saturate(180%);-webkit-backdrop-filter:blur(46px) saturate(180%);border:1px solid var(--bordo);border-radius:22px;padding:8px 8px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
   #dockMobile .voce{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 16px;border-radius:13px;color:rgba(255,255,255,.5);cursor:pointer}
   #dockMobile .voce.on{background:rgba(163,255,0,.14);border:1px solid var(--accento-bordo);color:var(--accento)}
@@ -192,6 +209,17 @@ a{color:var(--accento);text-decoration:none}
   #dockMobile .voce.on .nome{color:var(--accento);font-weight:500}
   #statoriga.si{padding:8px 16px 0;font-size:12px}
 }
+/* il pannello espanso dei grafici (vendor, intoccato) confida nel blur del
+   backdrop: quando il blur manca (Low Power, GPU off) il fondo restava
+   semitrasparente e il contenuto sotto filtrava. Copertura garantita da qui. */
+[data-chart-overlay]{background:rgba(6,6,8,.94) !important}
+/* ═══ RIORDINO WIDGET (tieni premuto una scheda, come sul telefono) ═══ */
+@keyframes dondola{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
+.pane.riordino>[data-blocco]{animation:dondola .4s ease-in-out infinite;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.pane.riordino>[data-blocco].presa{animation:none;opacity:.88;transform:scale(1.03);z-index:55;box-shadow:0 20px 44px rgba(0,0,0,.6);cursor:grabbing;position:relative}
+.pane.riordino>[data-blocco].bersaglio{outline:2px dashed rgba(163,255,0,.55);outline-offset:2px}
+#riordinoAvviso{display:none;position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:85;background:rgba(20,20,24,.9);border:1px solid var(--accento-bordo);border-radius:12px;padding:8px 16px;color:var(--testo1);font:400 12px var(--font-ui)}
+#riordinoAvviso.si{display:block}
 #login{position:fixed;inset:0;z-index:90;background:var(--fondo);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #login.si{display:flex}
 #login .scheda{background:var(--vetro);border:1px solid var(--bordo);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;width:min(320px,86vw);backdrop-filter:var(--vetro-filtro);-webkit-backdrop-filter:var(--vetro-filtro)}
@@ -253,6 +281,7 @@ a{color:var(--accento);text-decoration:none}
     <div id="diario30"></div>
 
     <div id="alfredRisposta"><div id="alfredRispTesto"></div><div id="alfredSeguiti"></div></div>
+    <div id="riordinoAvviso"></div>
 
     <div id="barraAlfred"><div class="dentro">
       <span class="sfera" id="sferaGrande" style="width:34px;height:34px;box-shadow:0 0 16px rgba(168,85,247,.4),inset 0 1px 2px rgba(255,255,255,.5)"><i class="rosa"></i><i class="blu"></i>
@@ -465,7 +494,8 @@ REGISTRO.oggi={
   },
   tiles:function(D){
     var f=D.dati182||[], s14=f.slice(-14), ult=s14[s14.length-1]||{};
-    var wrap=document.createElement('div'); wrap.style.cssText='grid-column:1/4;grid-row:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;min-height:0';
+    /* auto-fit: 4 colonne sul desktop, 2 sul telefono — mai overflow orizzontale */
+    var wrap=document.createElement('div'); wrap.style.cssText='grid-column:1/4;grid-row:2;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;min-height:0';
     var labels=s14.map(function(r){return dataIT(r.date);});
     var defs=[
       {label:'Peso · media 7gg',unit:'kg',serie:s14.map(function(r){return r.peso_ma7;}),val:ult.peso_ma7!=null?fmt(ult.peso_ma7,1)+' kg':'—',delta:ult.delta_peso_ma7_su_7gg!=null?fmt(ult.delta_peso_ma7_su_7gg,2)+' kg / 7gg':'servono pesate regolari'},
@@ -488,11 +518,14 @@ REGISTRO.oggi={
   },
   kcal:function(D){
     var f=D.dati182||[], ult=f[f.length-1]||{};
-    var ctx=D.contesto||{}, target=Number(ctx.kcal_target||ctx.target_kcal||0)||null;
+    /* il target viene dagli OBIETTIVI, che lo derivano dalla DIETA caricata
+       (media delle giornate del piano): una fonte sola, mai due */
+    function targetDa(chiave){var o=((D.obiettivi&&D.obiettivi.lista)||[]).find(function(x){return x.chiave===chiave;});return o&&o.target!=null?Number(o.target):null;}
+    var target=targetDa('kcal');
     var oggi=ult.calories_in!=null?Number(ult.calories_in):null;
     var pct=(oggi!=null&&target)?Math.min(100,Math.round(oggi/target*100)):0;
     var pr=ult.protein_g!=null?Math.round(ult.protein_g):null;
-    var prT=Number(ctx.proteine_target||0)||null;
+    var prT=targetDa('proteine');
     return scheda('1/3','3',
       '<div class="testa"><span class="tit">Kcal di oggi vs target</span><span style="color:var(--testo2);font:500 14px var(--font-mono)">'+(oggi!=null?fmtInt(oggi):'—')+' / '+(target?fmtInt(target):'—')+'</span></div>'+
       '<div style="position:relative;height:10px;border-radius:6px;background:var(--barra-fondo);overflow:hidden">'+
@@ -501,7 +534,7 @@ REGISTRO.oggi={
       '<div style="display:flex;justify-content:space-between;color:var(--testo3);font:400 11px var(--font-ui)">'+
         '<span>proteine '+(pr!=null?pr:'—')+(prT?' / '+prT:'')+' g · carbo '+(ult.carbs_g!=null?Math.round(ult.carbs_g):'—')+' g · grassi '+(ult.fat_g!=null?Math.round(ult.fat_g):'—')+' g</span>'+
         '<span class="mono">finestra ±5%</span></div>'+
-      (target?'':muto('target kcal non fissato: dillo ad Alfred')));
+      (target?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Alfred e comparira qui da solo')));
   },
   allenamenti:function(D){
     var b=D.box||{};
@@ -657,21 +690,30 @@ REGISTRO.corpo={
       return {sede:s,val:e&&e.ultima!=null?Number(e.ultima):null,
         delta:e&&e.delta_4sett!=null?Number(e.delta_4sett):null,data:e?e.data:null};
     });
-    var max=Math.max.apply(null,tutte.map(function(t){return t.val||0;}))||1;
+    /* barre a TENDENZA (collaudo Diego 13/09): il punto zero e' la media delle
+       4 settimane precedenti; la barra mostra il DELTA — verde se scende,
+       ambra se sale — non la grandezza assoluta (116 cm di torace riempivano
+       tutto e non dicevano niente) */
+    var maxD=Math.max.apply(null,tutte.map(function(t){return Math.abs(t.delta||0);}))||1;
     tutte.forEach(function(t){
-      labels.push(t.sede); vals.push(t.val!=null?t.val:'');
+      labels.push(t.sede); vals.push(t.val!=null?t.val:null);
+      var giu=t.delta!=null&&t.delta<0, su=t.delta!=null&&t.delta>0;
+      var wPct=t.delta!=null?Math.max(4,Math.round(Math.abs(t.delta)/maxD*46)):0;
+      var colore=giu?'var(--accento)':'var(--attenzione)';
       righe+='<div style="display:flex;align-items:center;gap:9px;cursor:crosshair">'+
         '<span style="width:74px;color:var(--testo3);font:400 11px var(--font-ui);flex:none">'+esc(t.sede)+'</span>'+
-        '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block;overflow:hidden"><i style="display:block;height:100%;width:'+(t.val!=null?Math.round(t.val/max*100):0)+'%;background:var(--accento-45)"></i></span>'+
+        '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block;overflow:hidden">'+
+          '<i style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></i>'+
+          (t.delta!=null?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+colore+';opacity:.8"></i>':'')+'</span>'+
         '<span style="width:52px;text-align:right;color:var(--testo1);font:500 11.5px var(--font-mono);flex:none">'+(t.val!=null?fmt(t.val,1):'—')+'</span>'+
-        '<span style="width:38px;text-align:right;color:var(--testo4);font:400 10px var(--font-mono);flex:none" title="delta media 4 settimane">'+(t.delta!=null?((t.delta>0?'+':'')+fmt(t.delta,1)):'')+'</span></div>';
+        '<span style="width:40px;text-align:right;color:'+(giu?'var(--accento)':(su?'var(--attenzione)':'var(--testo4)'))+';font:400 10px var(--font-mono);flex:none" title="delta della media 4 settimane">'+(t.delta!=null?((t.delta>0?'+':'')+fmt(t.delta,1)):'—')+'</span></div>';
     });
     var uv=tutte.filter(function(t){return t.val!=null;});
     var read=uv.length?uv[0].sede+' · '+fmt(uv[0].val,1)+' cm':'—';
     el.innerHTML='<div style="display:flex;align-items:center;gap:9px"><span class="tit">Circonferenze</span>'+
       '<span style="margin-left:auto" data-chart-read data-chart-default="'+esc(read)+'" class="lettura">'+esc(read)+'</span><span data-chart-expand class="espandi">'+svgEspandi+'</span></div>'+
       '<div '+chartAttrs('Circonferenze','bars','cm','presa del giovedì, a digiuno',labels,vals)+' style="display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow-y:auto;position:relative">'+righe+'</div>'+
-      '<div class="nota">Asse verticale: la sede. Asse orizzontale: i centimetri. Presa del giovedì, a digiuno.</div>';
+      '<div class="nota">Barra dal punto zero (media 4 settimane precedenti): verde se scende, ambra se sale. Presa del giovedì, a digiuno.</div>';
     return el;
   },
   pliche:function(D){
@@ -696,22 +738,29 @@ REGISTRO.corpo={
       var p=presa.pliche.find(function(x){return x.serie==='plica_'+serieNome||x.etichetta===serieNome;});
       return !!(p&&p.conflitto);
     }
-    SEDI_PLICHE.forEach(function(s){
+    /* stessa lettura a TENDENZA delle circonferenze: punto zero = presa
+       precedente, barra del delta verde (giu') o ambra (su) */
+    var deltasP=SEDI_PLICHE.map(function(s){var v=valore(corr,s),vp=valore(prev,s);return v!=null&&vp!=null?v-vp:null;});
+    var maxDP=Math.max.apply(null,deltasP.map(function(d){return Math.abs(d||0);}))||1;
+    SEDI_PLICHE.forEach(function(s,ix){
       var v=valore(corr,s), vp=valore(prev,s), confl=inConflitto(corr,s);
-      labels.push(s); vals.push(v!=null?v:'');
+      var dp=deltasP[ix]; var giu=dp!=null&&dp<0, su=dp!=null&&dp>0;
+      var wPct=dp!=null?Math.max(4,Math.round(Math.abs(dp)/maxDP*46)):0;
+      labels.push(s); vals.push(v!=null?v:null);
       righe+='<div style="display:flex;align-items:center;gap:9px;cursor:crosshair">'+
         '<span style="width:86px;color:var(--testo3);font:400 11px var(--font-ui);flex:none">'+esc(s)+'</span>'+
-        '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block">'+
-          '<i style="display:block;height:100%;border-radius:4px;width:'+(v!=null?Math.round(v/max*100):0)+'%;background:'+(confl?'var(--attenzione)':'var(--accento-45)')+'"></i>'+
-          (vp!=null?'<i style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.65);left:'+Math.round(vp/max*100)+'%"></i>':'')+'</span>'+
-        '<span style="width:56px;text-align:right;color:'+(confl?'var(--attenzione)':'var(--testo1)')+';font:500 11.5px var(--font-mono);flex:none">'+(v!=null?fmt(v,0)+' mm'+(confl?' ?':''):'—')+'</span></div>';
+        '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block;overflow:hidden">'+
+          '<i style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></i>'+
+          (dp!=null?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+(confl?'var(--attenzione)':(giu?'var(--accento)':'var(--attenzione)'))+';opacity:.8"></i>':'')+'</span>'+
+        '<span style="width:56px;text-align:right;color:'+(confl?'var(--attenzione)':'var(--testo1)')+';font:500 11.5px var(--font-mono);flex:none">'+(v!=null?fmt(v,0)+' mm'+(confl?' ?':''):'—')+'</span>'+
+        '<span style="width:40px;text-align:right;color:'+(giu?'var(--accento)':(su?'var(--attenzione)':'var(--testo4)'))+';font:400 10px var(--font-mono);flex:none" title="delta sulla presa precedente">'+(dp!=null?((dp>0?'+':'')+fmt(dp,0)):'—')+'</span></div>';
     });
     var conflittoPresa=!!(corr&&corr.conflitto);
     var read=corr&&corr.data?dataIT(corr.data)+' · presa'+(conflittoPresa?' · CONFLITTO':''):'—';
     el.innerHTML='<div style="display:flex;align-items:center;gap:9px"><span class="tit">Pliche</span>'+
       '<span style="margin-left:auto" data-chart-read data-chart-default="'+esc(read)+'" class="lettura">'+esc(read)+'</span><span data-chart-expand class="espandi">'+svgEspandi+'</span></div>'+
       '<div '+chartAttrs('Pliche','bars','mm','presa corrente vs precedente',labels,vals)+' style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto;position:relative">'+righe+'</div>'+
-      '<div class="nota">Barra lime: presa corrente'+(prev&&prev.data?'. Tacca chiara: presa del '+dataIT(prev.data):'')+'. Millimetri sull\'orizzontale.'+
+      '<div class="nota">Barra dal punto zero'+(prev&&prev.data?' (presa del '+dataIT(prev.data)+')':'')+': verde se scende, ambra se sale. Delta in mm.'+
       (conflittoPresa?' <span style="color:var(--attenzione)">Questa presa ha valori DISCORDI per la stessa serie: mostrato il minimo, da chiarire con Alfred.</span>':'')+'</div>';
     return el;
   },
@@ -882,6 +931,10 @@ REGISTRO.obiettivi={
 var DEF_OBIETTIVI=[{type:'attivi',order:1},{type:'allenamenti',order:2},{type:'abitudini',order:3},{type:'benchmark',order:4}];
 function modificaObiettivo(i){
   var ob=(DATI.obiettivi&&DATI.obiettivi.lista||[])[i]; if(!ob) return;
+  if(ob.chi==='dieta'){
+    alert('Questo target viene dalla DIETA caricata: è la media di tutte le giornate componibili del piano. Si aggiorna da solo quando ricarichi il piano; per forzarlo dillo ad Alfred.');
+    return;
+  }
   var nuovo=prompt('Nuovo target per «'+ob.nome+'» (ora '+ob.target+(ob.unita?' '+ob.unita:'')+'). Vale anche detto ad Alfred: «porta '+ob.nome.toLowerCase()+' a …»',ob.target);
   if(nuovo==null||!String(nuovo).trim()||String(nuovo)===String(ob.target)) return;
   var pulito=String(nuovo).trim().replace(',','.');
@@ -1426,6 +1479,7 @@ function aggiornaContesto(){
 
 /* ═══ ALFRED — barra, risposta in vetro, seguiti, foto/allegati, voce ═══ */
 function mostraRisposta(testo,seguiti){
+  barraApri();   /* quando Alfred parla, la barra e la risposta sono in primo piano */
   var box=document.getElementById('alfredRisposta');
   document.getElementById('alfredRispTesto').textContent=testo;
   var sg=document.getElementById('alfredSeguiti'); sg.innerHTML='';
@@ -1449,6 +1503,26 @@ function seguitiPer(tab,risposta){
     coach:['Fammi il punto della giornata','Che aderenza ho oggi?']};
   return s[tab]||s.oggi;
 }
+/* la barra si chiude nella pallina dopo qualche secondo che non la usi;
+   un tocco sulla sfera la riapre. Mentre Alfred lavora o risponde resta aperta. */
+var TIMER_BARRA=null;
+function barraApri(){document.getElementById('barraAlfred').classList.remove('chiusa');barraArma();}
+function barraArma(){
+  clearTimeout(TIMER_BARRA);
+  TIMER_BARRA=setTimeout(function(){
+    var i=document.getElementById('alfredTesto');
+    var occupata=ALFRED_OCCUPATO||i.value.trim()||document.activeElement===i||
+      document.getElementById('alfredRisposta').classList.contains('si');
+    if(occupata){barraArma();return;}
+    document.getElementById('barraAlfred').classList.add('chiusa');
+  },8000);
+}
+document.getElementById('barraAlfred').addEventListener('click',function(e){
+  if(this.classList.contains('chiusa')){barraApri();document.getElementById('alfredTesto').focus();}
+});
+document.getElementById('alfredTesto').addEventListener('focus',barraApri);
+document.getElementById('alfredTesto').addEventListener('input',barraApri);
+barraArma();
 var ALFRED_OCCUPATO=false;
 function inviaAlfred(){
   var i=document.getElementById('alfredTesto'); var q=i.value.trim(); if(!q||ALFRED_OCCUPATO) return;
@@ -1528,6 +1602,90 @@ document.addEventListener('click',function(e){
   if(v==null||!String(v).trim()) return;
   dentro.remove();
   mandaAdAlfred('Registra per oggi '+nome.toLowerCase()+': '+String(v).trim());
+});
+
+/* ═══ RIORDINO WIDGET — tieni premuto una scheda e trascinala, come le app
+   del telefono. Su mobile cambia l'ordine della colonna; su desktop le due
+   schede si SCAMBIANO la cella. L'ordine si salva in contesto (dash_salute_v2)
+   e si RILEGGE: senza conferma del server non si dichiara salvato. ═══ */
+var RIORDINO={timer:null,presa:null,attivo:false,partenza:null};
+function riordinoAvvia(card){
+  var pane=card.parentElement; RIORDINO.attivo=true; RIORDINO.presa=card;
+  pane.classList.add('riordino'); card.classList.add('presa');
+  avvisoRiordino('Trascina per spostare · tocca fuori per finire');
+}
+function avvisoRiordino(t){var a=document.getElementById('riordinoAvviso');a.textContent=t;a.classList.add('si');
+  clearTimeout(a._t);a._t=setTimeout(function(){a.classList.remove('si');},2600);}
+function riordinoFine(salva){
+  var pane=document.querySelector('.pane.riordino'); if(!pane) return;
+  if(RIORDINO.presa) RIORDINO.presa.classList.remove('presa');
+  pane.querySelectorAll('.bersaglio').forEach(function(x){x.classList.remove('bersaglio');});
+  pane.classList.remove('riordino');
+  var daSalvare=RIORDINO.attivo&&salva; RIORDINO.attivo=false; RIORDINO.presa=null;
+  if(!daSalvare) return;
+  var tab=pane.getAttribute('data-pane');
+  var blocchi=[].slice.call(pane.querySelectorAll(':scope>[data-blocco]')).map(function(el,i){
+    return {type:el.getAttribute('data-blocco'),order:i+1,
+      col:el.style.gridColumn||undefined,row:el.style.gridRow||undefined};});
+  api('/api/dash',{tab:tab,blocchi:blocchi}).then(function(r){
+    if(!r||r.esito!=='salvato'){avvisoRiordino('Ordine NON salvato: '+((r&&r.esito)||'senza conferma'));return;}
+    avvisoRiordino('Ordine salvato ✓');
+    if(DATI.contesto) DATI.contesto.dash_salute_v2=r.dash||DATI.contesto.dash_salute_v2;
+  }).catch(function(e){
+    avvisoRiordino('Ordine non salvato: '+e.message);
+    RENDER[tab]&&RENDER[tab]();   /* si torna all'ordine vero, non a quello finto */
+  });
+}
+document.addEventListener('pointerdown',function(e){
+  var card=e.target&&e.target.closest?e.target.closest('.pane.on>[data-blocco]'):null;
+  if(RIORDINO.attivo){
+    if(!card){riordinoFine(true);return;}
+    /* seconda pressione in modalita' riordino: prendi questa scheda */
+    RIORDINO.presa&&RIORDINO.presa.classList.remove('presa');
+    RIORDINO.presa=card; card.classList.add('presa');
+    return;
+  }
+  if(!card) return;
+  if(e.target.closest('button,input,select,textarea,a,.chip,.spunta,.cliccabile,[data-chart-expand],[onclick]')) return;
+  RIORDINO.partenza={x:e.clientX,y:e.clientY};
+  clearTimeout(RIORDINO.timer);
+  RIORDINO.timer=setTimeout(function(){riordinoAvvia(card);},550);
+});
+document.addEventListener('pointermove',function(e){
+  if(RIORDINO.timer&&RIORDINO.partenza){
+    if(Math.abs(e.clientX-RIORDINO.partenza.x)+Math.abs(e.clientY-RIORDINO.partenza.y)>12){clearTimeout(RIORDINO.timer);RIORDINO.timer=null;}
+  }
+  if(!RIORDINO.attivo||!RIORDINO.presa) return;
+  e.preventDefault();
+  var sotto=document.elementFromPoint(e.clientX,e.clientY);
+  var altra=sotto&&sotto.closest?sotto.closest('.pane.on>[data-blocco]'):null;
+  var pane=RIORDINO.presa.parentElement;
+  pane.querySelectorAll('.bersaglio').forEach(function(x){x.classList.remove('bersaglio');});
+  if(!altra||altra===RIORDINO.presa) return;
+  altra.classList.add('bersaglio');
+});
+document.addEventListener('pointerup',function(e){
+  clearTimeout(RIORDINO.timer);RIORDINO.timer=null;
+  if(!RIORDINO.attivo||!RIORDINO.presa) return;
+  var sotto=document.elementFromPoint(e.clientX,e.clientY);
+  var altra=sotto&&sotto.closest?sotto.closest('.pane.on>[data-blocco]'):null;
+  if(altra&&altra!==RIORDINO.presa){
+    var io=RIORDINO.presa;
+    if(window.innerWidth<=760){
+      /* colonna mobile: inserisci prima o dopo secondo la posizione */
+      var r=altra.getBoundingClientRect();
+      if(e.clientY<r.top+r.height/2) altra.parentElement.insertBefore(io,altra);
+      else altra.parentElement.insertBefore(io,altra.nextSibling);
+    }else{
+      /* griglia desktop: le due schede si scambiano la cella */
+      var c=io.style.gridColumn,rg=io.style.gridRow;
+      io.style.gridColumn=altra.style.gridColumn;io.style.gridRow=altra.style.gridRow;
+      altra.style.gridColumn=c;altra.style.gridRow=rg;
+      var seg=document.createComment('x');io.parentElement.insertBefore(seg,io);
+      altra.parentElement.insertBefore(io,altra);seg.parentElement.insertBefore(altra,seg);seg.remove();
+    }
+    altra.classList.remove('bersaglio');
+  }
 });
 
 /* ═══ AVVIO ═══ */
