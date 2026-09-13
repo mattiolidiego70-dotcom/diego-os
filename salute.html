@@ -1260,7 +1260,13 @@ function nuovaChiave(){
 }
 /* design R9 v2 applicato ANCHE alla spesa (review-10): l'esito viene dal
    CORPO del dominio, mai dall'HTTP 200. scritto:false = NON scritto. */
-function spesaScritta(r){return !!(r&&r.scritto!==false&&/^(aggiornato|creato|chiuso)$/.test(String(r.esito||'')));}
+function spesaScritta(r){
+  /* N11-1: i tipi si validano, non si coercono — scritto:"false" e scritto:0
+     non sono un si', un esito-array non e' un esito */
+  if(!r||typeof r!=='object'||Array.isArray(r)) return false;
+  if(r.scritto!==undefined&&r.scritto!==true) return false;
+  return typeof r.esito==='string'&&/^(aggiornato|creato|chiuso)$/.test(r.esito);
+}
 function motivoSpesa(r){
   var e=String((r&&r.esito)||'esito assente');
   if(e==='versione_superata') return 'la lista è cambiata nel frattempo: ricarico';
@@ -1324,7 +1330,7 @@ function aggiungiSelezionate(btn){
     if(!confirm('Non c\'è una lista aperta: ne creo una nuova (parte dalle voci del piano) e ci aggiungo le '+ids.length+' selezionate?')) return;
     partenza=api('/api/lista_spesa/giro',{azione:'crea',operazione:nuovaChiave()}).then(function(r){
       /* la creazione si VERIFICA: senza lista vera le aggiunte non partono */
-      if(!(r&&r.scritto!==false&&r.esito==='creato')) throw new Error('Lista non creata: '+motivoSpesa(r));
+      if(!(spesaScritta(r)&&r.esito==='creato')) throw new Error('Lista non creata: '+motivoSpesa(r));
       return r;
     });
   }
