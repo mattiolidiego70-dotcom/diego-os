@@ -540,9 +540,14 @@ REGISTRO.oggi={
     function targetDa(chiave){var o=voceDa(chiave);return o&&o.target!=null?Number(o.target):null;}
     var target=targetDa('kcal');
     /* se la media della dieta e' MONCA (alternative con dati mancanti), il
-       target si dichiara parziale: mai un numero pieno da una somma incompleta */
+       target si dichiara parziale — per NUTRIENTE, mai una somma dei due
+       contatori (la stessa alternativa puo' mancare in entrambi, review-8) */
     var vKcal=voceDa('kcal'), vProt=voceDa('proteine');
-    var targetND=((vKcal&&vKcal.nd)||0)+((vProt&&vProt.nd)||0);
+    var ndK=(vKcal&&vKcal.nd)||0, ndP=(vProt&&vProt.nd)||0;
+    var ndTesti=[]; if(ndK)ndTesti.push('kcal: '+ndK+' ND'); if(ndP)ndTesti.push('proteine: '+ndP+' ND');
+    /* il GUASTO della fonte dieta arriva anche qui, non solo alla riga Obiettivi */
+    var guastoDieta=(D.obiettivi&&D.obiettivi.nota_dieta)||
+      (vKcal&&/non leggibile|da verificare/i.test(vKcal.nota_target||'')?vKcal.nota_target:null);
     var oggi=ult.calories_in!=null?Number(ult.calories_in):null;
     var pct=(oggi!=null&&target)?Math.min(100,Math.round(oggi/target*100)):0;
     var pr=ult.protein_g!=null?Math.round(ult.protein_g):null;
@@ -555,8 +560,9 @@ REGISTRO.oggi={
       '<div style="display:flex;justify-content:space-between;color:var(--testo3);font:400 11px var(--font-ui)">'+
         '<span>proteine '+(pr!=null?pr:'—')+(prT?' / '+prT:'')+' g · carbo '+(ult.carbs_g!=null?Math.round(ult.carbs_g):'—')+' g · grassi '+(ult.fat_g!=null?Math.round(ult.fat_g):'—')+' g</span>'+
         '<span class="mono">finestra ±5%</span></div>'+
-      (targetND?'<div class="nota" style="color:var(--attenzione)">target PARZIALE: '+targetND+' alternative del piano senza dati completi (ND)</div>':'')+
-      (target?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Alfred e comparira qui da solo')));
+      (ndTesti.length?'<div class="nota" style="color:var(--attenzione)">target PARZIALE, dati mancanti nel piano ('+esc(ndTesti.join(' · '))+')</div>':'')+
+      (guastoDieta?'<div class="nota" style="color:var(--attenzione)">'+esc(guastoDieta)+'</div>':'')+
+      (target||guastoDieta?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Alfred e comparira qui da solo')));
   },
   allenamenti:function(D){
     var b=D.box||{};
