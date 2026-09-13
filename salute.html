@@ -274,7 +274,7 @@ a{color:var(--accento);text-decoration:none}
 
 <div id="login"><div class="scheda">
   <div style="color:var(--testo1);font:500 16px var(--font-ui)">Salute · Diego OS</div>
-  <div style="color:var(--testo3);font:400 12px var(--font-ui)">Inserisci il codice di accesso.</div>
+  <div style="color:var(--testo3);font:400 12px var(--font-ui)">Inserisci il codice di accesso. Resta salvato SOLO su questo dispositivo.</div>
   <input id="tok" class="campo" type="password" autocomplete="current-password" placeholder="codice">
   <button class="bott" onclick="entra()">Entra</button>
   <div id="loginErr" style="color:var(--attenzione);font:400 11.5px var(--font-ui)"></div>
@@ -287,7 +287,7 @@ a{color:var(--accento);text-decoration:none}
     <div class="logo">D</div>
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
       <div class="voce on" data-amb="salute" onclick="tornaSalute()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nome">Salute</span></div>
-      <div class="voce" data-amb="finance" onclick="location.href='index.html'"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg><span class="nome">Finance</span></div>
+      <div class="voce" data-amb="finance" onclick="avvisoRiordino('Finance arriva qui a breve: per ora vive nella vecchia dashboard (index-v1-superata.html)')"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg><span class="nome">Finance</span></div>
       <div class="voce" data-amb="outfit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg><span class="nome">Outfit</span></div>
       <div class="voce" data-amb="alfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">Alfred</span></div>
     </div>
@@ -356,7 +356,7 @@ a{color:var(--accento);text-decoration:none}
 
     <div id="dockMobile">
       <div class="voce on" onclick="tornaSalute()"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="nome">SALUTE</span></div>
-      <div class="voce" onclick="location.href='index.html'"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg></span><span class="nome">FINANCE</span></div>
+      <div class="voce" onclick="avvisoRiordino('Finance arriva qui a breve: per ora vive nella vecchia dashboard (index-v1-superata.html)')"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg></span><span class="nome">FINANCE</span></div>
       <div class="voce"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg></span><span class="nome">OUTFIT</span></div>
       <div class="voce" id="dockAlfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">ALFRED</span></div>
     </div>
@@ -396,7 +396,7 @@ function entra(){
   api('/api/qualita').then(function(){
     localStorage.setItem('app_token',t);localStorage.setItem('dos_token',t);
     document.getElementById('login').classList.remove('si'); avvia();
-  }).catch(function(){document.getElementById('loginErr').textContent='Codice sbagliato.';});
+  }).catch(function(e){document.getElementById('loginErr').textContent=(e&&e.stato===401)?'Codice sbagliato.':'Servizio non raggiungibile ora ('+e.message+'): il codice potrebbe essere giusto, riprova.';});
 }
 function fmt(n,d){return n==null?'—':Number(n).toFixed(d==null?1:d).replace('.',',');}
 function fmtInt(n){return n==null?'—':Math.round(Number(n)).toLocaleString('it-IT');}
@@ -452,7 +452,7 @@ var TABS=[
   {id:'obiettivi',label:'Obiettivi',hintBarra:'"Ho fatto il WOD di oggi" — oppure carica la foto della lavagna'},
   {id:'dieta',label:'Dieta',hintBarra:'"Cambia la cena con qualcosa di più leggero" — o carica il PDF del nutrizionista'},
   {id:'spesa',label:'Spesa',hintBarra:'"Aggiungi due avocado" — oppure carica la foto dello scontrino'},
-  {id:'brain',label:'Brain',hintBarra:'"Dettami un pensiero — o carica una nota vocale."'},
+  {id:'brain',label:'Brain',hintBarra:'"Dettami un pensiero — col microfono qui sotto, o scrivilo."'},
   {id:'coach',label:'Coach',hintBarra:'Scrivi, parla, o carica una foto del pasto'}
 ];
 var TAB_ATTIVA='oggi';
@@ -948,7 +948,7 @@ REGISTRO.obiettivi={
     /* il guasto della fonte dieta si dichiara ANCHE qui (nota N9-1): una
        scheda vuota col guasto non equivale a «nessun obiettivo» */
     if(D.obiettivi&&D.obiettivi.nota_dieta) h+='<div class="nota" style="color:var(--attenzione)">'+esc(D.obiettivi.nota_dieta)+'</div>';
-    if(!ob.length) h+=muto('nessun obiettivo fissato: dillo ad Alfred («porta il peso a 78 entro dicembre») o tocca qui per crearne uno');
+    if(!ob.length) h+=muto('nessun obiettivo fissato: dillo ad Alfred («porta il peso a 78 entro dicembre»)');
     ob.forEach(function(o,i){
       var ritardo=!!o.in_ritardo;
       var colore=ritardo?'var(--attenzione)':'var(--accento)';
