@@ -192,18 +192,19 @@ a{color:var(--accento);text-decoration:none}
   .pane.on{display:flex;flex-direction:column;overflow-y:auto;gap:9px}
   /* REGOLA CRITICA (gia' sbagliata una volta): ogni scheda figlia flex:none */
   .pane.on>*{flex:none !important;grid-column:auto !important;grid-row:auto !important}
-  /* ordine mobile di Oggi come nel mockup (fa fede il codice del handoff):
-     Allenamenti, Costanza, Kcal, Verdetto, poi il resto nell'ordine desktop */
-  .pane[data-pane="oggi"]>[data-blocco="allenamenti"]{order:1}
-  .pane[data-pane="oggi"]>[data-blocco="heatmap"]{order:2}
-  .pane[data-pane="oggi"]>[data-blocco="kcal"]{order:3}
-  .pane[data-pane="oggi"]>[data-blocco="verdetto"]{order:4}
-  .pane[data-pane="oggi"]>[data-blocco="tiles"]{order:5}
-  .pane[data-pane="oggi"]>[data-blocco="cuore"]{order:6}
-  .pane[data-pane="oggi"]>[data-blocco="check"]{order:7}
-  .pane[data-pane="oggi"]>[data-blocco="cheto"]{order:8}
-  .pane[data-pane="oggi"]>[data-blocco="lasettimana"]{order:9}
-  .pane[data-pane="oggi"]>[data-blocco="tdee"]{order:10}
+  /* ordine mobile di Oggi come nel mockup — ma SOLO finché Diego non
+     riordina lui: la classe ordine-mockup sparisce appena esiste una
+     configurazione utente (review-7, R7-1) */
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="allenamenti"]{order:1}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="heatmap"]{order:2}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="kcal"]{order:3}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="verdetto"]{order:4}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="tiles"]{order:5}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="cuore"]{order:6}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="check"]{order:7}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="cheto"]{order:8}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="lasettimana"]{order:9}
+  .pane[data-pane="oggi"].ordine-mockup>[data-blocco="tdee"]{order:10}
   #diario30.si{padding:6px 16px 10px}
   #barraAlfred{position:relative;left:0;bottom:0;transform:none;width:auto;margin:9px 16px 0;border-radius:22px;padding:9px 12px;flex:none}
   #barraAlfred.chiusa{width:54px;margin:9px auto 0;left:0;transform:none;border-radius:50%}
@@ -433,17 +434,25 @@ function vai(id){
    ogni tab: registro CHIUSO di tipi per tab, configurazione runtime in
    contesto (dash_salute_v2), tipo sconosciuto scartato, il resto vive. ═══ */
 var REGISTRO={};   /* REGISTRO[tab] = { tipo: renderFn } — riempito sotto */
-function blocchiConfigurati(tab,def){
+function configUtente(tab){
   try{
     var raw=DATI.contesto&&DATI.contesto.dash_salute_v2;
     var c=raw?(typeof raw==='string'?JSON.parse(raw):raw):null;
-    var lista=(c&&c[tab]&&Array.isArray(c[tab]))?c[tab]:def;
+    return (c&&c[tab]&&Array.isArray(c[tab]))?c[tab]:null;
+  }catch(e){return null;}
+}
+function blocchiConfigurati(tab,def){
+  try{
+    var lista=configUtente(tab)||def;
     return lista.filter(function(b){return b.enabled!==false&&REGISTRO[tab][b.type];})
       .sort(function(a,b){return (a.order||0)-(b.order||0);});
   }catch(e){return def.filter(function(b){return REGISTRO[tab][b.type];});}
 }
 function montaBlocchi(tab,def){
   var pane=document.querySelector('.pane[data-pane="'+tab+'"]');
+  /* l'ordine del mockup vale solo finché non c'è un ordine scelto da Diego:
+     altrimenti il CSS annullerebbe il suo riordino (review-7, R7-1) */
+  pane.classList.toggle('ordine-mockup',!configUtente(tab));
   pane.innerHTML='';
   blocchiConfigurati(tab,def).forEach(function(b){
     try{
@@ -527,8 +536,13 @@ REGISTRO.oggi={
     var f=D.dati182||[], ult=f[f.length-1]||{};
     /* il target viene dagli OBIETTIVI, che lo derivano dalla DIETA caricata
        (media delle giornate del piano): una fonte sola, mai due */
-    function targetDa(chiave){var o=((D.obiettivi&&D.obiettivi.lista)||[]).find(function(x){return x.chiave===chiave;});return o&&o.target!=null?Number(o.target):null;}
+    function voceDa(chiave){return ((D.obiettivi&&D.obiettivi.lista)||[]).find(function(x){return x.chiave===chiave;})||null;}
+    function targetDa(chiave){var o=voceDa(chiave);return o&&o.target!=null?Number(o.target):null;}
     var target=targetDa('kcal');
+    /* se la media della dieta e' MONCA (alternative con dati mancanti), il
+       target si dichiara parziale: mai un numero pieno da una somma incompleta */
+    var vKcal=voceDa('kcal'), vProt=voceDa('proteine');
+    var targetND=((vKcal&&vKcal.nd)||0)+((vProt&&vProt.nd)||0);
     var oggi=ult.calories_in!=null?Number(ult.calories_in):null;
     var pct=(oggi!=null&&target)?Math.min(100,Math.round(oggi/target*100)):0;
     var pr=ult.protein_g!=null?Math.round(ult.protein_g):null;
@@ -541,6 +555,7 @@ REGISTRO.oggi={
       '<div style="display:flex;justify-content:space-between;color:var(--testo3);font:400 11px var(--font-ui)">'+
         '<span>proteine '+(pr!=null?pr:'—')+(prT?' / '+prT:'')+' g · carbo '+(ult.carbs_g!=null?Math.round(ult.carbs_g):'—')+' g · grassi '+(ult.fat_g!=null?Math.round(ult.fat_g):'—')+' g</span>'+
         '<span class="mono">finestra ±5%</span></div>'+
+      (targetND?'<div class="nota" style="color:var(--attenzione)">target PARZIALE: '+targetND+' alternative del piano senza dati completi (ND)</div>':'')+
       (target?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Alfred e comparira qui da solo')));
   },
   allenamenti:function(D){
@@ -711,7 +726,7 @@ REGISTRO.corpo={
         '<span style="width:74px;color:var(--testo3);font:400 11px var(--font-ui);flex:none">'+esc(t.sede)+'</span>'+
         '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block;overflow:hidden">'+
           '<i style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></i>'+
-          (t.delta!=null?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+colore+';opacity:.8"></i>':'')+'</span>'+
+          (t.delta!=null&&t.delta!==0?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+colore+';opacity:.8"></i>':'')+'</span>'+
         '<span style="width:52px;text-align:right;color:var(--testo1);font:500 11.5px var(--font-mono);flex:none">'+(t.val!=null?fmt(t.val,1):'—')+'</span>'+
         '<span style="width:40px;text-align:right;color:'+(giu?'var(--accento)':(su?'var(--attenzione)':'var(--testo4)'))+';font:400 10px var(--font-mono);flex:none" title="delta della media 4 settimane">'+(t.delta!=null?((t.delta>0?'+':'')+fmt(t.delta,1)):'—')+'</span></div>';
     });
@@ -735,7 +750,7 @@ REGISTRO.corpo={
     function valore(presa,serieNome){
       if(!presa||!Array.isArray(presa.pliche)) return null;
       var p=presa.pliche.find(function(x){return x.serie==='plica_'+serieNome||x.etichetta===serieNome;});
-      return p?Number(p.valore):null;
+      return p&&p.valore!=null?Number(p.valore):null;   /* Number(null)===0: uno zero inventato (review-7) */
     }
     var labels=[],vals=[],righe='';
     var max=1;
@@ -758,7 +773,7 @@ REGISTRO.corpo={
         '<span style="width:86px;color:var(--testo3);font:400 11px var(--font-ui);flex:none">'+esc(s)+'</span>'+
         '<span style="flex:1;height:14px;border-radius:4px;background:rgba(255,255,255,.07);position:relative;display:block;overflow:hidden">'+
           '<i style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)"></i>'+
-          (dp!=null?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+(confl?'var(--attenzione)':(giu?'var(--accento)':'var(--attenzione)'))+';opacity:.8"></i>':'')+'</span>'+
+          (dp!=null&&dp!==0?'<i style="position:absolute;top:2px;bottom:2px;'+(giu?'right:50%':'left:50%')+';width:'+wPct+'%;border-radius:3px;background:'+(confl?'var(--attenzione)':(giu?'var(--accento)':'var(--attenzione)'))+';opacity:.8"></i>':'')+'</span>'+
         '<span style="width:56px;text-align:right;color:'+(confl?'var(--attenzione)':'var(--testo1)')+';font:500 11.5px var(--font-mono);flex:none">'+(v!=null?fmt(v,0)+' mm'+(confl?' ?':''):'—')+'</span>'+
         '<span style="width:40px;text-align:right;color:'+(giu?'var(--accento)':(su?'var(--attenzione)':'var(--testo4)'))+';font:400 10px var(--font-mono);flex:none" title="delta sulla presa precedente">'+(dp!=null?((dp>0?'+':'')+fmt(dp,0)):'—')+'</span></div>';
     });
@@ -884,7 +899,7 @@ REGISTRO.obiettivi={
           '<span style="color:'+colore+';font:500 14px var(--font-mono)">'+esc(o.target!=null?String(o.target):'—')+(o.unita?' '+esc(o.unita):'')+'</span>'+
           '<span style="color:var(--testo4);display:flex;align-items:center">'+svgMatita+'</span></div>'+
         '<div class="barra"><i style="width:'+(pct==null?0:pct)+'%;background:'+colore+'"></i></div>'+
-        '<div style="display:flex;align-items:center;gap:7px"><span style="color:'+(ritardo?'var(--attenzione)':'var(--testo4)')+';font:400 10.5px var(--font-ui)">'+esc(o.nota||'')+'</span>'+
+        '<div style="display:flex;align-items:center;gap:7px"><span style="color:'+(ritardo?'var(--attenzione)':'var(--testo4)')+';font:400 10.5px var(--font-ui)">'+esc([o.nota,o.nota_target].filter(Boolean).join(' · '))+'</span>'+
           '<span style="color:var(--testo5);font:400 10px var(--font-ui)">·</span><span style="color:var(--testo4);font:400 10.5px var(--font-ui)">'+esc(o.entro||'sempre')+'</span>'+
           '<span class="pillstato" style="margin-left:auto">'+esc(o.chi||'io')+'</span></div></div>';
     });
@@ -963,6 +978,7 @@ function rigaStatoObiettivi(){
   document.getElementById('statopallino').style.background=st.in_ritardo?'var(--attenzione)':'var(--accento)';
   var t=st.attivi+' obiettivi attivi';
   if(st.in_ritardo) t+=' · '+st.in_ritardo+' in ritardo — '+st.motivo;
+  if(DATI.obiettivi&&DATI.obiettivi.nota_dieta) t+=' · '+DATI.obiettivi.nota_dieta;
   document.getElementById('statotesto').innerHTML=esc(t).replace(esc(st.in_ritardo+' in ritardo'),'<span style="color:var(--attenzione)">'+st.in_ritardo+' in ritardo</span>');
   document.getElementById('statosugg').textContent='“Alfred, porta il peso a 77”';
   if(TAB_ATTIVA==='obiettivi') document.getElementById('statoriga').classList.add('si');
@@ -1618,6 +1634,15 @@ document.addEventListener('click',function(e){
 var RIORDINO={timer:null,presa:null,attivo:false,partenza:null};
 function riordinoAvvia(card){
   var pane=card.parentElement; RIORDINO.attivo=true; RIORDINO.presa=card;
+  /* da qui comanda l'ordine del DOM, non quello del mockup: quello che vedi
+     trascinando è quello che verrà salvato. Prima di togliere il mockup si
+     allinea il DOM all'ordine VISIVO, così niente salti a inizio drag. */
+  if(pane.classList.contains('ordine-mockup')&&window.innerWidth<=760&&window.getComputedStyle){
+    var figli=[].slice.call(pane.children);
+    figli.sort(function(a,b){return (parseInt(window.getComputedStyle(a).order,10)||0)-(parseInt(window.getComputedStyle(b).order,10)||0);});
+    figli.forEach(function(f){pane.appendChild(f);});
+  }
+  pane.classList.remove('ordine-mockup');
   pane.classList.add('riordino'); card.classList.add('presa');
   avvisoRiordino('Trascina per spostare · tocca fuori per finire');
 }
