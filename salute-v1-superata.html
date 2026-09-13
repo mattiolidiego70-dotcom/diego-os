@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Diego_OS · Health</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --page:#101216; --surface:#16181d; --surface-2:#1c1f25;
+    --ink:#f2f1ec; --ink-2:#b9b7ae; --muted:#85837c;
+    --hairline:rgba(255,255,255,.08);
+    --accent:#a6e22e; --accent-dim:#7ab510;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --blu:#3987e5; --viola:#9085e9; --rosa:#d55181;
+    --disp:"Futura","Avenir Next Condensed","Avenir Next",system-ui,sans-serif;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .shell{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  .dock{border-right:1px solid var(--hairline);padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+        display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:0;height:100vh}
+  .dock .mark{font:700 15px/1 var(--disp);letter-spacing:.18em;color:var(--accent);
+              writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:18px;user-select:none}
+  .mod{width:52px;height:52px;border-radius:14px;border:1px solid transparent;display:flex;
+       flex-direction:column;align-items:center;justify-content:center;gap:1px;
+       font-size:18px;cursor:pointer;color:var(--muted);background:none;position:relative;text-decoration:none}
+  .mod .lbl{font:700 7.5px var(--disp);letter-spacing:.14em}
+  .mod.active{border-color:var(--hairline);background:var(--surface);color:var(--ink)}
+  .mod.active::before{content:"";position:absolute;left:-13px;width:3px;height:22px;background:var(--accent);border-radius:2px}
+  main{padding:24px 22px 96px;max-width:1100px;width:100%}
+  header.top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .saluto{font:600 24px/1.1 var(--disp)}
+  .data-oggi{color:var(--muted);font-size:13px}
+  .stato{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ink-2);font-size:12.5px}
+  .stato .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .stato .dot.warn{background:var(--warning)}
+  nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--hairline);padding-bottom:8px}
+  nav.tabs button{background:none;border:0;color:var(--muted);font:500 13.5px var(--sans);padding:8px 14px;border-radius:8px;cursor:pointer}
+  nav.tabs button:hover{color:var(--ink-2);background:var(--surface-2)}
+  nav.tabs button.on{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
+  .scheda{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;margin-bottom:14px}
+  .scheda h3{margin:0 0 10px;font:600 12px var(--disp);letter-spacing:.18em;color:var(--ink-2);text-transform:uppercase}
+  input,select,textarea,button.azione{font:inherit;color:var(--ink);background:var(--page);
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;width:100%}
+  button.azione{background:var(--accent);color:#101216;font-weight:700;border:0;cursor:pointer}
+  button.secondario{background:var(--surface-2);color:var(--ink)}
+  .riga{display:flex;gap:8px;margin-bottom:8px}
+  .riga>*{flex:1}
+  .voce{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13.5px}
+  .voce:last-child{border-bottom:0}
+  .voce small{color:var(--muted);display:block;font-size:11.5px}
+  .ok{color:var(--good);font-size:12px} .avviso{color:var(--warning);font-size:12px}
+  .spin{color:var(--muted);font-size:13px}
+  .chat{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-bottom:4px}
+  .msg{padding:10px 13px;border-radius:12px;max-width:86%;white-space:pre-wrap;font-size:13.5px;line-height:1.45}
+  .io{background:#24313f;align-self:flex-end}
+  .coach{background:var(--surface-2);align-self:flex-start;border:1px solid var(--hairline)}
+  #login{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;
+         justify-content:center;padding:32px;gap:12px;z-index:10;max-width:420px;margin:0 auto}
+  #login .mark{font:700 22px var(--disp);letter-spacing:.22em;color:var(--accent)}
+  .vista{display:none}.vista.on{display:block}
+
+  /* ═══ DASH HEALTH: griglia a card modulari (26/08) ═══
+     Le card si accendono/spengono da una configurazione nel database
+     (contesto 'dash_health', modificabile da Alfred): il registro dei tipi
+     e chiuso, un tipo sconosciuto si scarta e il resto vive. */
+  .griglia{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;grid-auto-flow:dense}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px;min-width:0}
+  .card h3{margin:0 0 8px;font:600 11px var(--disp);letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+  .sz-hero{grid-column:span 12}
+  .sz-wide{grid-column:span 12}
+  .sz-half{grid-column:span 6}
+  .sz-third{grid-column:span 4}
+  @media (max-width:720px){ .sz-half{grid-column:span 12} .sz-third{grid-column:span 6} }
+
+  /* score (semaforo): un numero/una parola, la risposta non i dati */
+  .score-liv{font:700 54px/1 var(--disp);letter-spacing:.06em;text-transform:uppercase}
+  .liv-verde{color:var(--good)} .liv-giallo{color:var(--warning)} .liv-rosso{color:var(--critical)}
+  .liv-sconosciuto{color:var(--muted);font-size:28px}
+  .score-frase{color:var(--ink-2);font-size:13.5px;margin-top:8px;max-width:56ch}
+  .score-det{margin-top:10px;color:var(--muted);font-size:12px;cursor:pointer;user-select:none}
+  .score-contrib{display:none;margin-top:8px;color:var(--muted);font-size:12px;line-height:1.7}
+  .score-contrib.aperto{display:block}
+
+  /* stat tiles con sparkline */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .tile{border:1px solid var(--hairline);border-radius:10px;padding:10px 12px 6px;background:var(--surface-2);min-width:0}
+  .tile .l{color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  .tile .v{font:600 20px/1.3 var(--sans);font-variant-numeric:tabular-nums}
+  .tile .d{font-size:11px;color:var(--muted)}
+  .tile canvas{width:100%!important;height:26px!important;margin-top:2px}
+
+  /* budget a banda: dentro la banda = verde tenue, sopra = ambra informativo */
+  .banda-wrap{position:relative;height:14px;border-radius:7px;background:var(--surface-2);overflow:hidden;margin:8px 0 4px}
+  .banda-target{position:absolute;top:0;bottom:0;background:rgba(166,226,46,.16)}
+  .banda-fill{position:absolute;top:3px;bottom:3px;left:0;border-radius:5px;background:var(--accent);transition:width .4s}
+  .banda-fill.oltre{background:var(--warning)}
+  .banda-note{color:var(--muted);font-size:11.5px}
+  .banda-num{font:600 15px var(--sans);font-variant-numeric:tabular-nums}
+
+  /* contatore box: 4 tacche + verdetto */
+  .tacche{display:flex;gap:8px;margin:10px 0 6px}
+  .tacca{flex:1;height:12px;border-radius:6px;background:var(--surface-2)}
+  .tacca.piena{background:var(--accent)}
+  .tacca.saltata{background:rgba(236,131,90,.35)}
+  .verdetto{font:600 15px var(--sans)}
+  .verdetto small{color:var(--muted);font-weight:400}
+
+  /* heatmap costanza (celle vuote, mai rosse) */
+  .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);gap:3px;
+      overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .heat i{width:11px;height:11px;border-radius:3px;display:block}
+  .heat-legenda{display:flex;align-items:center;gap:4px;margin-top:8px;color:var(--muted);font-size:11px}
+  .heat-legenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* check-in serale: riga di 5 tocchi */
+  .tocchi{display:flex;gap:14px;flex-wrap:wrap;color:var(--ink-2);font-size:13px}
+  .tocchi b{color:var(--ink)}
+
+  /* insight del coach: parole, non grafici */
+  .insight{color:var(--ink-2);font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+
+  /* dettagli collassati: la frizione qui e voluta */
+  details.dett{border:1px solid var(--hairline);border-radius:14px;background:var(--surface);
+    padding:0 16px;margin-bottom:14px}
+  details.dett summary{padding:14px 0;cursor:pointer;color:var(--ink-2);
+    font:600 12px var(--disp);letter-spacing:.18em;text-transform:uppercase;list-style:none}
+  details.dett summary::-webkit-details-marker{display:none}
+  details.dett summary::after{content:"+";float:right;color:var(--muted)}
+  details.dett[open] summary::after{content:"\2212"}
+  details.dett .corpo{padding-bottom:14px}
+  canvas.grande{max-height:200px}
+
+  /* tendenza (29/08): chip di periodo + riga di lettura sotto i grafici */
+  .periodi{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{background:var(--surface-2);border:1px solid var(--hairline);border-radius:999px;
+    color:var(--muted);font:500 12.5px var(--sans);padding:7px 14px;cursor:pointer}
+  .chip.on{color:#101216;background:var(--accent);border-color:var(--accent);font-weight:700}
+  .lettura{margin-top:10px;padding:10px 12px;border:1px solid var(--hairline);border-radius:10px;
+    background:var(--surface-2);color:var(--ink-2);font-size:13px;min-height:20px;
+    font-variant-numeric:tabular-nums}
+  .lettura b{color:var(--ink)}
+  #v-trend canvas.grande{max-height:240px;width:100%!important}
+
+  /* corpo (02/09): figura coi punti di repere + campi di inserimento */
+  .corpo-wrap{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
+  .figura svg{width:100%;height:auto;max-height:400px;display:block}
+  .figura-nota{color:var(--muted);font-size:11px;text-align:center;margin-top:4px}
+  .pt{stroke:rgba(166,226,46,.35);cursor:pointer}
+  .pt:hover{stroke:rgba(166,226,46,.7)}
+  .pt.sel{stroke:var(--accent);stroke-width:4}
+  .pt.pieno{stroke:var(--accent)}
+  .campi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .campo{border:1px solid var(--hairline);border-radius:10px;padding:8px 10px;background:var(--surface-2)}
+  .campo.sel{border-color:var(--accent)}
+  .campo .n{color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    display:flex;justify-content:space-between;gap:6px}
+  .campo .n em{font-style:normal;color:var(--accent);font-size:9.5px}
+  .campo input{border:0;background:none;padding:4px 0;font:600 19px var(--sans);font-variant-numeric:tabular-nums}
+  .campo input:focus{outline:none}
+  .campo .prec{color:var(--muted);font-size:11px}
+  label.fuori{display:flex;align-items:center;gap:8px;color:var(--ink-2);font-size:12.5px;
+    border:1px solid var(--hairline);border-radius:10px;padding:10px 12px;cursor:pointer}
+  label.fuori input{width:17px;height:17px;flex:none;accent-color:var(--warning)}
+  .mis-riga{display:flex;justify-content:space-between;gap:10px;padding:9px 0;
+    border-bottom:1px solid var(--hairline);font-size:13.5px;align-items:baseline}
+  .mis-riga:last-child{border-bottom:0}
+  .mis-riga .val{font-variant-numeric:tabular-nums}
+  .mis-riga small{display:block;color:var(--muted);font-size:11.5px}
+  .indice{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+  .indice div{border:1px solid var(--hairline);border-radius:10px;padding:8px 12px;background:var(--surface-2)}
+  .indice .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+  .indice .v{font:600 18px var(--sans);font-variant-numeric:tabular-nums}
+  @media (max-width:720px){ .corpo-wrap{grid-template-columns:1fr} .figura{max-width:230px;margin:0 auto} }
+
+  .hero .val,.tile .v,.banda-num{font-variant-numeric:tabular-nums}
+  @media (max-width:720px){
+    input,select,textarea{font-size:16px}
+    main{min-width:0;padding:18px 14px 120px}
+    .scheda,.card{min-width:0}
+    canvas{max-width:100%!important}
+    .score-liv{font-size:44px}
+    .liv-sconosciuto{font-size:24px}
+    .shell{grid-template-columns:1fr}
+    .dock{flex-direction:row;height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;z-index:20;
+          border-right:0;border-top:1px solid var(--hairline);background:var(--surface);
+          padding:8px 10px calc(8px + env(safe-area-inset-bottom));justify-content:center}
+    .dock .mark{writing-mode:horizontal-tb;transform:none;margin:0 10px 0 0;font-size:12px;align-self:center}
+    .mod{width:46px;height:46px}
+    .mod.active::before{left:50%;top:-9px;transform:translateX(-50%);width:22px;height:3px}
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="mark">DIEGO_OS</div>
+  <p class="spin">Codice di accesso. Resta salvato su questo dispositivo.</p>
+  <input id="tok" type="password" placeholder="codice" autocomplete="current-password">
+  <button class="azione" onclick="entra()">Entra</button>
+  <p id="loginErr" class="avviso"></p>
+</div>
+
+<div class="shell">
+  <aside class="dock">
+    <div class="mark">DIEGO_OS</div>
+    <a class="mod" href="index.html" title="Soldi e Track" style="font-size:16px">&#9670;<span class="lbl">HOME</span></a>
+    <span class="mod active" title="Health">&#10084;<span class="lbl">HEALTH</span></span>
+    <a class="mod" href="spesa.html" title="Spesa">&#128722;<span class="lbl">SPESA</span></a>
+    <a class="mod" href="dieta.html" title="Dieta e stime">&#129379;<span class="lbl">DIETA</span></a>
+    <a class="mod" href="psicologa.html" title="Psicologa">&#129504;<span class="lbl">PSI</span></a>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="saluto">Health</div>
+      <div class="data-oggi" id="dataOggi"></div>
+      <div class="stato"><span class="dot warn" id="dotStato"></span><span id="txtStato">accesso richiesto</span></div>
+    </header>
+
+    <nav class="tabs">
+      <button class="on" data-vista="oggi" onclick="vista('oggi',this)">Oggi</button>
+      <button data-vista="trend" onclick="vista('trend',this);montaTrend()">Tendenza</button>
+      <button data-vista="corpo" onclick="vista('corpo',this);montaCorpo()">Corpo</button>
+      <button data-vista="diario" onclick="vista('diario',this)">Diario</button>
+      <button data-vista="input" onclick="vista('input',this)">Inserisci</button>
+      <button data-vista="coach" onclick="vista('coach',this)">Coach</button>
+      <!-- accesso a Psicologa: uno solo, nel dock a sinistra (visibile anche
+           a 390px: verificato nel banco). Qui era il doppione (06/09). -->
+    </nav>
+
+    <!-- ============ OGGI: card modulari ============ -->
+    <div id="v-oggi" class="vista on">
+      <div id="bentornato" class="scheda" style="display:none;border-color:rgba(166,226,46,.3);background:rgba(166,226,46,.07);color:var(--ink-2)">Bentornato: si riparte da oggi, senza recuperi.</div>
+      <div class="griglia" id="griglia"></div>
+      <div id="dettagli"></div>
+    </div>
+
+    <!-- ============ TENDENZA (29/08): grafici grandi, tocco = numero del giorno ============ -->
+    <div id="v-trend" class="vista">
+      <div class="scheda">
+        <div class="periodi" id="tPeriodi">
+          <button class="chip" data-g="30" onclick="trendPeriodo(30,this)">30 giorni</button>
+          <button class="chip on" data-g="90" onclick="trendPeriodo(90,this)">90 giorni</button>
+          <button class="chip" data-g="182" onclick="trendPeriodo(182,this)">6 mesi</button>
+        </div>
+        <h3 style="margin-top:12px">Peso</h3>
+        <canvas id="tPeso" class="grande"></canvas>
+        <div id="tPesoInfo" class="lettura">tocca un punto del grafico: qui appare il numero di quel giorno</div>
+      </div>
+      <div class="scheda">
+        <h3>Calorie</h3>
+        <canvas id="tKcal" class="grande"></canvas>
+        <div id="tKcalInfo" class="lettura">tocca una barra: qui appare il totale di quel giorno</div>
+      </div>
+      <div class="scheda">
+        <h3>Pliche &middot; controlli del nutrizionista</h3>
+        <canvas id="tPliche" class="grande"></canvas>
+        <div id="tPlicheInfo" class="lettura">tocca un controllo: qui appaiono le sei pliche di quel giorno</div>
+        <div id="tPlicheLista" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- ============ CORPO (02/09): misure settimanali del giovedi ============
+         Figura stilizzata coi punti di repere: si tocca un punto e si apre il
+         campo con l'istruzione operativa. Protocollo: WHO 2008, NHANES 2021,
+         CDC Series 2 n.182, IAS/ICCR 2020, ISAK. -->
+    <div id="v-corpo" class="vista">
+      <div class="scheda">
+        <h3>Misure del corpo &middot; giovedì mattina</h3>
+        <div id="cFinestra" class="lettura" style="margin-top:0;margin-bottom:12px"></div>
+        <div class="corpo-wrap">
+          <div class="figura">
+            <svg viewBox="0 0 200 420" id="svgCorpo" aria-label="figura del corpo coi punti di misurazione">
+              <!-- sagoma -->
+              <g fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2" stroke-linejoin="round">
+                <circle cx="100" cy="38" r="24"/>
+                <path d="M100 62 L100 78"/>
+                <path d="M100 78 C70 82 58 96 54 120 L44 196 L58 200 L70 150
+                         L70 214 C70 250 66 262 64 300 L60 396 L82 396 L88 300
+                         L100 258 L112 300 L118 396 L140 396 L136 300
+                         C134 262 130 250 130 214 L130 150 L142 200 L156 196
+                         L146 120 C142 96 130 82 100 78 Z"/>
+              </g>
+              <!-- linee dei punti di misura -->
+              <g stroke-width="2.5" stroke-linecap="round">
+                <line class="pt" data-m="circ_collo"      x1="78"  y1="72"  x2="122" y2="72"/>
+                <line class="pt" data-m="circ_torace"     x1="60"  y1="118" x2="140" y2="118"/>
+                <line class="pt" data-m="circ_braccio"    x1="46"  y1="150" x2="66"  y2="150"/>
+                <line class="pt" data-m="circ_vita"       x1="60"  y1="166" x2="140" y2="166"/>
+                <line class="pt" data-m="circ_cintura"    x1="60"  y1="184" x2="140" y2="184"/>
+                <line class="pt" data-m="circ_fianchi"    x1="60"  y1="201" x2="140" y2="201"/>
+                <line class="pt" data-m="circ_girosedere" x1="60"  y1="218" x2="140" y2="218"/>
+                <line class="pt" data-m="circ_coscia"     x1="66"  y1="252" x2="98"  y2="252"/>
+              </g>
+              <g class="etichette" font-size="9" fill="#85837c">
+                <text x="128" y="69">collo</text>
+                <text x="146" y="115">torace</text>
+                <text x="14"  y="147">braccio</text>
+                <text x="146" y="163">VITA</text>
+                <text x="12"  y="187">cintura</text>
+                <text x="146" y="204">fianchi</text>
+                <text x="4"   y="221">girosedere</text>
+                <text x="104" y="255">coscia</text>
+              </g>
+            </svg>
+            <div class="figura-nota">tocca un punto per l&rsquo;istruzione</div>
+          </div>
+          <div class="campi" id="cCampi"></div>
+        </div>
+        <div id="cIstruzione" class="lettura"></div>
+        <div class="riga" style="margin-top:10px"><input id="cData" type="date"></div>
+        <div class="riga">
+          <label class="fuori"><input type="checkbox" id="cFuori"> misurate fuori protocollo (altro giorno, dopo il box, non a digiuno)</label>
+        </div>
+        <button class="azione" onclick="salvaCorpo()">Salva le misure</button>
+        <p id="cEsito"></p>
+      </div>
+
+      <div class="scheda">
+        <h3>Lettura &middot; media a 4 settimane</h3>
+        <div id="cTrend" class="spin">&hellip;</div>
+      </div>
+
+      <div class="scheda">
+        <h3>Tendenza delle misure</h3>
+        <div class="periodi" id="cSerie"></div>
+        <canvas id="cGrafico" class="grande"></canvas>
+        <div id="cGraficoInfo" class="lettura">tocca un punto: qui appare la misura di quel giorno</div>
+      </div>
+
+      <!-- PLICHE nella sezione CORPO (07/09): la plicometria e' il dato che
+           Diego guarda davvero, non puo' vivere solo dentro Tendenza. Stessa
+           sorgente di Tendenza (plichePerData), nessun secondo calcolo. -->
+      <div class="scheda" id="cPliche">
+        <h3>Pliche &middot; controlli del nutrizionista</h3>
+        <div id="cpUltimo" class="lettura" style="margin-top:0;margin-bottom:10px"></div>
+        <div class="periodi" id="cpPeriodi">
+          <button class="chip on" onclick="plichePeriodo('all',this)">tutti i controlli</button>
+          <button class="chip" onclick="plichePeriodo('ultimi3',this)">ultimi 3</button>
+          <button class="chip" onclick="plichePeriodo('latest',this)">solo l&rsquo;ultimo</button>
+        </div>
+        <canvas id="cpGrafico" class="grande"></canvas>
+        <div id="cpInfo" class="lettura">tocca un controllo: qui appaiono le sei pliche di quel giorno</div>
+        <div class="riga" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+          <label>confronta <select id="cpDa" onchange="montaConfrontoPliche()"></select></label>
+          <label>con <select id="cpA" onchange="montaConfrontoPliche()"></select></label>
+        </div>
+        <div id="cpConfronto" style="margin-top:8px"></div>
+        <details class="dett" style="margin-top:10px">
+          <summary>Tutti i controlli, dal piu&rsquo; recente</summary>
+          <div class="corpo" id="cpTabella"></div>
+        </details>
+      </div>
+
+      <!-- Le circonferenze prese fuori dalla finestra del protocollo non
+           spariscono: oggi sono TUTTE fuori protocollo, e una sezione vuota
+           senza spiegazione fa credere di non aver mai misurato. -->
+      <div class="scheda" id="cFuoriBox">
+        <h3>Circonferenze fuori protocollo</h3>
+        <div id="cFuoriInfo" class="lettura" style="margin-top:0"></div>
+        <div id="cFuoriLista" style="margin-top:8px"></div>
+      </div>
+
+      <details class="dett">
+        <summary>Il protocollo in breve</summary>
+        <div class="corpo" id="cProtocollo"></div>
+      </details>
+    </div>
+
+    <!-- ============ DIARIO ============ -->
+    <div id="v-diario" class="vista">
+      <div class="scheda"><h3>Impegni aperti</h3><div id="dImpegni" class="spin">&hellip;</div></div>
+      <div class="scheda"><h3>Abitudini</h3><div id="dAbitudini" class="spin">&hellip;</div></div>
+      <div class="scheda"><h3>Diario &middot; 30 giorni</h3><div id="dDiario" class="spin">&hellip;</div></div>
+      <div class="scheda"><h3>Obiettivi e contesto del coach</h3><div id="dContesto" class="spin">&hellip;</div></div>
+    </div>
+
+    <!-- ============ INSERISCI ============ -->
+    <div id="v-input" class="vista">
+      <div class="scheda">
+        <h3>Misura rapida</h3>
+        <div class="riga">
+          <select id="mCampo">
+            <option value="weight_kg">Peso (kg)</option>
+            <option value="waist_cm">Girovita (cm)</option>
+            <option value="body_fat_pct">Massa grassa (%)</option>
+            <option value="whoop_recovery_pct">Recovery Whoop (%)</option>
+            <option value="whoop_strain">Day Strain Whoop</option>
+            <option value="sleep_duration_hours">Sonno (ore)</option>
+          </select>
+          <input id="mValore" type="number" step="0.1" inputmode="decimal" placeholder="valore">
+        </div>
+        <div class="riga"><input id="mData" type="date"></div>
+        <button class="azione" onclick="salvaMisura()">Salva</button>
+        <p id="mEsito"></p>
+        <p class="spin">I pasti si dicono ad Alfred (li somma lui); qui solo le misure.</p>
+      </div>
+      <div class="scheda">
+        <h3>Promemoria</h3>
+        <div class="riga"><input id="pTesto" placeholder="cosa ricordarti"></div>
+        <div class="riga">
+          <input id="pQuando" type="datetime-local">
+          <select id="pRic">
+            <option value="nessuna">una volta</option>
+            <option value="giornaliera">ogni giorno</option>
+            <option value="settimanale">ogni settimana</option>
+            <option value="mensile">ogni mese</option>
+          </select>
+        </div>
+        <button class="azione" onclick="salvaProm()">Crea (notifica su Telegram)</button>
+        <p id="pEsito"></p>
+        <div id="promLista" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- ============ COACH ============ -->
+    <div id="v-coach" class="vista">
+      <div class="scheda">
+        <div class="chat" id="chat">
+          <div class="msg coach">Sono il tuo coach. Stessa memoria del bot Telegram: chiudi l&agrave; e riprendi qui.</div>
+        </div>
+        <div class="riga" style="margin-top:10px">
+          <textarea id="dom" rows="2" placeholder="scrivi al coach&hellip;"></textarea>
+        </div>
+        <button class="azione" onclick="chiedi()" id="btnChiedi">Invia</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var API_BASE='https://icsafmrkndgdksybagky.supabase.co/functions/v1/health-app';
+var TOK = localStorage.getItem('app_token') || localStorage.getItem('dos_token') || '';
+var grafici = {};
+
+document.getElementById('dataOggi').textContent =
+  new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+function entra(){
+  var t = document.getElementById('tok').value.trim();
+  if(!t) return;
+  TOK = t;
+  api('/api/qualita').then(function(){
+    localStorage.setItem('app_token', t); localStorage.setItem('dos_token', t);
+    document.getElementById('login').style.display='none';
+    carica();
+  }).catch(function(){ document.getElementById('loginErr').textContent='Codice sbagliato.'; });
+}
+
+// RISANAMENTO F1.2 (Codex P1, 13/09): i testi ARCHIVIATI (promemoria, diario,
+// impegni, contesto) sono contenuto, non markup - resi con innerHTML crudo
+// potevano eseguire script nel browser, dove vive il token dell'app.
+function esc(x){
+  return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function api(percorso, corpo){
+  var controller = new AbortController();
+  var scadenza = setTimeout(function(){ controller.abort(); }, 120000);
+  var opt = { headers: { 'x-app-token': TOK, 'content-type':'application/json' }, signal:controller.signal };
+  if(corpo){ opt.method='POST'; opt.body=JSON.stringify(corpo); }
+  return fetch(API_BASE+percorso, opt).then(function(r){
+    if(r.status===401){
+      document.getElementById('login').style.display='flex';
+      throw new Error('sessione scaduta: reinserisci il codice');
+    }
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(e){
+      var msg = (e && typeof e.errore==='string' && e.errore.trim())
+        ? e.errore : 'Servizio non disponibile (HTTP '+r.status+').';
+      /* Tre esiti, tre frasi diverse. La distinzione che conta e fra
+         «il database ha detto di no» (certo) e «non ho ricevuto risposta»
+         (incerto): dire «non salvata» di una misura che potrebbe essere nel
+         database porta Diego a riscriverla, e due letture dello stesso giorno
+         non si sommano, si litigano. Per questo l incerta si CONTROLLA, non si
+         rimanda a occhi chiusi. */
+      var parti = [];
+      if(e && Array.isArray(e.confermate) && e.confermate.length){
+        parti.push('salvate: ' + e.confermate.map(function(x){ return x.misura; }).join(', '));
+      }
+      if(e && Array.isArray(e.incerte) && e.incerte.length){
+        /* Il testo si ferma al FATTO. L'esito vero lo aggiunge salvaCorpo DOPO
+           aver riletto il database: dire qui «guarda qui sopra» chiedeva un
+           controllo che la pagina non aveva ancora fatto (review 3, R2). */
+        parti.push('DA VERIFICARE: ' + e.incerte.map(function(x){ return x.misura; }).join(', ') +
+          ' — il database non ha risposto');
+      }
+      if(e && Array.isArray(e.rifiutate_dal_database) && e.rifiutate_dal_database.length){
+        parti.push('rifiutate: ' + e.rifiutate_dal_database.map(function(x){
+          return x.misura + ' (' + x.motivo + ')'; }).join('; '));
+      }
+      if(e && Array.isArray(e.non_tentate) && e.non_tentate.length){
+        parti.push('non inviate: ' + e.non_tentate.map(function(x){ return x.misura; }).join(', ') +
+          ' — mi sono fermato prima, queste puoi rimandarle');
+      }
+      /* forma vecchia della risposta (batch rifiutato prima di scrivere) */
+      if(e && Array.isArray(e.rifiutate) && e.rifiutate.length){
+        parti.push('nessuna scritta, da correggere: ' + e.rifiutate.map(function(f){
+          return f.nome + ' (' + f.motivo + ')'; }).join('; '));
+      }
+      if(parti.length) msg += ' — ' + parti.join('. ');
+      var err = new Error(msg);
+      err.dettaglio = e;
+      throw err;
+    });
+    return r.json();
+  }).catch(function(e){
+    if(controller.signal.aborted) throw new Error(corpo
+      ? 'Tempo di attesa scaduto. La richiesta potrebbe essere stata ricevuta: controlla lo storico prima di reinviare.'
+      : 'Tempo di attesa scaduto durante il caricamento dei dati.');
+    throw e;
+  }).finally(function(){ clearTimeout(scadenza); });
+}
+
+function vista(nome, btn){
+  var target=document.getElementById('v-'+nome);
+  if(!target) return;
+  document.querySelectorAll('.vista').forEach(function(v){ v.classList.remove('on'); });
+  target.classList.add('on');
+  document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('on'); });
+  if(btn && btn.classList) btn.classList.add('on');
+  else{
+    var b2=document.querySelector('nav.tabs button[data-vista="'+nome+'"]');
+    if(b2) b2.classList.add('on');
+  }
+}
+
+/* Un rimando da Track deve APRIRE la vista, non solo cambiare l'indirizzo:
+   #tendenza, #oggi, #corpo... valgono anche a pagina appena caricata (06/09). */
+var ALIAS_VISTA={ tendenza:'trend', trend:'trend', oggi:'oggi', corpo:'corpo',
+                 diario:'diario', inserisci:'input', input:'input', coach:'coach' };
+function vistaDaAncora(){
+  var n=(location.hash||'').replace('#','').trim().toLowerCase();
+  if(!n) return;
+  var v=ALIAS_VISTA[n];
+  if(!v) return;                      /* ancora sconosciuta: si ignora */
+  vista(v, null);
+  /* le viste pesanti si montano al clic: da un rimando esterno vanno
+     montate qui, o si aprirebbero vuote */
+  try{ if(v==='trend' && typeof montaTrend==='function') montaTrend();
+       if(v==='corpo' && typeof montaCorpo==='function') montaCorpo(); }catch(e){}
+}
+window.addEventListener('hashchange', vistaDaAncora);
+document.addEventListener('DOMContentLoaded', vistaDaAncora);
+
+function fmt(n, dec){ return n==null ? '—' : Number(n).toFixed(dec==null?1:dec).replace('.',','); }
+function grafico(id,cfg){ if(grafici[id]) grafici[id].destroy(); var el=document.getElementById(id); if(el) grafici[id]=new Chart(el,cfg); }
+
+/* ════════════════════════════════════════════════════════════════════
+   DASH A CARD (26/08). Regole:
+   - la configurazione vive in contesto 'dash_health' (JSON); se manca o
+     e rotta si usa il DEFAULT: la pagina non si rompe MAI;
+   - registro CHIUSO dei tipi: un tipo sconosciuto si scarta in silenzio;
+   - taglie a gettone (hero/wide/half/third), mai coordinate;
+   - anti-ansia: medie davanti, valori del giorno dietro; niente rosso
+     fuori dal semaforo; sforamenti in ambra informativo; celle vuote
+     nella heatmap, mai rosse; un solo verdetto in cima.
+   ════════════════════════════════════════════════════════════════════ */
+var DEFAULT_CONFIG = { version:1, cards:[
+  { id:'semaforo',  type:'score',   size:'hero',  enabled:true, order:1 },
+  { id:'tiles',     type:'tiles',   size:'wide',  enabled:true, order:2 },
+  { id:'kcal',      type:'budget',  size:'half',  enabled:true, order:3 },
+  { id:'box',       type:'counter', size:'half',  enabled:true, order:4 },
+  { id:'costanza',  type:'heatmap', size:'wide',  enabled:true, order:5 },
+  { id:'settimana', type:'settimana', size:'wide', enabled:true, order:6 },
+  { id:'checkin',   type:'checkin', size:'wide',  enabled:true, order:7 },
+  { id:'insight',   type:'insight', size:'wide',  enabled:true, order:8 }
+]};
+
+var DATI = {};   // cache dei dati per le card
+var BOX_ASSORBITO=false;   // la card 'box' e stata assorbita dalla settimana?
+
+function configDash(ctx){
+  try{
+    var raw = ctx && ctx.dash_health;
+    if(!raw) return DEFAULT_CONFIG;
+    var c = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if(!c || !Array.isArray(c.cards) || !c.cards.length) return DEFAULT_CONFIG;
+    return c;
+  }catch(e){ return DEFAULT_CONFIG; }
+}
+
+/* — registro delle card: ogni tipo = funzione pura render(el, card) — */
+var CARD_TYPES = {
+
+  score: function(el){
+    var s=(DATI.semaforo&&DATI.semaforo.semaforo)||{}, rit=(DATI.semaforo&&DATI.semaforo.ritmo)||null;
+    var liv=s.livello||'sconosciuto';
+    /* Il testo che arriva dal database e DATO, non markup. */
+    function scap(x){ return String(x==null?'':x).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    /* SCONOSCIUTO CON DATI PARZIALI (audit R07). Prima la card diceva «ancora
+       niente dati oggi» in OGNI caso sconosciuto, e ignorava la
+       raccomandazione: ma dal 07/09 `sconosciuto` significa quasi sempre
+       «ho dei dati, non abbastanza da dare un colore» — e la funzione SQL
+       manda gia la frase giusta, con l'elenco di cio che manca. Dirgli
+       «niente dati» mentre il sonno c'era e' una bugia rassicurante.
+       La frase del database vince; il ripiego serve solo se non c'e (API
+       vecchia): li «sconosciuto» resta «sconosciuto», senza inventare. */
+    var mancanti=(s.dati_mancanti||[]).map(function(n){ return scap(n); });
+    var racc=(typeof s.raccomandazione==='string' && s.raccomandazione.trim())
+      ? scap(s.raccomandazione.trim()) : '';
+    var frase = racc || (liv==='sconosciuto' ? 'Dati non sufficienti per il colore.' : '');
+    if(liv==='sconosciuto' && mancanti.length) frase += ' Mancano: '+mancanti.join(', ')+'.';
+    var h='<div class="score-liv liv-'+scap(liv)+'">'+scap(liv)+'</div>'+
+      '<div class="score-frase">'+frase+'</div>';
+    var det='';
+    (s.marcatori||[]).forEach(function(m){ det+=scap(m.nome)+': '+fmt(m.valore)+' (soglia '+fmt(m.soglia)+')<br>'; });
+    mancanti.forEach(function(n){ det+=n+': manca<br>'; });
+    if(rit && rit.ma7_oggi!=null)
+      det+='peso media 7gg: '+fmt(rit.ma7_oggi)+' kg · 14 giorni fa: '+fmt(rit.ma7_14g_fa)+' kg';
+    if(det){
+      h+='<div class="score-det" onclick="this.nextElementSibling.classList.toggle(\'aperto\')">il perché ▾</div>'+
+         '<div class="score-contrib">'+det+'</div>';
+    }
+    el.innerHTML=h;
+  },
+
+  tiles: function(el){
+    var righe=DATI.righe||[];
+    var ultimo=null, oggi=righe.length?righe[righe.length-1]:null;
+    for(var i=righe.length-1;i>=0;i--){ if(!righe[i].giorno_scoperto){ ultimo=righe[i]; break; } }
+    if(!ultimo){ el.innerHTML='<span class="spin">Niente dati recenti.</span>'; return; }
+    var serie14=righe.slice(-14);
+    function tile(id,label,val,delta,serie){
+      return '<div class="tile"><div class="l">'+label+'</div><div class="v">'+val+'</div>'+
+        '<div class="d">'+(delta||'')+'</div><canvas id="sp-'+id+'"></canvas></div>';
+    }
+    function spark(id,dati,colore){
+      grafico('sp-'+id,{type:'line',data:{labels:dati.map(function(){return '';}),
+        datasets:[{data:dati,borderColor:colore,borderWidth:1.5,pointRadius:0,tension:.4,spanGaps:true}]},
+        options:{responsive:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
+                 scales:{x:{display:false},y:{display:false}}}});
+    }
+    var h='<div class="tiles">';
+    h+=tile('peso','Peso · media 7gg',(ultimo.peso_ma7!=null?fmt(ultimo.peso_ma7,1):'—')+' kg',
+      ultimo.delta_peso_ma7_su_7gg!=null?((ultimo.delta_peso_ma7_su_7gg>0?'+':'')+fmt(ultimo.delta_peso_ma7_su_7gg,2)+' kg / 7gg'):'servono pesate regolari');
+    h+=tile('sonno','Sonno · 7gg',(ultimo.sonno_ma7!=null?fmt(ultimo.sonno_ma7,1)+' h':'—'),
+      (ultimo.sonno_ma7!=null&&ultimo.sonno_ma7<6.5)?'sotto la soglia delle 6,5':'');
+    h+=tile('rec','Recovery · 7gg',(ultimo.recovery_ma7!=null?fmt(ultimo.recovery_ma7,0)+'%':'—'),
+      ultimo.recovery_ma7==null?'in attesa da Whoop':'');
+    h+=tile('passi','Passi oggi',(oggi&&oggi.steps!=null)?fmt(oggi.steps,0):'—','');
+    h+='</div>';
+    el.innerHTML=h;
+    spark('peso',serie14.map(function(r){return r.peso_ma7;}),'#a6e22e');
+    spark('sonno',serie14.map(function(r){return r.sleep_duration_hours;}),'#3987e5');
+    spark('rec',serie14.map(function(r){return r.whoop_recovery_pct;}),'#9085e9');
+    spark('passi',serie14.map(function(r){return r.steps;}),'#85837c');
+  },
+
+  budget: function(el){
+    var righe=DATI.righe||[], oggi=righe.length?righe[righe.length-1]:null;
+    var target=DATI.targetKcal;
+    el.innerHTML='<h3>Kcal di oggi</h3>';
+    if(!target){ el.innerHTML+='<span class="spin">Target non fissato: dillo ad Alfred.</span>'; return; }
+    var min=Math.round(target*0.95), max=Math.round(target*1.05);
+    var scala=max*1.25;
+    var mangiate=(oggi&&oggi.calories_in!=null)?Math.round(oggi.calories_in):0;
+    var pct=Math.min(100,Math.round(mangiate/scala*100));
+    var oltre=mangiate>max;
+    var nota= mangiate===0 ? 'ancora niente registrato · banda '+min+'–'+max
+      : (oltre ? '+'+(mangiate-max)+' oltre la banda · si riparte dal pasto dopo'
+      : (mangiate>=min ? 'dentro la banda '+min+'–'+max : 'restano '+(min-mangiate)+' per entrare in banda'));
+    el.innerHTML+=
+      '<span class="banda-num">'+mangiate+' kcal</span>'+
+      '<div class="banda-wrap">'+
+        '<div class="banda-target" style="left:'+Math.round(min/scala*100)+'%;width:'+Math.round((max-min)/scala*100)+'%"></div>'+
+        '<div class="banda-fill'+(oltre?' oltre':'')+'" style="width:'+pct+'%"></div>'+
+      '</div>'+
+      '<div class="banda-note">'+nota+'</div>';
+  },
+
+  counter: function(el){
+    var b=DATI.box||{};
+    var fatte=Number(b.fatte||0), saltate=Number(b.saltate||0), riposi=Number(b.riposi||0);
+    el.innerHTML='<h3>Box · settimana</h3>';
+    var h='<div class="tacche">';
+    for(var i=0;i<4;i++){
+      h+='<div class="tacca'+(i<fatte?' piena':(i<fatte+saltate?' saltata':''))+'"></div>';
+    }
+    h+='</div>';
+    var v=b.verdetto||'';
+    var parole={ottimo:'ottimo',buono:'buono',minimo:'minimo',sotto_minimo:'in costruzione'};
+    h+='<div class="verdetto">'+fatte+'/4 <small>· '+(parole[v]||v)+
+       (riposi?' · '+riposi+' riposo':'')+' · 2 minimo, 3 buono, 4 ottimo</small></div>';
+    el.innerHTML+=h;
+  },
+
+  heatmap: function(el){
+    el.innerHTML='<h3>Costanza · 26 settimane</h3><div class="heat" id="heatH"></div>'+
+      '<div class="heat-legenda">meno <i style="background:rgba(166,226,46,.06)"></i><i style="background:rgba(166,226,46,.22)"></i><i style="background:rgba(166,226,46,.42)"></i><i style="background:rgba(166,226,46,.65)"></i><i style="background:#a6e22e"></i> pi&ugrave;</div>';
+    var per={};
+    (DATI.righe182||[]).forEach(function(r){ per[r.date]=r; });
+    var GRAD=['rgba(166,226,46,.06)','rgba(166,226,46,.22)','rgba(166,226,46,.42)','rgba(166,226,46,.65)','#a6e22e'];
+    var oggi=new Date(); oggi.setHours(12,0,0,0);
+    var dow=(oggi.getDay()+6)%7;
+    var fine=new Date(oggi); fine.setDate(fine.getDate()+(6-dow));
+    var inizio=new Date(fine); inizio.setDate(inizio.getDate()-26*7+1);
+    var html='';
+    for(var d=new Date(inizio); d<=fine; d.setDate(d.getDate()+1)){
+      var iso=giornoIso(d), r=per[iso], n=0, cose=[];
+      if(r){
+        if(r.weight_kg!=null){ n++; cose.push('peso'); }
+        if(r.calories_in!=null){ n++; cose.push('kcal'); }
+        if(r.sleep_duration_hours!=null){ n++; cose.push('sonno'); }
+        if(r.whoop_strain!=null){ n++; cose.push('whoop'); }
+      }
+      html+= d>oggi ? '<i style="background:transparent"></i>'
+        : '<i title="'+iso+(cose.length?' · '+cose.join(', '):'')+'" style="background:'+GRAD[Math.min(n,4)]+'"></i>';
+    }
+    var hh=document.getElementById('heatH');
+    hh.innerHTML=html; hh.scrollLeft=hh.scrollWidth;
+  },
+
+  checkin: function(el){
+    el.innerHTML='<h3>Check serale · ultima settimana</h3>';
+    var sett=(DATI.tracker&&Array.isArray(DATI.tracker.settimane))?DATI.tracker.settimane:[];
+    var s=sett.length?sett[sett.length-1]:null;
+    if(!s){ el.innerHTML+='<span class="spin">Si riempie coi check delle 22.</span>'; return; }
+    /* acquisti e ore di lavoro spenti da Diego il 03/09: restano tre domande
+       (motore, una cosa che conta, fuoco) e la card mostra solo quelle */
+    var h='<div class="tocchi">';
+    if(s.pct_valore_fatto!=null) h+='<span>cose che contano <b>'+Math.round(s.pct_valore_fatto)+'%</b></span>';
+    if(s.attivazione_sd!=null) h+='<span>motore: oscillazione <b>'+fmt(s.attivazione_sd,1)+'</b></span>';
+    if(s.pct_giorni_su_fuoco!=null) h+='<span>giorni su un fuoco <b>'+Math.round(s.pct_giorni_su_fuoco)+'%</b></span>';
+    h+='</div><div class="banda-note" style="margin-top:6px">la lettura vera è al rituale del lunedì, qui solo il polso</div>';
+    el.innerHTML+=h;
+  },
+
+  /* La settimana come l'ha definita Diego il 03/09: tre gambe, nessuna vale
+     più delle altre. Si mostra a che punto sono, senza verdetti sul giorno. */
+  settimana: function(el){
+    el.innerHTML='<h3>La settimana</h3>';
+    /* dettaglio del box qui dentro: era la card 'Box · settimana', che
+       contava la stessa cosa in un altro riquadro (06/09). Si mostra SOLO se
+       quella card e stata assorbita: se dash_health la teneva enabled:false,
+       una configurazione spenta di proposito non deve riapparire da qui. */
+    var b=BOX_ASSORBITO?DATI.box:null;
+    if(b){
+      var fatte=Number(b.fatte||0), saltate=Number(b.saltate||0), riposi=Number(b.riposi||0);
+      var hb='<div class="tacche">';
+      for(var i=0;i<4;i++) hb+='<div class="tacca'+(i<fatte?' piena':(i<fatte+saltate?' saltata':''))+'"></div>';
+      hb+='</div>';
+      var v=b.verdetto||'', parole={ottimo:'ottimo',buono:'buono',minimo:'minimo',sotto_minimo:'in costruzione'};
+      hb+='<div class="verdetto">'+fatte+'/4 <small>· '+(parole[v]||v)+
+          (riposi?' · '+riposi+' riposo':'')+' · 2 minimo, 3 buono, 4 ottimo</small></div>';
+      el.innerHTML+=hb;
+    }
+    var s=DATI.settimana;
+    if(!s){ el.innerHTML+='<span class="spin">…</span>'; return; }
+    var gambe=[
+      {k:'crossfit',    n:'CrossFit'},
+      {k:'recitazione', n:'Recitazione'},
+      {k:'uscite',      n:'Uscite nel weekend'}
+    ];
+    var h='<div class="tocchi">';
+    gambe.forEach(function(g){
+      var d=s[g.k]; if(!d) return;
+      h+='<span>'+g.n+' <b class="'+(d.ok?'ok':'')+'">'+d.fatte+'/'+d.servono+'</b></span>';
+    });
+    h+='</div>';
+    var manca=(s.mancano||'').trim();
+    h+='<div class="banda-note" style="margin-top:6px">'+
+       (s.buona ? 'settimana piena: tutte e tre a posto'
+                : (manca ? 'ancora aperte: '+manca : 'la settimana è in corso'))+
+       ' · il verdetto vero è al rituale del lunedì</div>';
+    el.innerHTML+=h;
+  },
+
+  insight: function(el, card){
+    var testo=DATI.contesto && (DATI.contesto.insight_settimana||DATI.contesto.lettura_percorso);
+    if(!testo){ el.remove(); return; }   // niente da dire = niente card
+    el.innerHTML='<h3>Il coach dice</h3><div class="insight"></div>';
+    el.querySelector('.insight').textContent=String(testo).slice(0,400);
+  }
+};
+
+function montaDash(){
+  var cfg=configDash(DATI.contesto);
+  var griglia=document.getElementById('griglia');
+  griglia.innerHTML='';
+  var cards=(cfg.cards||[]).filter(function(c){ return c && c.enabled !== false && CARD_TYPES[c.type]; })
+    .sort(function(a,b){ return (a.order||99)-(b.order||99); });
+  /* DUPLICATI (06/09, chiesto da Diego). Due regole di sola PRESENTAZIONE:
+     la configurazione in 'dash_health' NON si tocca e resta com'e nel DB.
+     1) lo stesso id due volte monta UNA card sola: una configurazione
+        sbagliata non deve raddoppiare la stessa informazione;
+     2) 'box' e 'settimana' contavano tutte e due la settimana di CrossFit:
+        quando ci sono entrambe si monta la sola settimana, che dentro porta
+        il dettaglio del box (tacche, verdetto e soglie), cosi non si perde
+        niente e si legge in un posto solo. */
+  var visti={};
+  cards=cards.filter(function(c){
+    var k=String(c.id||c.type);
+    if(visti[k]) return false; visti[k]=1; return true;
+  });
+  var haSettimana=cards.some(function(c){ return c.type==='settimana'; });
+  var haCounter=cards.some(function(c){ return c.type==='counter'; });
+  BOX_ASSORBITO=haSettimana&&haCounter;   /* solo cosi la settimana porta il box */
+  if(haSettimana) cards=cards.filter(function(c){ return c.type!=='counter'; });
+  cards.forEach(function(c){
+    var el=document.createElement('div');
+    el.className='card sz-'+(['hero','wide','half','third'].indexOf(c.size)>=0?c.size:'wide');
+    el.id='card-'+c.id;
+    griglia.appendChild(el);
+    try{ CARD_TYPES[c.type](el, c); }
+    catch(e){ el.remove(); }   // una card rotta non rompe la pagina
+  });
+  montaDettagli();
+}
+
+/* trend lunghi e tecnici: collassati, la frizione e voluta */
+function montaDettagli(){
+  var box=document.getElementById('dettagli');
+  /* DUPLICATO CHIUSO (06/09): 'Peso 42 giorni' e 'Calorie 42 giorni' erano
+     gli stessi grafici di Tendenza (tPeso/tKcal), disegnati due volte sulle
+     stesse righe. Qui resta il RIEPILOGO in numeri piu il rimando che apre
+     davvero la vista; i grafici completi si guardano in un posto solo.
+     Sonno/recovery e TDEE NON si toccano: li vivono solo qui. */
+  box.innerHTML=
+    '<div class="lettura" id="riepPesoKcal"><span class="spin">&hellip;</span></div>'+
+    '<details class="dett"><summary>Sonno e recovery</summary><div class="corpo"><canvas id="gRec" class="grande"></canvas></div></details>'+
+    '<details class="dett"><summary>TDEE e pipeline</summary><div class="corpo"><div id="tdee" class="spin">&hellip;</div><div id="qualita" class="spin" style="margin-top:10px">&hellip;</div></div></details>';
+  var righe=DATI.righe||[];
+  var lab=righe.map(function(r){return r.date.slice(5);});
+  var op={responsive:true,plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}}},
+          scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
+                  y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
+  riepilogoPesoKcal(righe);
+  grafico('gRec',{type:'line',data:{labels:lab,datasets:[
+    {label:'sonno (h)',data:righe.map(function(r){return r.sleep_duration_hours;}),borderColor:'#3987e5',pointRadius:2,borderWidth:1.5,spanGaps:true,yAxisID:'y'},
+    {label:'recovery %',data:righe.map(function(r){return r.whoop_recovery_pct;}),borderColor:'#a6e22e',pointRadius:2,borderWidth:1.5,spanGaps:true,yAxisID:'y1'}]},
+    options:Object.assign({},op,{scales:{x:op.scales.x,
+      y:{position:'left',ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
+      y1:{position:'right',min:0,max:100,ticks:{color:'#85837c'},grid:{display:false}}}})});
+  api('/api/tdee').then(function(t){
+    var el=document.getElementById('tdee');
+    if(!t || t.tdee_stimato==null){
+      el.innerHTML='<span class="spin">TDEE: servono più giorni di pesate e kcal nell’era.</span>'; return;
+    }
+    var fid=(t.affidabilita||'').split(':')[0];
+    el.innerHTML='TDEE stimato <b>'+fmt(t.tdee_stimato,0)+' kcal</b> · '+
+      '<span class="'+(fid==='BUONA'?'ok':'avviso')+'">affidabilità '+t.affidabilita+'</span>';
+  }).catch(function(){});
+  api('/api/qualita').then(function(q){
+    var righe=['ultimo giorno con dati: <b>'+esc(q.ultimo_giorno||'mai')+'</b>'];
+    if(q.buchi_ultimi_30gg>0) righe.push('<span class="avviso">'+q.buchi_ultimi_30gg+' giorni scoperti su 30</span>');
+    if((q.metriche_ignote_7gg||[]).length) righe.push('<span class="avviso">metriche nuove: '+esc(q.metriche_ignote_7gg.join(', '))+'</span>');
+    if(q.ingest_falliti_7gg>0) righe.push('<span class="avviso">'+q.ingest_falliti_7gg+' invii falliti (7gg)</span>');
+    if(righe.length===1) righe.push('<span class="ok">tutto regolare</span>');
+    document.getElementById('qualita').innerHTML=righe.join('<br>');
+  }).catch(function(){});
+}
+
+/* Riepilogo compatto di peso e calorie: gli stessi numeri che i due grafici
+   rimossi mostravano (ultimo giorno + media 7gg + delta), con il rimando che
+   APRE Tendenza, non solo cambia indirizzo. Nessun dato perso, una lettura sola. */
+function riepilogoPesoKcal(righe){
+  var el=document.getElementById('riepPesoKcal');
+  if(!el) return;
+  var rimando='<div style="margin-top:8px"><a href="#tendenza" id="vaiTendenza" '+
+    'style="color:var(--accent);text-decoration:none;font-weight:600" '+
+    'onclick="apriTendenza();return false;">Peso e calorie &middot; grafici completi in Tendenza &rarr;</a></div>';
+  if(!righe || !righe.length){
+    el.innerHTML='<span class="spin">Peso e calorie: ancora nessun giorno con dati.</span>'+rimando; return;
+  }
+  function ultimo(campo){
+    for(var i=righe.length-1;i>=0;i--) if(righe[i][campo]!=null) return righe[i][campo];
+    return null;
+  }
+  var peso=ultimo('weight_kg'), pma=ultimo('peso_ma7'), dlt=ultimo('delta_peso_ma7_su_7gg');
+  var kcal=ultimo('calories_in'), kma=ultimo('kcal_ma7');
+  var h='<b>Peso</b> '+fmt(peso,1)+' kg &middot; media 7gg <b>'+fmt(pma,1)+'</b>'+
+    (dlt==null?'':' <small>('+(dlt>0?'+':'')+fmt(dlt,2)+' in 7 giorni)</small>')+'<br>'+
+    '<b>Calorie</b> '+fmt(kcal,0)+' kcal &middot; media 7gg <b>'+fmt(kma,0)+'</b>'+
+    (DATI.targetKcal?' <small>(obiettivo '+DATI.targetKcal+')</small>':'')+
+    ' <small>&middot; '+righe.length+' giorni nell\u2019era</small>';
+  el.innerHTML=h+rimando;
+}
+function apriTendenza(){
+  /* l'indirizzo si aggiorna PRIMA: cosi un ricarico riapre la stessa vista */
+  if(location.hash!=='#tendenza') location.hash='#tendenza';
+  vista('trend', null);
+  montaTrend();
+}
+
+function giornoIso(d){
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TENDENZA (29/08, chiesto da Diego): grafici grandi e TOCCABILI.
+   Un tocco su un punto scrive il numero di QUEL giorno nella riga di
+   lettura sotto il grafico (il tooltip su iPhone e scomodo, la riga no).
+   Periodo a scelta con le chip; pliche dai controlli del nutrizionista.
+   ════════════════════════════════════════════════════════════════════ */
+var TREND_G = 90;
+/* Le sei pliche hanno DUE nomi: quello corto dello storico (plica_a) e quello
+   lungo che la app scrive dal 07/09 (plica_addome). Sono la stessa serie. Se il
+   grafico ne conosce uno solo, l'ultimo controllo sparisce senza dare errore:
+   e' esattamente quello che e' successo il 07/09. Qui gli alias si risolvono in
+   LETTURA; lo storico non si rinomina mai. Il registro e' chiuso: un nome che
+   non sta qui non finisce nel grafico per sbaglio.
+   L'ordine e' quello della scheda del nutrizionista (a p b t s g). */
+function dataIt(iso){
+  return new Date(iso+'T12:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
+}
+function dataCorta(iso){ return iso.split('-').reverse().join('/'); }
+
+function trendPeriodo(g, btn){
+  TREND_G=g;
+  document.querySelectorAll('#tPeriodi .chip').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  montaTrend();
+}
+
+function opTrend(righe){
+  return {responsive:true,animation:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}},
+      tooltip:{mode:'index',intersect:false,
+        callbacks:{title:function(it){ return it.length?dataIt(righe[it[0].dataIndex].date):''; }}}},
+    scales:{x:{ticks:{color:'#85837c',maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
+            y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}}}};
+}
+
+function montaTrend(){
+  var righe=(DATI.righe182||[]).slice(-TREND_G);
+  if(!righe.length) return;
+  var lab=righe.map(function(r){ return dataCorta(r.date).slice(0,5); });
+
+  var opP=opTrend(righe);
+  opP.onClick=function(e,els){ if(els&&els.length) letturaPeso(righe,els[0].index); };
+  grafico('tPeso',{type:'line',data:{labels:lab,datasets:[
+    {label:'pesata del giorno',data:righe.map(function(r){return r.weight_kg;}),
+     showLine:false,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:'rgba(57,135,229,.55)',borderColor:'rgba(57,135,229,0)'},
+    {label:'media 7 giorni (la lettura vera)',data:righe.map(function(r){return r.peso_ma7;}),
+     borderColor:'#a6e22e',backgroundColor:'rgba(166,226,46,.09)',fill:true,
+     pointRadius:0,pointHoverRadius:4,borderWidth:3,tension:.25,spanGaps:true}]},options:opP});
+  letturaPeso(righe,righe.length-1);
+
+  var opK=opTrend(righe);
+  opK.onClick=function(e,els){ if(els&&els.length) letturaKcal(righe,els[0].index); };
+  grafico('tKcal',{type:'bar',data:{labels:lab,datasets:[
+    {label:'kcal del giorno (margine +15% incluso)',data:righe.map(function(r){return r.calories_in;}),
+     backgroundColor:'rgba(57,135,229,.45)',hoverBackgroundColor:'#3987e5'},
+    {label:'media 7 giorni',type:'line',data:righe.map(function(r){return r.kcal_ma7;}),
+     borderColor:'#fab219',pointRadius:0,pointHoverRadius:4,borderWidth:2.5,tension:.25,spanGaps:true}]},options:opK});
+  letturaKcal(righe,righe.length-1);
+
+  montaPliche();
+}
+
+function letturaPeso(righe,i){
+  var r=righe[i]; if(!r) return;
+  var h='<b>'+dataIt(r.date)+'</b> · pesata '+(r.weight_kg!=null?'<b>'+fmt(r.weight_kg,2)+' kg</b>':'non fatta');
+  if(r.peso_ma7!=null) h+=' · media 7gg <b>'+fmt(r.peso_ma7,2)+' kg</b>';
+  if(r.delta_peso_ma7_su_7gg!=null) h+=' · '+(r.delta_peso_ma7_su_7gg>0?'+':'')+fmt(r.delta_peso_ma7_su_7gg,2)+' kg sulla settimana';
+  document.getElementById('tPesoInfo').innerHTML=h;
+}
+
+function letturaKcal(righe,i){
+  var r=righe[i]; if(!r) return;
+  var h='<b>'+dataIt(r.date)+'</b> · '+(r.calories_in!=null?'<b>'+fmt(r.calories_in,0)+' kcal</b>':'niente registrato');
+  if(r.kcal_ma7!=null) h+=' · media 7gg <b>'+fmt(r.kcal_ma7,0)+'</b>';
+  if(r.protein_g!=null) h+=' · proteine <b>'+fmt(r.protein_g,0)+' g</b>';
+  document.getElementById('tKcalInfo').innerHTML=h;
+}
+
+/* Il registro degli alias vive nel DATABASE (salute.plica_alias) e arriva da
+   GET /api/pliche gia risolto per serie. Qui restano SOLO i colori: un secondo
+   registro di alias in javascript, il giorno che diverge da quello SQL, rimette
+   il grafico monco senza dare nessun errore (review 1, F3). */
+var PLICHE_COLORI = { plica_addome:'#a6e22e', plica_petto:'#3987e5', plica_bicipite:'#9085e9',
+                      plica_tricipite:'#d55181', plica_sottoscapolare:'#fab219', plica_gamba:'#ec835a' };
+var PLICHE_FALLBACK = '#7f8c8d';
+
+/* Le serie da disegnare si ricavano dal payload del server: etichetta e ordine
+   li decide il registro SQL, non questa pagina. */
+function plicheSerie(){
+  var visti = {}, out = [];
+  (DATI.pliche||[]).forEach(function(x){
+    (x.pliche||[]).forEach(function(p){
+      if(visti[p.serie]) return;
+      visti[p.serie] = 1;
+      out.push({ k:p.serie, l:p.etichetta, o:Number(p.ordine),
+                 c:PLICHE_COLORI[p.serie]||PLICHE_FALLBACK });
+    });
+  });
+  /* l'ordine e quello del registro SQL (a p b t s g), non quello di arrivo */
+  return out.sort(function(a,b){ return (isFinite(a.o)?a.o:99)-(isFinite(b.o)?b.o:99); });
+}
+
+/* La sorgente UNICA di Corpo e Tendenza. Normalizza il payload della rotta
+   /api/pliche in una forma comoda per i grafici, SENZA ricalcolare niente:
+   somma, completezza e conflitti li ha gia decisi il database.
+   Regole preservate: niente Number(null)=0, niente valore non finito, niente
+   interpolazione dei buchi, somma solo con sei serie valide. */
+function plichePerData(){
+  return (DATI.pliche||[]).map(function(x){
+    var v = {}, origine = {}, conflitti = [];
+    (x.pliche||[]).forEach(function(p){
+      var n = Number(p.valore);
+      if(p.valore === null || p.valore === undefined || p.valore === '' ||
+         typeof p.valore === 'boolean' || !isFinite(n)) return;
+      v[p.serie] = n;
+      origine[p.serie] = p.scritta_come;
+      if(p.conflitto) conflitti.push({ punto:p.etichetta, origine:p.scritta_come });
+    });
+    var peso = Number(x.peso_controllo);
+    return { data:x.data, v:v, origine:origine, conflitti:conflitti,
+      n: x.serie_presenti,
+      peso: (x.peso_controllo != null && isFinite(peso)) ? peso : null,
+      somma: (x.somma_6_pliche_mm != null && isFinite(Number(x.somma_6_pliche_mm)))
+             ? Number(x.somma_6_pliche_mm) : null };
+  }).filter(function(x){ return Object.keys(x.v).length > 0; })
+    .sort(function(a,b){ return a.data < b.data ? -1 : 1; });
+}
+
+function montaPliche(){
+  var g=plichePerData();
+  if(!g.length){
+    document.getElementById('tPlicheInfo').textContent='Ancora nessun controllo con le pliche: arrivano con la scheda del nutrizionista.';
+    return;
+  }
+  disegnaPliche('tPliche', g, function(i){ letturaPliche(g,i,'tPlicheInfo'); });
+  letturaPliche(g,g.length-1,'tPlicheInfo');
+  /* dal primo all'ultimo controllo: la ricomposizione che la bilancia non mostra */
+  document.getElementById('tPlicheLista').innerHTML=
+    '<div class="banda-note" style="margin-bottom:4px">dal primo controllo ('+dataCorta(g[0].data)+
+    ') all\'ultimo ('+dataCorta(g[g.length-1].data)+')</div>'+righeConfronto(g[0],g[g.length-1],plicheSerie());
+}
+
+/* un solo disegnatore per Corpo e Tendenza: due funzioni gemelle divergono */
+function disegnaPliche(canvasId, g, onClick){
+  var ds=plicheSerie().map(function(se){
+    return { label:se.l, data:g.map(function(x){ return x.v[se.k]!=null?x.v[se.k]:null; }),
+      borderColor:se.c, backgroundColor:se.c,
+      pointRadius:4, pointHoverRadius:7, borderWidth:2, tension:.2, spanGaps:true };
+  });
+  grafico(canvasId,{type:'line',data:{labels:g.map(function(x){ return dataCorta(x.data); }),datasets:ds},
+    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false},
+      onClick:function(e,els){ if(els&&els.length&&onClick) onClick(els[0].index); },
+      plugins:{legend:{labels:{color:'#85837c',boxWidth:10,font:{size:10}}},
+        tooltip:{mode:'index',intersect:false}},
+      scales:{x:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
+              y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'},title:{display:true,text:'mm',color:'#85837c'}}}}});
+}
+
+function letturaPliche(g,i,elId){
+  var x=g[i]; if(!x) return;
+  var h='<b>'+dataCorta(x.data)+'</b>';
+  plicheSerie().forEach(function(se){
+    if(x.v[se.k]!=null) h+=' · '+se.l+' <b>'+fmt(x.v[se.k],0)+'</b>';
+  });
+  /* la somma si mostra solo se e' vera: sei serie, zero conflitti */
+  h+= x.somma!=null
+      ? ' · <b>somma 6 pliche '+fmt(x.somma,0)+' mm</b>'
+      : ' · <i>somma non calcolabile ('+x.n+' pliche su 6'+(x.conflitti.length?', con conflitto':'')+')</i>';
+  if(x.peso!=null) h+=' · peso da scheda <b>'+fmt(x.peso,1)+' kg</b>';
+  if(x.conflitti.length) h+='<div class="banda-note">'+x.conflitti.map(function(c){
+      return 'conflitto su '+c.punto+': tengo '+fmt(c.tenuto,0)+' mm e segnalo '+fmt(c.scartato,0)+' mm, non decido io quale vale'; }).join(' · ')+'</div>';
+  document.getElementById(elId).innerHTML=h;
+}
+
+function righeConfronto(da,a,serie){
+  return (serie||[]).map(function(se){
+    var d=da.v[se.k], b=a.v[se.k];
+    var giu=(d!=null&&b!=null&&b<d);
+    return '<div class="voce"><div>'+se.l+'</div><div>'+(d!=null?fmt(d,0):'—')+' → <b'+
+      (giu?' class="ok"':'')+'>'+(b!=null?fmt(b,0):'—')+' mm</b></div></div>';
+  }).join('');
+}
+
+/* ---- le pliche dentro la sezione CORPO -------------------------------- */
+var CP_FILTRO='all';
+function plichePeriodo(f,btn){
+  CP_FILTRO=f;
+  document.querySelectorAll('#cpPeriodi .chip').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  montaCorpoPliche();
+}
+function plicheFiltrate(){
+  var g=plichePerData();
+  if(CP_FILTRO==='latest') return g.slice(-1);
+  if(CP_FILTRO==='ultimi3') return g.slice(-3);
+  return g;
+}
+function montaCorpoPliche(){
+  var tutti=plichePerData();
+  var box=document.getElementById('cPliche'); if(!box) return;
+  if(!tutti.length){
+    document.getElementById('cpUltimo').textContent='Ancora nessun controllo con le pliche: arrivano con la scheda del nutrizionista.';
+    return;
+  }
+  var u=tutti[tutti.length-1];
+  document.getElementById('cpUltimo').innerHTML=
+    '<b>Ultimo controllo '+dataCorta(u.data)+'</b>'+
+    (u.peso!=null?' · peso da scheda <b>'+fmt(u.peso,1)+' kg</b>':'')+
+    (u.somma!=null?' · somma 6 pliche <b>'+fmt(u.somma,0)+' mm</b>'
+                  :' · <i>somma non calcolabile ('+u.n+'/6)</i>')+
+    '<div class="banda-note">'+plicheSerie().map(function(se){
+        return se.l+' '+(u.v[se.k]!=null?fmt(u.v[se.k],0)+' mm':'—'); }).join(' · ')+'</div>';
+
+  var g=plicheFiltrate();
+  disegnaPliche('cpGrafico', g, function(i){ letturaPliche(g,i,'cpInfo'); });
+  letturaPliche(g,g.length-1,'cpInfo');
+
+  /* tabella: la piu' RECENTE in alto, come chiesto; il grafico resta
+     cronologico perche' una linea al contrario non si legge */
+  document.getElementById('cpTabella').innerHTML=
+    '<div class="voce"><div><b>data</b></div><div><b>pliche (mm)</b></div></div>'+
+    tutti.slice().reverse().map(function(x){
+      var forme={};
+      Object.keys(x.origine).forEach(function(k){ forme[x.origine[k]]=1; });
+      return '<div class="voce"><div>'+dataCorta(x.data)+
+        (x.peso!=null?'<div class="banda-note">'+fmt(x.peso,1)+' kg da scheda</div>':'')+'</div>'+
+        '<div>'+plicheSerie().map(function(se){ return x.v[se.k]!=null?fmt(x.v[se.k],0):'—'; }).join(' · ')+
+        (x.somma!=null?' <b>= '+fmt(x.somma,0)+'</b>':' <i>(parziale)</i>')+
+        '<div class="banda-note">scritte come: '+Object.keys(forme).sort().join(', ')+'</div></div></div>';
+    }).join('');
+
+  /* confronto fra due controlli scelti da Diego */
+  ['cpDa','cpA'].forEach(function(id,n){
+    var sel=document.getElementById(id), pre=sel.value;
+    sel.innerHTML=tutti.map(function(x){ return '<option value="'+x.data+'">'+dataCorta(x.data)+'</option>'; }).join('');
+    sel.value=pre||(n===0?tutti[0].data:tutti[tutti.length-1].data);
+  });
+  montaConfrontoPliche();
+  montaFuoriProtocollo();
+}
+function montaConfrontoPliche(){
+  var t=plichePerData(), byd={};
+  t.forEach(function(x){ byd[x.data]=x; });
+  var a=byd[document.getElementById('cpDa').value], b=byd[document.getElementById('cpA').value];
+  if(!a||!b){ document.getElementById('cpConfronto').innerHTML=''; return; }
+  var somma = (a.somma!=null&&b.somma!=null)
+    ? '<div class="banda-note">somma 6 pliche: '+fmt(a.somma,0)+' → <b>'+fmt(b.somma,0)+' mm</b> ('+
+      (b.somma-a.somma>0?'+':'')+fmt(b.somma-a.somma,0)+')</div>'
+    : '<div class="banda-note">somma non confrontabile: un controllo non ha tutte e sei le pliche</div>';
+  document.getElementById('cpConfronto').innerHTML=
+    '<div class="banda-note" style="margin-bottom:4px">'+dataCorta(a.data)+' → '+dataCorta(b.data)+', stessa unita (mm)</div>'+
+    righeConfronto(a,b,plicheSerie())+somma;
+}
+
+/* Oggi TUTTE le circonferenze in archivio sono fuori protocollo: se la
+   sezione non le mostrasse, Diego vedrebbe un vuoto inspiegato. Si mostrano
+   etichettate e NON entrano in nessuna media del trend. */
+function montaFuoriProtocollo(){
+  var f=(DATI.misure||[]).filter(function(m){ return /^circ_.*_fuori$/.test(m.nome); });
+  var info=document.getElementById('cFuoriInfo'); if(!info) return;
+  if(!f.length){ info.textContent='Nessuna misura fuori protocollo in archivio.'; 
+    document.getElementById('cFuoriLista').innerHTML=''; return; }
+  info.innerHTML='Queste misure sono state prese <b>fuori</b> dalla finestra del protocollo '+
+    '(giovedì mattina, a digiuno, prima del box). Restano consultabili ma <b>non entrano nel trend '+
+    'e non fanno media</b> con le altre.';
+  document.getElementById('cFuoriLista').innerHTML=f.slice().sort(function(a,b){ return a.data<b.data?1:-1; })
+    .map(function(m){
+      return '<div class="voce"><div>'+m.nome.replace('circ_','').replace('_fuori','')+
+        '<div class="banda-note">'+dataCorta(m.data)+' · fuori protocollo</div></div>'+
+        '<div><b>'+fmt(Number(m.valore),1)+' cm</b></div></div>'; }).join('');
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   CORPO (02/09). Misure settimanali del giovedì mattina.
+   Protocollo: WHO 2008, NHANES 2021, CDC Series 2 n.182, IAS/ICCR 2020.
+   Le istruzioni stanno DENTRO la app perché è lì che servono: mentre
+   misuri, non dopo. Il punto di repere non si cambia mai: cambiarlo
+   falsa mesi di dati (fino a 7 cm di differenza fra siti diversi).
+   ════════════════════════════════════════════════════════════════════ */
+/* L'ordine di questa lista è l'ordine di TUTTA la sezione (campi, chip del
+   grafico, righe del trend): dall'alto del corpo verso il basso, come li
+   misuri davvero. Cambiare l'ordine qui li sposta ovunque. */
+var MISURE_CORPO = [
+  { k:'circ_collo',      l:'Collo',      ess:true,
+    i:'A metà tra clavicola e mandibola, sotto il pomo d\'Adamo. Sguardo dritto davanti, spalle rilassate, senza contrarre il collo. È la misura meno disturbata da pasti e gonfiore: se scende insieme alla vita, il calo è vero.' },
+  { k:'circ_torace',     l:'Torace',     ess:false,
+    i:'All\'altezza di metà sterno, a fine espirazione normale. Molto sensibile al respiro: se non riesci a essere costante, lasciala perdere.' },
+  { k:'circ_braccio',    l:'Braccio',    ess:false,
+    i:'Braccio DESTRO che pende morto lungo il fianco, muscoli rilassati (contrarre falsa tutto). Punto medio tra la sporgenza della spalla e la punta del gomito: segnalo con un pennarello lavabile, o il punto migra ogni settimana.' },
+  { k:'circ_vita',       l:'Vita',       ess:true,
+    i:'Nastro orizzontale al bordo SUPERIORE dell\'ombelico. Addome rilassato (non tirare dentro la pancia: è l\'errore più grave), braccia lungo i fianchi, si legge alla fine di una espirazione normale. Controlla di profilo allo specchio che dietro il nastro non scenda.' },
+  { k:'circ_cintura',    l:'Cintura',    ess:false,
+    i:'Dove appoggia la cintura dei pantaloni: SOTTO la curva della pancia, in piedi rilassato, nastro parallelo al pavimento e non tirato. È la misura che senti addosso quando i pantaloni chiudono meglio, e si muove spesso prima della vita.' },
+  { k:'circ_fianchi',    l:'Fianchi',    ess:false,
+    i:'Il punto più largo del tronco guardandoti DI FRONTE allo specchio, all\'altezza delle anche, sopra il sedere. Piedi uniti, nastro parallelo al pavimento. Non confonderla col girosedere: i fianchi si trovano di fronte (largo), il girosedere di profilo (sporgenza).' },
+  { k:'circ_girosedere', l:'Girosedere', ess:true,
+    i:'Sulla massima sporgenza dei glutei, guardandoti DI PROFILO allo specchio. Piedi uniti, glutei rilassati, nastro parallelo al pavimento. È la misura dello standard WHO per il rapporto vita/fianchi: fino al 03/09/2026 questa serie si chiamava «fianchi», lo storico è suo.' },
+  { k:'circ_coscia',     l:'Coscia',     ess:false,
+    i:'Circonferenza massima della coscia DESTRA, subito sotto la piega del gluteo. Gambe leggermente divaricate, peso su entrambi i piedi. Attento che il nastro non si inclini: è l\'errore più frequente qui.' }
+];
+var CORPO_SEL = null, CORPO_SERIE = 'circ_vita';
+
+function montaCorpo(){
+  var oggi = new Date();
+  var giovedi = oggi.getDay() === 4;
+  document.getElementById('cFinestra').innerHTML = giovedi
+    ? '<b>È giovedì:</b> è il giorno giusto. Appena sveglio, dopo il bagno, a digiuno, prima di allenarti.'
+    : 'Il giorno del protocollo è il <b>giovedì mattina</b> (lontano dall\'acqua del weekend e a 36 ore dal box). Se misuri oggi, spunta «fuori protocollo»: il dato si salva ma resta fuori dal trend.';
+
+  var per = misurePerData();
+  var date = Object.keys(per).sort();
+  var ultima = date.length ? per[date[date.length-1]] : {};
+  var ultimaData = date.length ? date[date.length-1] : null;
+
+  document.getElementById('cCampi').innerHTML = MISURE_CORPO.map(function(m){
+    var u = ultimaDiSerie(m.k);
+    return '<div class="campo" id="campo-'+m.k+'" onclick="selezionaPunto(\''+m.k+'\')">'+
+      '<div class="n"><span>'+m.l+'</span>'+(m.ess?'<em>essenziale</em>':'')+'</div>'+
+      '<input type="number" step="0.1" inputmode="decimal" id="in-'+m.k+'" placeholder="cm" '+
+        'onfocus="selezionaPunto(\''+m.k+'\')">'+
+      '<div class="prec">'+(u ? 'ultima: '+fmt(u.v,1)+' cm'+(u.fuori?' — fuori protocollo':'')
+                              : 'mai misurata')+'</div></div>';
+  }).join('');
+
+  /* i punti già misurati si accendono sulla figura */
+  document.querySelectorAll('#svgCorpo .pt').forEach(function(p){
+    var k=p.getAttribute('data-m');
+    p.classList.toggle('pieno', ultimaDiSerie(k)!=null);
+    p.onclick=function(){ selezionaPunto(k); };
+  });
+
+  if(!document.getElementById('cData').value)
+    document.getElementById('cData').value=new Date().toISOString().slice(0,10);
+  selezionaPunto(CORPO_SEL||'circ_vita');
+  montaTrendCorpo(ultimaData);
+  montaCorpoPliche();          /* le pliche vivono QUI, non solo in Tendenza */
+  var p=(DATI.contesto&&DATI.contesto.protocollo_misure)||'';
+  document.getElementById('cProtocollo').textContent=p||'protocollo non ancora salvato nel contesto';
+}
+
+function misurePerData(){
+  /* le misure prese fuori finestra sono salvate come circ_*_fuori: restano
+     nello storico ma NON entrano nel trend (regola del protocollo) */
+  var per={};
+  (DATI.misure||[]).forEach(function(m){
+    if(/^circ_/.test(m.nome) && !/_fuori$/.test(m.nome))
+      (per[m.data]=per[m.data]||{})[m.nome]=Number(m.valore);
+  });
+  return per;
+}
+
+/* L'ultima misura di una serie, ANCHE se fuori protocollo. Il trend resta
+   pulito (quello guarda solo le misure del giovedì), ma il numero che hai
+   preso lo devi vedere lo stesso: farlo sparire dalla card ti fa credere di
+   non aver mai misurato, ed è peggio di mostrarlo dichiarato (03/09).
+   A parità di giorno vince quella dentro protocollo. */
+function ultimaDiSerie(k){
+  var out=null;
+  (DATI.misure||[]).forEach(function(m){
+    var fuori=(m.nome===k+'_fuori');
+    if(m.nome!==k && !fuori) return;
+    if(!out || m.data>out.data || (m.data===out.data && out.fuori && !fuori))
+      out={data:m.data, v:Number(m.valore), fuori:fuori};
+  });
+  return out;
+}
+
+function selezionaPunto(k){
+  CORPO_SEL=k;
+  var m=MISURE_CORPO.filter(function(x){ return x.k===k; })[0];
+  if(!m) return;
+  document.querySelectorAll('#svgCorpo .pt').forEach(function(p){
+    p.classList.toggle('sel', p.getAttribute('data-m')===k);
+  });
+  document.querySelectorAll('.campo').forEach(function(c){
+    c.classList.toggle('sel', c.id==='campo-'+k);
+  });
+  document.getElementById('cIstruzione').innerHTML='<b>'+m.l+'</b> — '+m.i;
+}
+
+/* Difesa contro il doppio invio: finche' il ciclo POST+GET non e' concluso il
+   pulsante non riparte. Senza, un secondo click mentre la rilettura e' in volo
+   rispedisce lo stesso batch e crea proprio il doppione che tutto questo giro
+   serve a evitare. Circoscritta a questa funzione: nessun refactor. */
+var CORPO_IN_VOLO=false;
+function salvaCorpo(){
+  var out=document.getElementById('cEsito');
+  if(CORPO_IN_VOLO){
+    out.className='avviso';
+    out.textContent='Sto ancora aspettando la risposta del salvataggio precedente: non rimando niente finche non so com e finito.';
+    return;
+  }
+  var data=document.getElementById('cData').value||undefined;
+  var fuori=document.getElementById('cFuori').checked;
+  var misure=[];
+  MISURE_CORPO.forEach(function(m){
+    var v=parseFloat(document.getElementById('in-'+m.k).value);
+    if(!isNaN(v)&&v>0) misure.push({nome:(fuori?m.k+'_fuori':m.k), valore:v, unita:'cm'});
+  });
+  if(!misure.length){ out.className='avviso'; out.textContent='Non hai scritto nessuna misura.'; return; }
+  CORPO_IN_VOLO=true;
+  var btn=document.querySelector('#v-corpo button.azione');
+  if(btn) btn.disabled=true;
+  var sblocca=function(){ CORPO_IN_VOLO=false; if(btn) btn.disabled=false; };
+  api('/api/misura_corpo',{misure:misure,data:data}).then(function(r){
+    /* il database marca da solo come fuori protocollo tutto quello che non e
+       di giovedi: se succede senza che tu l'abbia spuntato devi saperlo, o
+       credi di avere un dato che entra nel trend e invece no (03/09) */
+    var marcate=(r.esiti||[]).filter(function(e){ return /_fuori$/.test(e&&e.nome||''); }).length;
+    out.className='ok';
+    out.textContent = r.salvate+' misure salvate'+
+      (fuori ? ' (fuori protocollo: restano fuori dal trend).'
+             : marcate ? ' — ma il giorno scelto non e giovedi, quindi restano fuori dal trend.'
+             : '.');
+    MISURE_CORPO.forEach(function(m){ document.getElementById('in-'+m.k).value=''; });
+    document.getElementById('cFuori').checked=false;
+    return Promise.all([api('/api/misure_extra'), api('/api/pliche')])
+      .then(function(r){ DATI.misure=r[0]; DATI.pliche=r[1]; montaCorpo(); })
+      .then(sblocca, sblocca);
+  }).catch(function(e){
+    out.className='avviso';
+    var d=e.dettaglio||{};
+    var incerte=(d.incerte||[]).map(function(x){ return x.misura; });
+    /* montaCorpo() ricostruisce i campi da zero: quello che Diego aveva
+       scritto e che NON e' partito va rimesso a mano dopo il ridisegno,
+       altrimenti glielo cancello io. */
+    var scritti={};
+    MISURE_CORPO.forEach(function(m){ scritti[m.k]=document.getElementById('in-'+m.k).value; });
+    var daRimettere={};
+    (d.non_tentate||[]).forEach(function(x){
+      var m=MISURE_CORPO.filter(function(y){ return y.l.toLowerCase()===String(x.misura).toLowerCase(); })[0];
+      if(m) daRimettere[m.k]=scritti[m.k];
+    });
+    var rimetti=function(){
+      Object.keys(daRimettere).forEach(function(k){
+        var el=document.getElementById('in-'+k); if(el) el.value=daRimettere[k];
+      });
+    };
+    if(!incerte.length){
+      /* rifiuto certo o batch scartato prima di scrivere: niente da rileggere */
+      svuotaCampi(d); rimetti(); out.textContent=e.message; sblocca(); return;
+    }
+    /* Una GET non e' una seconda scrittura: e' l'unico modo di sapere se la
+       misura incerta e' finita nel database. Si rilegge PRIMA di parlare e si
+       ridisegna la scheda, cosi' quello che Diego vede e' il dato vero e non
+       quello di prima del salvataggio. Il confronto e' sulla TUPLA che ho
+       inviato, che l'handler mi rimanda in `richieste`. */
+    var tuple={};
+    (d.richieste||[]).forEach(function(x){ tuple[String(x.misura).toLowerCase()]=x; });
+    out.textContent=e.message+' — sto rileggendo il database…';
+    Promise.all([api('/api/misure_extra'), api('/api/pliche')])
+      .then(function(r){
+        DATI.misure=r[0]; DATI.pliche=r[1]; montaCorpo();
+        var frasi=[];
+        incerte.forEach(function(um){
+          var t=tuple[String(um).toLowerCase()];
+          if(!t){ frasi.push(um+': non ho la richiesta da confrontare, resta da verificare'); return; }
+          var es=esitoRilettura(t);
+          if(es.stato==='uguale'){
+            frasi.push(um+' risulta gia scritta nel database col valore che hai mandato ('+
+              t.valore+' '+t.unita+'): non toccarla');
+          } else if(es.stato==='altroValore'){
+            /* la riga c'e ma NON e la mia: dire «gia scritta» sarebbe falso, e
+               dire «riscrivila» sarebbe una ricetta che puo creare il doppione
+               se il commit era ancora in corso. Si dicono i due numeri e basta. */
+            frasi.push(um+': nel database risulta '+es.valore+(es.unita?' '+es.unita:'')+
+              ', la tua '+t.valore+' '+t.unita+' non risulta — esito ancora da verificare');
+          } else {
+            frasi.push(um+' non risulta alla rilettura, ma la scrittura poteva essere '+
+              'ancora in corso: resta da verificare');
+          }
+        });
+        out.textContent=e.message+' — '+frasi.join('; ')+'.';
+      })
+      .catch(function(){
+        /* se la rilettura fallisce NON si mostra il valore vecchio come prova */
+        out.textContent=e.message+' — non sono riuscito a rileggere il database, '+
+          'quindi non so dirti se e stata scritta: guarda piu tardi.';
+      })
+      .then(function(){ svuotaCampi(d); rimetti(); sblocca(); });
+  });
+}
+
+/* Dopo un esito parziale i campi gia CONFERMATI e quelli INCERTI si svuotano:
+   se restassero pieni, il prossimo click sul pulsante li rimanderebbe tutti in
+   blocco, ed e' cosi' che nasce il doppione. Le NON TENTATE restano scritte:
+   quelle si sa che non sono partite, e rimandarle e' sicuro. */
+function svuotaCampi(dettaglio){
+  var daTogliere={};
+  (dettaglio.confermate||[]).concat(dettaglio.incerte||[]).forEach(function(x){
+    daTogliere[String(x.misura).toLowerCase()]=1;
+  });
+  if(!Object.keys(daTogliere).length) return;
+  MISURE_CORPO.forEach(function(m){
+    if(daTogliere[m.l.toLowerCase()]) document.getElementById('in-'+m.k).value='';
+  });
+}
+
+/* Cosa dice il database sulla richiesta che ho fatto. Non basta che una riga
+   con quel nome e quel giorno esista: se ieri c'era 101 e oggi ho mandato 105,
+   la 101 NON attesta la 105. Si confronta la tupla intera, e si restituisce
+   cosa si e' trovato, non un si/no. */
+function esitoRilettura(t){
+  var nomi=[t.nome, t.nome+'_fuori'];
+  var riga=null;
+  (DATI.misure||[]).forEach(function(x){
+    if(x.data!==t.data || nomi.indexOf(x.nome)<0) return;
+    riga=x;
+  });
+  if(!riga) return { stato:'assente' };
+  var v=Number(riga.valore);
+  if(riga.valore===null || riga.valore==='' || typeof riga.valore==='boolean' || !isFinite(v))
+    return { stato:'assente' };
+  if(v!==Number(t.valore) || (riga.unita && t.unita && riga.unita!==t.unita))
+    return { stato:'altroValore', valore:v, unita:riga.unita };
+  return { stato:'uguale', valore:v };
+}
+
+function montaTrendCorpo(ultimaData){
+  api('/api/misure_trend').then(function(t){
+    var el=document.getElementById('cTrend');
+    var mis=(t&&t.misure)||{};
+    /* stesso ordine dei campi: dall'alto del corpo verso il basso. Le chiavi
+       che non sono in lista (serie vecchie) restano in coda, non si perdono. */
+    var ordine=MISURE_CORPO.map(function(m){ return m.k; });
+    var chiavi=Object.keys(mis).sort(function(a,b){
+      var ia=ordine.indexOf(a), ib=ordine.indexOf(b);
+      if(ia<0) ia=99; if(ib<0) ib=99;
+      return ia-ib || (a<b?-1:1);
+    });
+    var h='';
+    if(t && (t.vita_altezza!=null || t.vita_fianchi!=null)){
+      h+='<div class="indice">';
+      if(t.vita_altezza!=null){
+        var ok=t.vita_altezza<0.5;
+        h+='<div><div class="k">vita / altezza</div><div class="v '+(ok?'ok':'')+'">'+
+          fmt(t.vita_altezza,3)+'</div><div class="k">obiettivo sotto 0,500</div></div>';
+      }
+      if(t.vita_fianchi!=null)
+        h+='<div><div class="k">vita / girosedere</div><div class="v">'+fmt(t.vita_fianchi,3)+'</div></div>';
+      h+='</div>';
+    }
+    if(!chiavi.length){
+      el.innerHTML=h+'<span class="spin">Nessuna misura ancora: la prima serie parte giovedì mattina.</span>';
+      return;
+    }
+    h+=chiavi.map(function(k){
+      var m=mis[k], nome=(MISURE_CORPO.filter(function(x){return x.k===k;})[0]||{l:k}).l;
+      var d=m.delta_4sett;
+      var col=(d==null||m.lettura.indexOf('rumore')>=0)?'':(d<0?'ok':'avviso');
+      return '<div class="mis-riga"><div>'+nome+
+        '<small>ultima '+fmt(m.ultima,1)+' cm il '+dataCorta(m.data)+'</small></div>'+
+        '<div class="val" style="text-align:right">'+
+          (m.media_4sett!=null?'<b>'+fmt(m.media_4sett,1)+'</b> cm':'—')+
+          '<small class="'+col+'">'+(d!=null?(d>0?'+':'')+fmt(d,1)+' cm sulle 4 settimane · ':'')+
+          m.lettura+'</small></div></div>';
+    }).join('');
+    el.innerHTML=h;
+  }).catch(function(e){
+    document.getElementById('cTrend').innerHTML='<span class="avviso">'+e.message+'</span>';
+  });
+
+  /* grafico: una serie alla volta, scelta con le chip */
+  var per=misurePerData();
+  var presenti=MISURE_CORPO.filter(function(m){
+    return Object.keys(per).some(function(d){ return per[d][m.k]!=null; });
+  });
+  if(!presenti.length){
+    document.getElementById('cSerie').innerHTML='';
+    document.getElementById('cGraficoInfo').textContent='Il grafico si accende dalla prima misura.';
+    return;
+  }
+  if(!presenti.some(function(m){ return m.k===CORPO_SERIE; })) CORPO_SERIE=presenti[0].k;
+  document.getElementById('cSerie').innerHTML=presenti.map(function(m){
+    return '<button class="chip'+(m.k===CORPO_SERIE?' on':'')+'" onclick="serieCorpo(\''+m.k+'\')">'+m.l+'</button>';
+  }).join('');
+  var date=Object.keys(per).filter(function(d){ return per[d][CORPO_SERIE]!=null; }).sort();
+  var vals=date.map(function(d){ return per[d][CORPO_SERIE]; });
+  var nome=(MISURE_CORPO.filter(function(x){return x.k===CORPO_SERIE;})[0]||{l:''}).l;
+  grafico('cGrafico',{type:'line',data:{labels:date.map(dataCorta),datasets:[
+    {label:nome+' (cm)',data:vals,borderColor:'#a6e22e',backgroundColor:'rgba(166,226,46,.09)',
+     fill:true,pointRadius:4,pointHoverRadius:7,borderWidth:2.5,tension:.2,spanGaps:true}]},
+    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false},
+      onClick:function(e,els){ if(els&&els.length) letturaCorpo(date,vals,els[0].index); },
+      plugins:{legend:{labels:{color:'#85837c',boxWidth:11,font:{size:11}}}},
+      scales:{x:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'}},
+              y:{ticks:{color:'#85837c'},grid:{color:'rgba(255,255,255,.05)'},
+                 title:{display:true,text:'cm',color:'#85837c'}}}}});
+  letturaCorpo(date,vals,date.length-1);
+}
+
+function serieCorpo(k){ CORPO_SERIE=k; montaTrendCorpo(); }
+
+function letturaCorpo(date,vals,i){
+  if(!date.length) return;
+  var nome=(MISURE_CORPO.filter(function(x){return x.k===CORPO_SERIE;})[0]||{l:''}).l;
+  var h='<b>'+dataCorta(date[i])+'</b> · '+nome+' <b>'+fmt(vals[i],1)+' cm</b>';
+  if(i>0){
+    var d=vals[i]-vals[i-1];
+    h+=' · '+(d>0?'+':'')+fmt(d,1)+' cm dalla volta prima'+
+       (Math.abs(d)<1 ? ' <span class="spin">(sotto il centimetro: è rumore di misura, non progresso)</span>' : '');
+  }
+  document.getElementById('cGraficoInfo').innerHTML=h;
+}
+
+function carica(){
+  /* si raccolgono i dati una volta, poi si montano le card */
+  document.getElementById('txtStato').textContent='caricamento dati';
+  document.getElementById('dotStato').className='dot warn';
+  var errori=[], erroreDati=null;
+  function manca(nome, campi){
+    return function(e){
+      errori.push(nome);
+      // Non presentare il dato del caricamento precedente come dato fresco.
+      Object.keys(campi).forEach(function(k){ DATI[k]=campi[k]; });
+      if(nome==='dati') erroreDati=e.message;
+    };
+  }
+  var attese=[
+    api('/api/contesto').then(function(c){
+      DATI.contesto=c;
+      var m=String(c.kcal_target_die||'').match(/(\d{3,5})/);
+      DATI.targetKcal=m?parseInt(m[1],10):null;
+    }).catch(manca('contesto',{contesto:{},targetKcal:null})),
+    api('/api/dati?giorni=182').then(function(righe){
+      righe.sort(function(a,b){ return a.date<b.date?-1:1; });
+      DATI.righe182=righe;
+      DATI.righe=righe.slice(-42);
+      /* rientro gentile */
+      var per={}; righe.forEach(function(r){ per[r.date]=r; });
+      var oggi=new Date(); oggi.setHours(12,0,0,0); var vuoti=0;
+      for(var k=0;k<3;k++){
+        var dd=new Date(oggi); dd.setDate(dd.getDate()-k);
+        var r2=per[giornoIso(dd)];
+        var ha=r2&&(r2.weight_kg!=null||r2.calories_in!=null||r2.sleep_duration_hours!=null||r2.steps!=null);
+        if(!ha) vuoti++;
+      }
+      if(vuoti===3) document.getElementById('bentornato').style.display='block';
+    }).catch(manca('dati',{righe:[],righe182:[]})),
+    api('/api/semaforo').then(function(r){ DATI.semaforo=r; }).catch(manca('semaforo',{semaforo:null})),
+    api('/api/box').then(function(b){ DATI.box=b; }).catch(manca('box',{box:null})),
+    api('/api/tracker_trend?settimane=4').then(function(t){ DATI.tracker=t; }).catch(manca('tracker',{tracker:null})),
+    api('/api/settimana_buona').then(function(s){ DATI.settimana=s; }).catch(manca('settimana',{settimana:null})),
+    api('/api/misure_extra').then(function(m){ DATI.misure=m; }).catch(manca('misure',{misure:[]})),
+    api('/api/pliche').then(function(p){ DATI.pliche=p; }).catch(manca('pliche',{pliche:[]}))
+  ];
+  Promise.all(attese).then(function(){
+    // Il verde richiede tutte le letture dashboard, non solo /api/dati.
+    // Non è comunque una verifica della disponibilità del fornitore AI.
+    document.getElementById('txtStato').textContent=erroreDati ? 'errore: '+erroreDati
+      : errori.length ? 'dati parziali: '+errori.join(', ')+' non disponibili' : 'dati caricati';
+    document.getElementById('dotStato').className=errori.length ? 'dot warn' : 'dot';
+    montaDash();
+    if(document.getElementById('v-trend').classList.contains('on')) montaTrend();
+    if(document.getElementById('v-corpo').classList.contains('on')) montaCorpo();
+  });
+  caricaProm(); caricaDiario(); caricaChat();
+}
+
+function salvaMisura(){
+  var campo=document.getElementById('mCampo').value,
+      val=parseFloat(document.getElementById('mValore').value),
+      data=document.getElementById('mData').value||undefined,
+      out=document.getElementById('mEsito');
+  if(isNaN(val)){ out.className='avviso'; out.textContent='Manca il valore.'; return; }
+  api('/api/misura',{campo:campo,valore:val,data:data}).then(function(){
+    out.className='ok'; out.textContent='Salvato.';
+    document.getElementById('mValore').value='';
+    carica();
+  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; });
+}
+
+function caricaProm(){
+  api('/api/promemoria').then(function(lista){
+    var el=document.getElementById('promLista');
+    if(!lista.length){ el.innerHTML='<span class="spin">Nessun promemoria attivo.</span>'; return; }
+    el.innerHTML=lista.map(function(p){
+      var quando=new Date(p.quando).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return '<div class="voce"><div>'+esc(p.testo)+'<small>'+quando+
+        (p.ricorrenza!=='nessuna'?' · '+esc(p.ricorrenza):'')+
+        (p.nag_minuti?' · insiste ogni '+p.nag_minuti+' min':'')+'</small></div></div>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function salvaProm(){
+  var testo=document.getElementById('pTesto').value.trim(),
+      quando=document.getElementById('pQuando').value,
+      ric=document.getElementById('pRic').value,
+      out=document.getElementById('pEsito');
+  if(!testo||!quando){ out.className='avviso'; out.textContent='Servono testo e orario.'; return; }
+  api('/api/promemoria',{testo:testo,quando:new Date(quando).toISOString(),ricorrenza:ric}).then(function(){
+    out.className='ok'; out.textContent='Creato.';
+    document.getElementById('pTesto').value='';
+    caricaProm();
+  }).catch(function(e){ out.className='avviso'; out.textContent=e.message; });
+}
+
+function caricaDiario(){
+  api('/api/impegni').then(function(l){
+    var el=document.getElementById('dImpegni');
+    if(!l.length){ el.innerHTML='<span class="spin">Nessun impegno aperto.</span>'; return; }
+    el.innerHTML=l.map(function(i){
+      return '<div class="voce"><div>'+esc(i.testo)+'<small>'+
+        (i.scadenza? 'scade '+new Date(i.scadenza).toLocaleDateString('it-IT'):'senza scadenza')+
+        (i.target? ' · target '+esc(i.target):'')+'</small></div></div>';
+    }).join('');
+  }).catch(function(){});
+  api('/api/abitudini').then(function(l){
+    var el=document.getElementById('dAbitudini');
+    if(!l.length){ el.innerHTML='<span class="spin">Nessuna. Dilla al coach: "crea una abitudine..."</span>'; return; }
+    el.innerHTML=l.map(function(a){
+      var oggi=a.fatta_oggi?'<span class="ok">oggi ✓</span>':(a.riposo_oggi?'<span class="spin">oggi riposo</span>':(a.saltata_oggi?'<span class="avviso">oggi saltata</span>':'<span class="spin">oggi –</span>'));
+      return '<div class="voce"><div>'+esc(a.nome)+'<small>serie '+(a.serie_settimane!=null?a.serie_settimane:'—')+
+        ' · questa settimana '+a.volte_questa_settimana+'/'+a.target_settimana+' · 28gg '+a.volte_ultimi_28gg+'</small></div>'+oggi+'</div>';
+    }).join('');
+  }).catch(function(){});
+  api('/api/diario').then(function(l){
+    var el=document.getElementById('dDiario');
+    if(!l.length){ el.innerHTML='<span class="spin">Vuoto. Racconta al coach come stai: annota lui.</span>'; return; }
+    el.innerHTML=l.map(function(d){
+      var quando=new Date(d.ts).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return '<div class="voce"><div>'+esc(d.testo)+'<small>'+quando+' · '+esc(d.tipo)+
+        (d.umore? ' · umore '+d.umore+'/5':'')+'</small></div></div>';
+    }).join('');
+  }).catch(function(){});
+  api('/api/contesto').then(function(c){
+    var el=document.getElementById('dContesto');
+    var chiavi=Object.keys(c||{});
+    if(!chiavi.length){ el.innerHTML='<span class="spin">Vuoto.</span>'; return; }
+    el.innerHTML=chiavi.sort().map(function(k){
+      var v=String(c[k]);
+      var manca=v.indexOf('DA ')===0;
+      return '<div class="voce"><div>'+(manca?'<span class="avviso">'+esc(k)+'</span>':esc(k))+
+        '<small>'+esc(v.slice(0,170))+(v.length>170?'…':'')+'</small></div></div>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function caricaChat(){
+  api('/api/chat_storia').then(function(l){
+    if(!l.length) return;
+    var c=document.getElementById('chat'); c.innerHTML='';
+    l.forEach(function(m){
+      var d=document.createElement('div');
+      d.className='msg '+(m.ruolo==='diego'?'io':'coach');
+      d.textContent=m.testo.replace(/^\[[a-z]+\]\s*/i,'');
+      c.appendChild(d);
+    });
+    c.scrollTop=c.scrollHeight;
+  }).catch(function(){});
+}
+
+function aggiungi(chi,testo){
+  var c=document.getElementById('chat'), d=document.createElement('div');
+  d.className='msg '+chi; d.textContent=testo; c.appendChild(d); c.scrollTop=c.scrollHeight;
+  return d;
+}
+
+function chiedi(){
+  // Il blocco vale anche per chiamate ripetute a questa funzione.
+  // La bozza successiva resta nel campo finché la richiesta in corso finisce.
+  var btn=document.getElementById('btnChiedi');
+  if(btn.disabled) return;
+  var box=document.getElementById('dom'), q=box.value.trim();
+  if(!q) return;
+  box.value=''; aggiungi('io',q);
+  var attesa=aggiungi('coach','…');
+  btn.disabled=true;
+  api('/api/chat',{domanda:q}).then(function(r){ attesa.textContent=r.risposta||'(vuoto)'; })
+  .catch(function(e){
+    attesa.textContent='Errore: '+e.message;
+    if(!box.value) box.value=q;
+  })
+  .finally(function(){ btn.disabled=false; });
+}
+
+if(TOK){ document.getElementById('login').style.display='none'; carica(); }
+document.getElementById('mData').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
