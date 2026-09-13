@@ -760,20 +760,32 @@ function salvaMisure(btn){
   if(sede&&sv) invii.push(api('/api/misura_corpo',{misure:[{nome:sede,valore:Number(sv)}]}));
   if(!invii.length){out.textContent='Niente da salvare: compila almeno un campo.';return;}
   Promise.allSettled(invii).then(function(ris){
-    /* design R9: l'esito si classifica per STRUTTURA, mai per testo.
-       RIFIUTATA solo se il server ha risposto 4xx (fail-before-write);
-       incerte[] dichiarate dal server restano incerte; tutto lo sconosciuto
-       (rete persa, timeout, 5xx) e' INCERTO, fail-closed. */
-    var salvate=0,rifiutate=0,incerte=0;
+    /* design R9 v2: l'UNICA fonte dell'esito e' il CORPO STRUTTURATO del
+       server (salvate/confermate/incerte/rifiutate_dal_database/non_tentate),
+       sommato tale e quale — cosi' il 409 parziale conta 1 salvata E 1
+       rifiutata. Un 200 muto NON e' una conferma; un corpo illeggibile,
+       la rete persa, il timeout e i 5xx restano INCERTI, fail-closed. */
+    var salvate=0,rifiutate=0,incerte=0,nonTentate=0;
+    function strutturato(c){return !!(c&&(c.salvate!=null||Array.isArray(c.confermate)||Array.isArray(c.incerte)||Array.isArray(c.rifiutate_dal_database)||Array.isArray(c.non_tentate)));}
+    function somma(c){
+      salvate+=c.salvate!=null?Number(c.salvate):((c.confermate||[]).length);
+      rifiutate+=(c.rifiutate_dal_database||[]).length;
+      incerte+=(c.incerte||[]).length;
+      nonTentate+=(c.non_tentate||[]).length;
+    }
     ris.forEach(function(r){
-      if(r.status==='fulfilled'){salvate++;return;}
+      if(r.status==='fulfilled'){
+        if(strutturato(r.value)){somma(r.value);return;}
+        incerte++; return;                    /* 200 senza attestazione */
+      }
       var e=r.reason||{};
-      if(e.corpo&&Array.isArray(e.corpo.incerte)&&e.corpo.incerte.length){incerte++;return;}
-      if(e.stato>=400&&e.stato<500){rifiutate++;return;}
+      if(strutturato(e.corpo)){somma(e.corpo);return;}
+      if(e.stato>=400&&e.stato<500&&e.corpo){rifiutate++;return;}  /* respinta dichiarata, corpo letto */
       incerte++;
     });
     out.textContent=salvate+' salvat'+(salvate===1?'a':'e')+
       (rifiutate?' · '+rifiutate+' RIFIUTATE (guardia del registro)':'')+
+      (nonTentate?' · '+nonTentate+' non tentate (fermate dopo il primo problema)':'')+
       (incerte?' · '+incerte+' SENZA CONFERMA: potrebbero essere scritte, verifica prima di ripetere':'');
     caricaTutto().then(function(){RENDER.corpo();});
   });
