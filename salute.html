@@ -1258,41 +1258,57 @@ function nuovaChiave(){
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
     var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});
 }
+/* design R9 v2 applicato ANCHE alla spesa (review-10): l'esito viene dal
+   CORPO del dominio, mai dall'HTTP 200. scritto:false = NON scritto. */
+function spesaScritta(r){return !!(r&&r.scritto!==false&&/^(aggiornato|creato|chiuso)$/.test(String(r.esito||'')));}
+function motivoSpesa(r){
+  var e=String((r&&r.esito)||'esito assente');
+  if(e==='versione_superata') return 'la lista è cambiata nel frattempo: ricarico';
+  if(e==='invariato') return 'già in lista';
+  if(e==='piano_assente') return 'manca il piano da cui far nascere la lista';
+  return e;
+}
 function cambiaStatoRiga(id,rev,nuovo){
   if(id==null){alert('questa voce non porta un id: si gestisce da Alfred');return Promise.reject(new Error('senza id'));}
   var giro=DATI.spesa&&DATI.spesa.giro;
   if(!giro||giro.id==null){alert('nessun giro aperto: crealo dal catalogo master o con Alfred');return Promise.reject(new Error('senza giro'));}
-  return api('/api/lista_spesa/giro',{azione:'stato',giro:giro.id,alimento:id,rev:rev,stato:nuovo,operazione:nuovaChiave()});
+  return api('/api/lista_spesa/giro',{azione:'stato',giro:giro.id,alimento:id,rev:rev,stato:nuovo,operazione:nuovaChiave()})
+    .then(function(r){
+      if(!spesaScritta(r)){var err=new Error(motivoSpesa(r));err.esitoDominio=String((r&&r.esito)||'');throw err;}
+      return r;
+    });
 }
 /* DUE gesti distinti (collaudo Diego 13/09 sera): la casella = comprato si'/no;
    il badge a destra = ce l'ho gia' in casa si'/no. Niente ciclo a tre stati. */
-function spuntaRiga(id,rev,statoAttuale){
-  var nuovo=statoAttuale==='comprato'?'da_comprare':'comprato';
-  cambiaStatoRiga(id,rev,nuovo).then(function(){return caricaSpesa();}).then(function(){RENDER.spesa();})
-    .catch(function(e){if(!/senza (id|giro)/.test(e.message))alert('Non segnata: '+e.message);});
+function toccoStato(id,rev,nuovo){
+  cambiaStatoRiga(id,rev,nuovo)
+    .then(function(){return caricaSpesa();}).then(function(){RENDER.spesa();})
+    .catch(function(e){
+      if(/senza (id|giro)/.test(e.message)) return;
+      alert('Non segnata: '+e.message);        /* il rifiuto del dominio si DICE */
+      caricaSpesa().then(function(){RENDER.spesa();});
+    });
 }
-function segnaCeLho(id,rev,statoAttuale){
-  var nuovo=statoAttuale==='in_casa'?'da_comprare':'in_casa';
-  cambiaStatoRiga(id,rev,nuovo).then(function(){return caricaSpesa();}).then(function(){RENDER.spesa();})
-    .catch(function(e){if(!/senza (id|giro)/.test(e.message))alert('Non segnata: '+e.message);});
-}
+function spuntaRiga(id,rev,statoAttuale){toccoStato(id,rev,statoAttuale==='comprato'?'da_comprare':'comprato');}
+function segnaCeLho(id,rev,statoAttuale){toccoStato(id,rev,statoAttuale==='in_casa'?'da_comprare':'in_casa');}
 /* AZZERA: tutte le voci tornano «da comprare» — una scrittura per riga,
-   in sequenza, con esito CONTATO (ok/fallite), mai un successo generico */
+   in sequenza, con esito CONTATO dal CORPO (ok/rifiutate col motivo) */
 function azzeraLista(btn){
   var righe=((DATI.spesa||{}).righe||[]).filter(function(r){return statoRiga(r)!=='da_comprare';});
   var out=document.getElementById('esitoGiro');
   if(!righe.length){if(out)out.textContent='Tutto già da comprare: niente da azzerare.';return;}
   if(!confirm('Riporto '+righe.length+' voci a «da comprare»?')) return;
   if(btn) btn.disabled=true;
-  var ok=0,ko=0;
+  var ok=0,ko=0,motivi=[];
   righe.reduce(function(catena,r){
     return catena.then(function(){
-      return cambiaStatoRiga(r.alimento_id,r.rev,'da_comprare').then(function(){ok++;},function(){ko++;});
+      return cambiaStatoRiga(r.alimento_id,r.rev,'da_comprare')
+        .then(function(){ok++;},function(e){ko++;if(motivi.indexOf(e.message)<0)motivi.push(e.message);});
     });
   },Promise.resolve()).then(function(){return caricaSpesa();}).then(function(){
     RENDER.spesa();
     var o=document.getElementById('esitoGiro');
-    if(o)o.textContent='Azzerate '+ok+' voci'+(ko?' · '+ko+' NON azzerate: ricarica e riprova':'');
+    if(o)o.textContent='Azzerate '+ok+' voci'+(ko?' · '+ko+' NON azzerate ('+motivi.join('; ')+')':'');
   });
 }
 /* SELEZIONE DAL MASTER: flagga le voci e componi la lista della spesa */
@@ -1302,25 +1318,34 @@ function aggiungiSelezionate(btn){
   var ids=Object.keys(SEL_MASTER).filter(function(k){return SEL_MASTER[k];}).map(Number);
   if(!ids.length){alert('Flagga prima almeno una voce del catalogo.');return;}
   var giro=DATI.spesa&&DATI.spesa.giro;
-  var partenza=Promise.resolve();
-  if(!giro||giro.stato!=='aperto'){
+  var partenza=Promise.resolve(null);
+  var serveCrea=!giro||giro.stato!=='aperto';
+  if(serveCrea){
     if(!confirm('Non c\'è una lista aperta: ne creo una nuova (parte dalle voci del piano) e ci aggiungo le '+ids.length+' selezionate?')) return;
-    partenza=api('/api/lista_spesa/giro',{azione:'crea',operazione:nuovaChiave()});
+    partenza=api('/api/lista_spesa/giro',{azione:'crea',operazione:nuovaChiave()}).then(function(r){
+      /* la creazione si VERIFICA: senza lista vera le aggiunte non partono */
+      if(!(r&&r.scritto!==false&&r.esito==='creato')) throw new Error('Lista non creata: '+motivoSpesa(r));
+      return r;
+    });
   }
   if(btn) btn.disabled=true;
-  var ok=0,ko=0,motivi=[];
+  var ok=0,giaInLista=0,ko=0,motivi=[];
   partenza.then(function(){
     return ids.reduce(function(catena,id){
       return catena.then(function(){
         return api('/api/lista_spesa/giro',{azione:'aggiungi_riga',alimento:id,operazione:nuovaChiave()})
-          .then(function(){ok++;},function(e){ko++;motivi.push(e.message);});
+          .then(function(r){
+            if(spesaScritta(r)){ok++;return;}
+            if(r&&r.esito==='invariato'){giaInLista++;return;}
+            ko++;var m=motivoSpesa(r);if(motivi.indexOf(m)<0)motivi.push(m);
+          },function(e){ko++;if(motivi.indexOf(e.message)<0)motivi.push(e.message);});
       });
     },Promise.resolve());
   }).then(function(){return caricaSpesa();}).then(function(){
     SEL_MASTER={};FILTRO_SPESA='da_comprare';RENDER.spesa();
     var o=document.getElementById('esitoGiro');
-    if(o)o.textContent='Aggiunte '+ok+' voci'+(ko?' · '+ko+' NON aggiunte ('+motivi[0]+')':'');
-  }).catch(function(e){if(btn)btn.disabled=false;alert('Lista non creata: '+e.message);});
+    if(o)o.textContent='Aggiunte '+ok+' voci'+(giaInLista?' · '+giaInLista+' già in lista':'')+(ko?' · '+ko+' NON aggiunte ('+motivi.join('; ')+')':'');
+  }).catch(function(e){if(btn)btn.disabled=false;alert(e.message.indexOf('Lista non creata')===0?e.message:'Lista non creata: '+e.message);});
 }
 function condividiWhatsapp(){
   /* condivisibile SEMPRE: tutta la lista con lo stato di ogni voce */
