@@ -766,21 +766,34 @@ function salvaMisure(btn){
        rifiutata. Un 200 muto NON e' una conferma; un corpo illeggibile,
        la rete persa, il timeout e i 5xx restano INCERTI, fail-closed. */
     var salvate=0,rifiutate=0,incerte=0,nonTentate=0;
-    function strutturato(c){return !!(c&&(c.salvate!=null||Array.isArray(c.confermate)||Array.isArray(c.incerte)||Array.isArray(c.rifiutate_dal_database)||Array.isArray(c.non_tentate)));}
-    function somma(c){
-      salvate+=c.salvate!=null?Number(c.salvate):((c.confermate||[]).length);
-      rifiutate+=(c.rifiutate_dal_database||[]).length;
-      incerte+=(c.incerte||[]).length;
-      nonTentate+=(c.non_tentate||[]).length;
+    /* l'evidenza si VALIDA, non si annusa (review-5): un corpo conta come
+       esito solo se i tipi sono giusti, salvate e confermate concordano e
+       la risposta COPRE almeno la misura chiesta. Tutto il resto e' incerto. */
+    function nIntero(v){return typeof v==='number'&&isFinite(v)&&v>=0&&Math.floor(v)===v?v:null;}
+    function haCampiEsito(c){return !!(c&&typeof c==='object'&&!Array.isArray(c)&&(c.salvate!==undefined||c.confermate!==undefined||c.incerte!==undefined||c.rifiutate_dal_database!==undefined||c.non_tentate!==undefined));}
+    function classifica(c){
+      if(!haCampiEsito(c)) return null;
+      var s=null;
+      if(c.salvate!==undefined){s=nIntero(c.salvate); if(s===null) return null;}
+      if(Array.isArray(c.confermate)){ if(s!==null&&s!==c.confermate.length) return null; if(s===null)s=c.confermate.length; }
+      else if(c.confermate!==undefined) return null;
+      s=s||0;
+      function arr(v){ if(v===undefined) return 0; if(!Array.isArray(v)) return null; return v.length; }
+      var r=arr(c.rifiutate_dal_database), i=arr(c.incerte), nt=arr(c.non_tentate);
+      if(r===null||i===null||nt===null) return null;
+      if(s+r+i+nt<1) return null;         /* non copre la misura chiesta */
+      return {s:s,r:r,i:i,nt:nt};
     }
     ris.forEach(function(r){
-      if(r.status==='fulfilled'){
-        if(strutturato(r.value)){somma(r.value);return;}
-        incerte++; return;                    /* 200 senza attestazione */
-      }
+      var corpo=r.status==='fulfilled'?r.value:(r.reason||{}).corpo;
+      var esito=classifica(corpo);
+      if(esito){salvate+=esito.s;rifiutate+=esito.r;incerte+=esito.i;nonTentate+=esito.nt;return;}
+      if(haCampiEsito(corpo)){incerte++;return;}  /* esito nominale ma invalido/scoperto */
+      if(r.status==='fulfilled'){incerte++;return;}  /* 200 senza attestazione */
       var e=r.reason||{};
-      if(strutturato(e.corpo)){somma(e.corpo);return;}
-      if(e.stato>=400&&e.stato<500&&e.corpo){rifiutate++;return;}  /* respinta dichiarata, corpo letto */
+      /* respinta DICHIARATA: 4xx con un corpo-oggetto che porta un errore testuale */
+      if(e.stato>=400&&e.stato<500&&corpo&&typeof corpo==='object'&&!Array.isArray(corpo)&&
+         typeof corpo.errore==='string'&&corpo.errore.trim()!==''){rifiutate++;return;}
       incerte++;
     });
     out.textContent=salvate+' salvat'+(salvate===1?'a':'e')+
