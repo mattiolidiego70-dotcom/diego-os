@@ -1973,7 +1973,7 @@ function etichettaChat(c){
 function renderListaChat(){
   var out=document.getElementById('alfListe'); var conv=DATI.chatArchivio||[];
   function riga(c){return '<div class="alfChat'+(c.chiave===CONV_CHAT?' on':'')+'" onclick="CONV_CHAT=\''+c.chiave+'\';caricaConversazione(CONV_CHAT);renderListaChat()">'+etichettaChat(c)+'</div>';}
-  var perChiave={}; conv.forEach(function(c){perChiave[c.chiave]=c;});
+  var perChiave=Object.create(null); conv.forEach(function(c){perChiave[c.chiave]=c;});
   var h='';
   if(!ORG_CHAT) h+='<div class="nota" style="color:var(--attenzione)">organizzazione non leggibile: pin e cartelle in SOLA LETTURA finché non torna</div>';
   if(ORG_CHAT){
@@ -2007,11 +2007,15 @@ function mettiInCartella(chiave){
   var attuale=cartellaDi(chiave);
   var nome=prompt('Cartella per questa conversazione (vuoto = nessuna).'+(attuale?' Ora: '+attuale:''),attuale||'');
   if(nome===null)return;
+  nome=nome.trim();
+  if(nome&&(nome==='__proto__'||nome==='constructor'||nome==='prototype'||Object.prototype.hasOwnProperty.call(Object.prototype,nome))){
+    avvisoRiordino('Nome cartella riservato («'+nome+'»): scegline un altro.');
+    return;   /* PRIMA di toccare le assegnazioni: niente perdite (R15-3) */
+  }
   Object.keys(ORG_CHAT.cartelle).forEach(function(n){
     ORG_CHAT.cartelle[n]=(ORG_CHAT.cartelle[n]||[]).filter(function(k){return k!==chiave;});
     if(!ORG_CHAT.cartelle[n].length)delete ORG_CHAT.cartelle[n];
   });
-  nome=nome.trim();
   if(nome){
     /* accesso SICURO: 'constructor' e simili non sono le nostre cartelle (R12-4) */
     var attuali=Object.prototype.hasOwnProperty.call(ORG_CHAT.cartelle,nome)?ORG_CHAT.cartelle[nome]:[];
