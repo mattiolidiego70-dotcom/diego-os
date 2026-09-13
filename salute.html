@@ -176,12 +176,12 @@ a{color:var(--accento);text-decoration:none}
   .pane[data-pane="oggi"]>[data-blocco="heatmap"]{order:2}
   .pane[data-pane="oggi"]>[data-blocco="kcal"]{order:3}
   .pane[data-pane="oggi"]>[data-blocco="verdetto"]{order:4}
-  .pane[data-pane="oggi"]>[data-blocco="tdee"]{order:5}
-  .pane[data-pane="oggi"]>[data-blocco="tiles"]{order:6}
-  .pane[data-pane="oggi"]>[data-blocco="cuore"]{order:7}
-  .pane[data-pane="oggi"]>[data-blocco="check"]{order:8}
-  .pane[data-pane="oggi"]>[data-blocco="cheto"]{order:9}
-  .pane[data-pane="oggi"]>[data-blocco="lasettimana"]{order:10}
+  .pane[data-pane="oggi"]>[data-blocco="tiles"]{order:5}
+  .pane[data-pane="oggi"]>[data-blocco="cuore"]{order:6}
+  .pane[data-pane="oggi"]>[data-blocco="check"]{order:7}
+  .pane[data-pane="oggi"]>[data-blocco="cheto"]{order:8}
+  .pane[data-pane="oggi"]>[data-blocco="lasettimana"]{order:9}
+  .pane[data-pane="oggi"]>[data-blocco="tdee"]{order:10}
   #diario30.si{padding:6px 16px 10px}
   #barraAlfred{position:relative;left:0;bottom:0;transform:none;width:auto;margin:9px 16px 0;border-radius:22px;padding:9px 12px}
   #alfredRisposta{left:16px;right:16px;width:auto;transform:none;bottom:150px}
@@ -320,8 +320,10 @@ function chartAttrs(nome,kind,unit,hint,labels,values,cmpLabel,cmpValues){
      nei grafici inline della pagina, che i null li sanno gestire. */
   var L=[],V=[],C=cmpValues?[]:null;
   (values||[]).forEach(function(v,i){
-    if(v==null) return;
-    if(cmpValues&&cmpValues[i]==null) return;
+    /* buco = null O stringa vuota: i renderer a barre passano '' per le sedi
+       senza misura, e il vendor trasformerebbe anche quelle in zeri */
+    if(v==null||v==='') return;
+    if(cmpValues&&(cmpValues[i]==null||cmpValues[i]==='')) return;
     L.push(labels[i]); V.push(String(v).replace('.',','));
     if(C) C.push(String(cmpValues[i]).replace('.',','));
   });
@@ -743,9 +745,17 @@ function salvaMisure(btn){
   if(sede&&sv) invii.push(api('/api/misura_corpo',{misure:[{nome:sede,valore:Number(sv)}]}));
   if(!invii.length){out.textContent='Niente da salvare: compila almeno un campo.';return;}
   Promise.allSettled(invii).then(function(ris){
-    var ok=ris.filter(function(r){return r.status==='fulfilled';}).length;
-    var ko=ris.length-ok;
-    out.textContent=ok+' salvat'+(ok===1?'a':'e')+(ko?' · '+ko+' RIFIUTATE (guardia del registro)':'');
+    /* tre esiti DISTINTI: confermata, rifiutata, INCERTA (l'edge risponde 409
+       «senza conferma»: potrebbe essere scritta, ripeterla farebbe un doppione) */
+    var salvate=0,rifiutate=0,incerte=0;
+    ris.forEach(function(r){
+      if(r.status==='fulfilled'){salvate++;return;}
+      var msg=String(r.reason&&r.reason.message||'');
+      if(/senza conferma|potrebbe essere/i.test(msg)) incerte++; else rifiutate++;
+    });
+    out.textContent=salvate+' salvat'+(salvate===1?'a':'e')+
+      (rifiutate?' · '+rifiutate+' RIFIUTATE (guardia del registro)':'')+
+      (incerte?' · '+incerte+' SENZA CONFERMA: potrebbero essere scritte, verifica prima di ripetere':'');
     caricaTutto().then(function(){RENDER.corpo();});
   });
 }
@@ -829,9 +839,12 @@ var DEF_OBIETTIVI=[{type:'attivi',order:1},{type:'allenamenti',order:2},{type:'a
 function modificaObiettivo(i){
   var ob=(DATI.obiettivi&&DATI.obiettivi.lista||[])[i]; if(!ob) return;
   var nuovo=prompt('Nuovo target per «'+ob.nome+'» (ora '+ob.target+(ob.unita?' '+ob.unita:'')+'). Vale anche detto ad Alfred: «porta '+ob.nome.toLowerCase()+' a …»',ob.target);
-  if(nuovo==null||nuovo===''||String(nuovo)===String(ob.target)) return;
-  var n=Number(String(nuovo).trim().replace(',','.'));
-  if(!isFinite(n)){alert('Il target è un numero («'+nuovo+'» non lo è): niente salvato.');return;}
+  if(nuovo==null||!String(nuovo).trim()||String(nuovo)===String(ob.target)) return;
+  var pulito=String(nuovo).trim().replace(',','.');
+  var n=Number(pulito);
+  /* Number('')===0 e Number('   ')===0: senza questo controllo tre spazi
+     diventerebbero un target ZERO scritto davvero */
+  if(pulito===''||!isFinite(n)){alert('Il target è un numero («'+nuovo+'» non lo è): niente salvato.');return;}
   api('/api/obiettivi',{chiave:ob.chiave,target:n})
     .then(function(r){
       /* l'esito NON_VERIFICATO si dice: la rilettura non ha confermato la scrittura */
@@ -894,8 +907,9 @@ REGISTRO.dieta={
       var scelta=(D.stimaScelte&&D.stimaScelte[p])||scelte[p]||alts[0].lettera;
       var a=alts.find(function(x){return x.lettera===scelta;})||alts[0];
       var st=perPastoStima[p]; var nk=st&&st.nutrienti&&st.nutrienti.kcal, np=st&&st.nutrienti&&st.nutrienti.proteine;
-      var kcalTxt=nk&&nk.min!=null?fmtInt(nk.min)+'-'+fmtInt(nk.max):'—';
-      var protTxt=np&&np.min!=null?fmtInt(np.min)+'-'+fmtInt(np.max)+' P':'';
+      var kcalND=nk&&Array.isArray(nk.nd_da)&&nk.nd_da.length;
+      var kcalTxt=nk&&nk.min!=null?fmtInt(nk.min)+'-'+fmtInt(nk.max)+(kcalND?' ND':''):'—';
+      var protTxt=np&&np.min!=null?fmtInt(np.min)+'-'+fmtInt(np.max)+' P'+(np.tracce?' tr.':''):'';
       h+='<div class="cliccabile" onclick="scegliAlternativa(\''+p+'\')" style="display:flex;gap:11px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:7px">'+
         '<span style="width:26px;height:26px;border-radius:8px;background:var(--accento-fondo-16);border:1px solid var(--accento-bordo);color:var(--accento);display:flex;align-items:center;justify-content:center;font:600 12px var(--font-mono);flex:none">'+esc(a.lettera||'?')+'</span>'+
         '<div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="color:var(--testo1);font:500 12.5px var(--font-ui)">'+esc(nomi[p]||p)+'</span><span style="color:var(--testo4);font:400 10px var(--font-ui)">'+alts.length+' alternative</span></div>'+
@@ -913,12 +927,21 @@ REGISTRO.dieta={
     var tot=st&&(st.giornata||st.giornata_parziale)||null;
     var parziale=!!(st&&!st.giornata&&st.giornata_parziale);
     var h='<div class="testa"><span class="tit">Totali stimati</span><span class="etk">'+(parziale?'PARZIALI':'MIN-MAX')+'</span></div>';
+    var conND=[];
     if(!tot) h+=muto('la stima arriva col piano caricato (lettere per pasto)');
     else [['Kcal','kcal'],['Proteine','proteine','g'],['Carboidrati','carboidrati_disponibili','g'],['Grassi','grassi','g'],['Fibra','fibra','g']].forEach(function(r){
-      var v=tot[r[1]]; var testo=v&&v.min!=null?fmtInt(v.min)+'-'+fmtInt(v.max)+(r[2]?' '+r[2]:''):'—';
-      h+='<div class="riga"><span class="k">'+r[0]+'</span><span class="v">'+esc(testo)+'</span></div>';
+      var v=tot[r[1]];
+      /* il contratto dice quando la somma e' MONCA (nd_da) o solo tracce:
+         nasconderlo farebbe leggere 0-0 come uno zero misurato */
+      var nd=v&&Array.isArray(v.nd_da)?v.nd_da.length:0;
+      if(nd) conND.push(r[0]+' ('+nd+' ND)');
+      var testo=v&&v.min!=null?fmtInt(v.min)+'-'+fmtInt(v.max)+(r[2]?' '+r[2]:''):'—';
+      if(v&&v.tracce) testo+=' · tracce';
+      if(nd) testo+=' · parziale';
+      h+='<div class="riga"><span class="k">'+r[0]+'</span><span class="v"'+(nd||v&&v.tracce?' style="color:var(--attenzione)"':'')+'>'+esc(testo)+'</span></div>';
     });
-    h+='<div class="nota">'+esc((st&&st.nota_giornata)||'Intervallo, non un numero secco: dipende dalle alternative scelte.')+'</div>';
+    h+='<div class="nota">'+esc((st&&st.nota_giornata)||'Intervallo, non un numero secco: dipende dalle alternative scelte.')+
+      (conND.length?' <span style="color:var(--attenzione)">Somma incompleta: '+esc(conND.join(', '))+' — ingredienti senza dato nella fonte.</span>':'')+'</div>';
     return scheda('3','1',h);
   },
   ricette:function(D){
@@ -991,7 +1014,12 @@ function generaRicette(btn){
 }
 function accettaRicetta(id,btn){
   /* contratto /api/ricette/stato: azione nel registro chiuso accetta|rifiuta|promuovi */
-  api('/api/ricette/stato',{id:Number(id),azione:'accetta'}).then(function(){btn.textContent='Accettata ✓';btn.disabled=true;return caricaTutto();}).then(function(){if(TAB_ATTIVA==='spesa')RENDER.spesa();else if(TAB_ATTIVA==='dieta')RENDER.dieta();})
+  api('/api/ricette/stato',{id:Number(id),azione:'accetta'}).then(function(r){
+    /* HTTP 200 non basta: conta l'esito APPLICATIVO (giro_assente/scritto:false esiste) */
+    if(!r||r.scritto===false){btn.textContent='Non accettata: '+((r&&r.esito)||'esito negativo dal registro');return;}
+    btn.textContent='Accettata ✓';btn.disabled=true;
+    return caricaTutto().then(function(){if(TAB_ATTIVA==='spesa')RENDER.spesa();else if(TAB_ATTIVA==='dieta')RENDER.dieta();});
+  })
   .catch(function(e){btn.textContent='Non accettata: '+e.message;});
 }
 
@@ -1039,6 +1067,7 @@ REGISTRO.spesa={
   variabile:function(D){
     var g=D.spesaVariabile||[];
     var h='<div class="testa"><span class="tit">Variabile</span><span class="etk">DA RICETTE</span></div>';
+    if(D.spesaVariabileErrore) return scheda('3','2',h+muto('sezione non leggibile ora: '+D.spesaVariabileErrore));
     if(!g.length) h+=muto('le voci nascono dalle ricette accettate in Dieta');
     else g.slice(0,6).forEach(function(v){h+='<div class="riga"><span class="k">'+esc(v.nome)+'</span><span class="v">ricetta '+esc(dataIT(v.data||v.ricetta_data||''))+'</span></div>';});
     h+='<div class="nota">Decade se non la promuovi a fissa.</div>';
@@ -1048,6 +1077,7 @@ REGISTRO.spesa={
     /* contratto cosa=giri: [{id,titolo,stato,creato,rev,righe_vive,comprate}] */
     var s=(D.spesa&&D.spesa.storico)||[];
     var h='<div class="testa"><span class="tit">Storico giri</span><span class="etk">ULTIMI</span></div>';
+    if(D.spesaGiriErrore) return scheda('3','3',h+muto('storico non leggibile ora: '+D.spesaGiriErrore));
     if(!s.length) h+=muto('lo storico si riempie col primo giro chiuso');
     else s.slice(0,4).forEach(function(gg){
       h+='<div class="riga"><span class="k">'+esc((gg.titolo||('giro '+gg.id))+' · '+dataIT(String(gg.creato||'').slice(0,10)))+'</span><span class="v">'+esc(gg.stato+(gg.righe_vive!=null?' · '+gg.comprate+'/'+gg.righe_vive+' prese':''))+'</span></div>';});
@@ -1260,7 +1290,10 @@ function caricaSpesa(){
       DATI.spesa={giro:giro,righe:(giro&&giro.righe)||[],master:tutto.master||[],
         integratori:tutto.integratori||[],storico:(ok(r[2])||{}).giri||[]};
       DATI.spesaVariabile=(ok(r[1])||{}).variabile||[];
+      /* OGNI lettura fallita resta un errore con nome, mai un vuoto */
       DATI.spesaErrore=r[0]&&r[0].__errore?r[0].__errore:null;
+      DATI.spesaVariabileErrore=r[1]&&r[1].__errore?r[1].__errore:null;
+      DATI.spesaGiriErrore=r[2]&&r[2].__errore?r[2].__errore:null;
     });
 }
 function caricaBrain(){
@@ -1310,6 +1343,8 @@ function caricaTutto(){
     var nomi=['contesto','dati','semaforo','tdee','qualità','aderenza 7gg','aderenza 28gg','box','abitudini','pliche','misure','nutrizione','chat','obiettivi','check','ricette'];
     FONTI_MUTE=nomi.filter(function(n,i){return r[i]&&r[i].__errore;});
     if(DATI.spesaErrore) FONTI_MUTE.push('spesa');
+    if(DATI.spesaVariabileErrore) FONTI_MUTE.push('spesa variabile');
+    if(DATI.spesaGiriErrore) FONTI_MUTE.push('storico giri');
     if(DATI.brainErrore) FONTI_MUTE.push('brain');
     aggiornaContesto();
     /* la stima della giornata e' REALE solo per lettere scelte: si chiede col
