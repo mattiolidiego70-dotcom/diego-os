@@ -425,7 +425,7 @@ function vai(id){
   var t=TABS.find(function(x){return x.id===id;});
   document.getElementById('alfredTesto').placeholder=t.hintBarra;
   document.getElementById('mobTitolo').textContent=id==='oggi'?'Salute':t.label;
-  document.getElementById('statoriga').classList.toggle('si',id==='obiettivi'&&!!DATI.statoObiettivi);
+  document.getElementById('statoriga').classList.toggle('si',id==='obiettivi'&&!!(DATI.statoObiettivi||(DATI.obiettivi&&DATI.obiettivi.nota_dieta)));
   document.getElementById('diario30').classList.toggle('si',id==='obiettivi');
   RENDER[id]&&RENDER[id]();
 }
@@ -893,6 +893,9 @@ REGISTRO.obiettivi={
     var el=scheda('1/3','1/3','',null);
     var h='<div class="testa"><span class="tit">Obiettivi attivi</span><span class="etk">'+ob.length+' · MODIFICABILI</span></div>'+
       '<div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;justify-content:space-between;overflow-y:auto">';
+    /* il guasto della fonte dieta si dichiara ANCHE qui (nota N9-1): una
+       scheda vuota col guasto non equivale a «nessun obiettivo» */
+    if(D.obiettivi&&D.obiettivi.nota_dieta) h+='<div class="nota" style="color:var(--attenzione)">'+esc(D.obiettivi.nota_dieta)+'</div>';
     if(!ob.length) h+=muto('nessun obiettivo fissato: dillo ad Alfred («porta il peso a 78 entro dicembre») o tocca qui per crearne uno');
     ob.forEach(function(o,i){
       var ritardo=!!o.in_ritardo;
@@ -980,6 +983,15 @@ function modificaObiettivo(i){
 }
 function rigaStatoObiettivi(){
   var st=DATI.statoObiettivi;
+  var notaDieta=DATI.obiettivi&&DATI.obiettivi.nota_dieta;
+  if(!st&&notaDieta&&TAB_ATTIVA==='obiettivi'){
+    /* niente stato ma fonte guasta: la riga lo dice invece di sparire (N9-1) */
+    document.getElementById('statopallino').style.background='var(--attenzione)';
+    document.getElementById('statotesto').textContent=notaDieta;
+    document.getElementById('statosugg').textContent='';
+    document.getElementById('statoriga').classList.add('si');
+    return;
+  }
   if(!st){document.getElementById('statoriga').classList.remove('si');return;}
   document.getElementById('statopallino').style.background=st.in_ritardo?'var(--attenzione)':'var(--accento)';
   var t=st.attivi+' obiettivi attivi';
