@@ -155,7 +155,7 @@ a{color:var(--accento);text-decoration:none}
 #barraAlfred.chiusa{width:58px;padding:6px;border-radius:50%;left:50%;transform:translateX(-50%);cursor:pointer}
 #barraAlfred.chiusa .dentro{justify-content:center;gap:0}
 #barraAlfred.chiusa .dentro>*:not(.sfera){display:none !important}
-/* la sfera si ANIMA solo quando Alfred parla o lavora: da ferma e' quieta */
+/* la sfera si ANIMA solo quando Ada parla o lavora: da ferma e' quieta */
 .sfera .rosa,.sfera .blu{animation-play-state:paused}
 #appfusto.ascolta .sfera .rosa,#appfusto.ascolta .sfera .blu{animation-play-state:running}
 #onde{visibility:hidden}
@@ -167,7 +167,7 @@ a{color:var(--accento);text-decoration:none}
 .icona-barra{display:flex;color:rgba(255,255,255,.55);cursor:pointer;background:none;border:none;padding:0}
 .icona-barra.lime{color:var(--accento)}
 #mobiletop,#dockMobile,#mobileTesta{display:none}
-/* risposta di Alfred: scheda in vetro sopra il contenuto */
+/* risposta di Ada: scheda in vetro sopra il contenuto */
 #alfredSuggerimenti{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);z-index:68;gap:6px;flex-wrap:wrap;justify-content:center;max-width:660px}
 #alfredSuggerimenti.si{display:flex}
 #alfredRisposta{display:none;position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:660px;max-height:46%;z-index:69;background:rgba(20,20,24,.66);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:1px solid var(--bordo-forte);border-radius:16px;padding:14px;box-shadow:var(--ombra-alfred);flex-direction:column;gap:9px}
@@ -184,7 +184,11 @@ a{color:var(--accento);text-decoration:none}
   /* la CATENA delle altezze: senza questo vincolo la colonna cresceva a
      1700px dentro un overflow:hidden e la pagina "non scorreva" (collaudo
      Diego 13/09): barra e dock finivano invisibili sotto il taglio */
-  #colonna{flex:1 1 0;min-height:0}
+  /* CATENA DELLE LARGHEZZE (14/09, gemella di quella delle altezze): un
+     flex item ha min-width:auto e si allarga col contenuto - un solo
+     badge nowrap allargava colonna, pane e OGNI card oltre lo schermo */
+  #colonna{flex:1 1 0;min-height:0;min-width:0;max-width:100vw;overflow-x:hidden}
+  .pane{max-width:100vw;box-sizing:border-box}
   #rail,#testata,#striscia{display:none}
   #mobileTesta{display:block;position:relative;z-index:20;padding:14px 16px 0}
   #mobileTesta .sopra{display:flex;align-items:center;justify-content:space-between}
@@ -194,9 +198,21 @@ a{color:var(--accento);text-decoration:none}
   #tabsMob .tab{padding:6px 13px;border-radius:10px;border:1px solid var(--bordo);color:var(--testo3);font:400 12px var(--font-ui);white-space:nowrap;background:none;cursor:pointer}
   #tabsMob .tab.on{background:var(--accento-fondo);border-color:var(--accento-bordo);color:var(--accento);font-weight:500}
   .pane{padding:12px 16px 4px}
-  .pane.on{display:flex;flex-direction:column;overflow-y:auto;gap:9px}
+  /* il fondo respira: l'ultima card non finisce sotto la barra di Ada */
+  .pane.on{display:flex;flex-direction:column;overflow-y:auto;gap:9px;padding-bottom:170px}
   /* REGOLA CRITICA (gia' sbagliata una volta): ogni scheda figlia flex:none */
   .pane.on>*{flex:none !important;grid-column:auto !important;grid-row:auto !important}
+  /* REV GRAFICA 14/09 - CONTENIMENTO: i badge nowrap (es. «18 mar · 124,5»)
+     davano alle card un min-content piu' largo del telefono e TUTTO
+     sfondava a destra (bolle chat comprese). Nessuna card puo' superare
+     lo schermo; cio' che non ci sta si tronca con i puntini, non taglia
+     la pagina. */
+  .pane.on>*{max-width:100% !important;min-width:0;overflow:hidden !important}
+  /* i min-content dei flex (7 pillole, 26 celle heatmap, badge nowrap)
+     devono potersi SCHIACCIARE: senza questo il figlio detta la larghezza */
+  .pane.on>* *{min-width:0}
+  .lettura{max-width:40vw;overflow:hidden;text-overflow:ellipsis}
+  .tit{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* ordine mobile di Oggi come nel mockup — ma SOLO finché Diego non
      riordina lui: la classe ordine-mockup sparisce appena esiste una
      configurazione utente (review-7, R7-1) */
@@ -289,7 +305,7 @@ a{color:var(--accento);text-decoration:none}
       <div class="voce on" data-amb="salute" onclick="tornaSalute()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nome">Salute</span></div>
       <div class="voce" data-amb="finance" onclick="avvisoRiordino('Finance arriva qui a breve: per ora vive nella vecchia dashboard (index-v1-superata.html)')"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg><span class="nome">Finance</span></div>
       <div class="voce" data-amb="outfit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg><span class="nome">Outfit</span></div>
-      <div class="voce" data-amb="alfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">Alfred</span></div>
+      <div class="voce" data-amb="alfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">Ada</span></div>
     </div>
     <div style="margin-top:auto;color:rgba(255,255,255,.4);display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
   </aside>
@@ -300,7 +316,7 @@ a{color:var(--accento);text-decoration:none}
       <div class="modulo">Salute</div>
       <div id="pillola" onclick="barraApri();document.getElementById('alfredTesto').focus()">
         <span class="sfera" style="width:20px;height:20px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span>
-        <span>Chiedi ad Alfred, o dillo a voce</span>
+        <span>Chiedi ad Ada, o dillo a voce</span>
       </div>
       <div id="contesto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span id="contestoTesto">—</span></div>
     </div>
@@ -346,7 +362,7 @@ a{color:var(--accento);text-decoration:none}
           <b style="width:2px;height:8px;background:rgba(255,255,255,.9);border-radius:1px;display:block;animation:onda 1.2s ease-in-out .3s infinite"></b>
         </i>
       </span>
-      <input id="alfredTesto" placeholder="Chiedi ad Alfred, o dillo a voce" autocomplete="off">
+      <input id="alfredTesto" placeholder="Chiedi ad Ada, o dillo a voce" autocomplete="off">
       <input id="fotoFile" type="file" accept="image/*" capture="environment" style="display:none">
       <input id="allegatoFile" type="file" accept="application/pdf,text/csv,text/plain,.csv,.txt,.pdf" style="display:none">
       <button class="icona-barra" title="Foto" onclick="document.getElementById('fotoFile').click()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></button>
@@ -358,7 +374,7 @@ a{color:var(--accento);text-decoration:none}
       <div class="voce on" onclick="tornaSalute()"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="nome">SALUTE</span></div>
       <div class="voce" onclick="avvisoRiordino('Finance arriva qui a breve: per ora vive nella vecchia dashboard (index-v1-superata.html)')"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg></span><span class="nome">FINANCE</span></div>
       <div class="voce"><span style="display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46A2 2 0 0 0 2.28 5.7l.58 3.47a1 1 0 0 0 .99.83H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.83l.58-3.47a2 2 0 0 0-1.34-2.24Z"/></svg></span><span class="nome">OUTFIT</span></div>
-      <div class="voce" id="dockAlfred" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">ALFRED</span></div>
+      <div class="voce" id="dockAda" onclick="apriAlfred()"><span class="sfera" style="width:19px;height:19px"><i class="rosa" style="filter:blur(4px)"></i><i class="blu" style="filter:blur(5px)"></i></span><span class="nome">ADA</span></div>
     </div>
 
   </div>
@@ -556,7 +572,7 @@ REGISTRO.oggi={
     return scheda('3','1',
       '<div class="testa" style="color:var(--accento)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg><span class="etk">TDEE</span></div>'+
       '<div style="color:var(--testo1);font:500 22px var(--font-mono)">'+(t.tdee!=null?fmtInt(t.tdee):'—')+'<span style="font:400 11px var(--font-mono);color:var(--testo3)"> kcal</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--testo3);font:400 11.5px var(--font-ui)">Affidabilità</span><span style="color:var(--testo2);font:500 11.5px var(--font-ui)">'+esc(t.affidabilita||'non dichiarata')+'</span></div>'+
+      '<div><span style="color:var(--testo3);font:400 10px var(--font-ui);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px">Affidabilità</span><span style="color:var(--testo2);font:400 11.5px/1.45 var(--font-ui);display:block">'+esc(t.affidabilita||'non dichiarata')+'</span></div>'+
       '<div style="display:flex;align-items:center;gap:8px"><span class="barra" style="flex:1"><i style="width:'+(pct==null?0:pct)+'%"></i></span><span style="color:var(--testo2);font:500 11px var(--font-mono)">'+(pct==null?'—':pct+'%')+'</span></div>'+
       '<div class="nota">qualità dati · '+(pct==null?'pipeline muta: lo dico, non lo invento':'pipeline attiva')+' · si modifica dalle ipotesi di Dieta</div>');
   },
@@ -614,7 +630,7 @@ REGISTRO.oggi={
         '<span class="mono">finestra ±5%</span></div>'+
       (ndTesti.length?'<div class="nota" style="color:var(--attenzione)">target PARZIALE, dati mancanti nel piano ('+esc(ndTesti.join(' · '))+')</div>':'')+
       (guastoDieta?'<div class="nota" style="color:var(--attenzione)">'+esc(guastoDieta)+'</div>':'')+
-      (target||guastoDieta?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Alfred e comparira qui da solo')));
+      (target||guastoDieta?'':muto('il target arriva dalla DIETA caricata: passa il piano ad Ada e comparira qui da solo')));
   },
   allenamenti:function(D){
     var b=D.box||{};
@@ -711,7 +727,7 @@ REGISTRO.oggi={
     var ctx=D.contesto||{}; var voci=[];
     try{ var raw=ctx.settimana_impegni; voci=raw?(typeof raw==='string'?JSON.parse(raw):raw):[]; }catch(e){voci=[];}
     var h='<span class="tit">La settimana</span>';
-    if(!Array.isArray(voci)||!voci.length) h+=muto('gli impegni ricorrenti si fissano con Alfred («la settimana: CrossFit lun-mer-ven»)');
+    if(!Array.isArray(voci)||!voci.length) h+=muto('gli impegni ricorrenti si fissano con Ada («la settimana: CrossFit lun-mer-ven»)');
     else voci.slice(0,4).forEach(function(v){h+='<div style="display:flex;align-items:center;gap:9px"><span style="width:5px;height:5px;border-radius:50%;background:var(--accento);display:block;flex:none"></span><span style="color:var(--testo2);font:400 12.5px var(--font-ui)">'+esc(typeof v==='string'?v:(v.nome+' — '+v.quando))+'</span></div>';});
     var el=scheda('3','5',h); el.style.gap='5px'; el.style.padding='10px 14px'; return el;
   }
@@ -841,7 +857,7 @@ REGISTRO.corpo={
       '<span style="margin-left:auto" data-chart-read data-chart-default="'+esc(read)+'" class="lettura">'+esc(read)+'</span><span data-chart-expand class="espandi">'+svgEspandi+'</span></div>'+
       '<div '+chartAttrs('Pliche','bars','mm','presa corrente vs precedente',labels,vals)+' style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto;position:relative">'+righe+'</div>'+
       '<div class="nota">Barra dal punto zero'+(prev&&prev.data?' (presa del '+dataIT(prev.data)+')':'')+': verde se scende, ambra se sale. Delta in mm.'+
-      (conflittoPresa?' <span style="color:var(--attenzione)">Questa presa ha valori DISCORDI per la stessa serie: mostrato il minimo, da chiarire con Alfred.</span>':'')+'</div>';
+      (conflittoPresa?' <span style="color:var(--attenzione)">Questa presa ha valori DISCORDI per la stessa serie: mostrato il minimo, da chiarire con Ada.</span>':'')+'</div>';
     return el;
   },
   inserimento:function(D){
@@ -948,7 +964,7 @@ REGISTRO.obiettivi={
     /* il guasto della fonte dieta si dichiara ANCHE qui (nota N9-1): una
        scheda vuota col guasto non equivale a «nessun obiettivo» */
     if(D.obiettivi&&D.obiettivi.nota_dieta) h+='<div class="nota" style="color:var(--attenzione)">'+esc(D.obiettivi.nota_dieta)+'</div>';
-    if(!ob.length) h+=muto('nessun obiettivo fissato: dillo ad Alfred («porta il peso a 78 entro dicembre»)');
+    if(!ob.length) h+=muto('nessun obiettivo fissato: dillo ad Ada («porta il peso a 78 entro dicembre»)');
     ob.forEach(function(o,i){
       var ritardo=!!o.in_ritardo;
       var colore=ritardo?'var(--attenzione)':'var(--accento)';
@@ -983,7 +999,7 @@ REGISTRO.obiettivi={
   abitudini:function(D){
     var lista=D.abitudini||[];
     var h='<div class="testa"><span class="tit">Abitudini</span><span class="etk">7 GG</span></div>';
-    if(!lista.length) h+=muto('nessuna abitudine: dilla ad Alfred («crea una abitudine…»)');
+    if(!lista.length) h+=muto('nessuna abitudine: dilla ad Ada («crea una abitudine…»)');
     lista.slice(0,5).forEach(function(a){
       var giorni=a.ultimi_7||a.settimana||[];
       var q='';
@@ -996,7 +1012,7 @@ REGISTRO.obiettivi={
     var ctx=D.contesto||{}; var lista=[];
     try{var raw=ctx.benchmark; lista=raw?(typeof raw==='string'?JSON.parse(raw):raw):[];}catch(e){lista=[];}
     var h='<div class="testa"><span class="tit">Benchmark</span><span class="etk">PR</span></div>';
-    if(!Array.isArray(lista)||!lista.length) h+=muto('i PR si dicono ad Alfred («benchmark: back squat 120 kg») e compaiono qui');
+    if(!Array.isArray(lista)||!lista.length) h+=muto('i PR si dicono ad Ada («benchmark: back squat 120 kg») e compaiono qui');
     else{
       h+='<div style="display:grid;grid-template-columns:repeat('+Math.min(4,lista.length)+',1fr);gap:10px">';
       lista.slice(0,4).forEach(function(b){
@@ -1015,10 +1031,10 @@ var DEF_OBIETTIVI=[{type:'attivi',order:1},{type:'allenamenti',order:2},{type:'a
 function modificaObiettivo(i){
   var ob=(DATI.obiettivi&&DATI.obiettivi.lista||[])[i]; if(!ob) return;
   if(ob.chi==='dieta'){
-    alert('Questo target viene dalla DIETA caricata: è la media di tutte le giornate componibili del piano. Si aggiorna da solo quando ricarichi il piano; per forzarlo dillo ad Alfred.');
+    alert('Questo target viene dalla DIETA caricata: è la media di tutte le giornate componibili del piano. Si aggiorna da solo quando ricarichi il piano; per forzarlo dillo ad Ada.');
     return;
   }
-  var nuovo=prompt('Nuovo target per «'+ob.nome+'» (ora '+ob.target+(ob.unita?' '+ob.unita:'')+'). Vale anche detto ad Alfred: «porta '+ob.nome.toLowerCase()+' a …»',ob.target);
+  var nuovo=prompt('Nuovo target per «'+ob.nome+'» (ora '+ob.target+(ob.unita?' '+ob.unita:'')+'). Vale anche detto ad Ada: «porta '+ob.nome.toLowerCase()+' a …»',ob.target);
   if(nuovo==null||!String(nuovo).trim()||String(nuovo)===String(ob.target)) return;
   var pulito=String(nuovo).trim().replace(',','.');
   var n=Number(pulito);
@@ -1028,7 +1044,7 @@ function modificaObiettivo(i){
   api('/api/obiettivi',{chiave:ob.chiave,target:n})
     .then(function(r){
       /* l'esito NON_VERIFICATO si dice: la rilettura non ha confermato la scrittura */
-      if(!r||r.esito!=='salvato') alert('ATTENZIONE: salvataggio NON VERIFICATO dalla rilettura (da '+(r&&r.da)+' a '+(r&&r.a)+'). Controlla con Alfred.');
+      if(!r||r.esito!=='salvato') alert('ATTENZIONE: salvataggio NON VERIFICATO dalla rilettura (da '+(r&&r.da)+' a '+(r&&r.a)+'). Controlla con Ada.');
       return caricaTutto();
     }).then(function(){RENDER.obiettivi();})
     .catch(function(e){alert('Non salvato: '+e.message);});
@@ -1050,7 +1066,7 @@ function rigaStatoObiettivi(){
   if(st.in_ritardo) t+=' · '+st.in_ritardo+' in ritardo — '+st.motivo;
   if(DATI.obiettivi&&DATI.obiettivi.nota_dieta) t+=' · '+DATI.obiettivi.nota_dieta;
   document.getElementById('statotesto').innerHTML=esc(t).replace(esc(st.in_ritardo+' in ritardo'),'<span style="color:var(--attenzione)">'+st.in_ritardo+' in ritardo</span>');
-  document.getElementById('statosugg').textContent='“Alfred, porta il peso a 77”';
+  document.getElementById('statosugg').textContent='“Ada, porta il peso a 77”';
   if(TAB_ATTIVA==='obiettivi') document.getElementById('statoriga').classList.add('si');
 }
 function montaDiario30(){
@@ -1106,7 +1122,7 @@ REGISTRO.dieta={
         '<div style="color:var(--testo3);font:400 11.5px/1.4 var(--font-ui);margin-top:2px">'+esc((a.testo||'').slice(0,90))+'</div></div>'+
         '<div style="text-align:right;flex:none"><div style="color:var(--testo2);font:500 12px var(--font-mono)">'+esc(kcalTxt)+'</div><div style="color:var(--testo4);font:400 10px var(--font-mono)">'+esc(protTxt)+'</div></div></div>';
     });
-    if(vuoto) h+=muto('il piano del nutrizionista non risulta caricato: passa il PDF ad Alfred dalla barra qui sotto');
+    if(vuoto) h+=muto('il piano del nutrizionista non risulta caricato: passa il PDF ad Ada dalla barra qui sotto');
     h+='</div><div class="nota">Le lettere vengono dal foglio del nutrizionista: una per pasto, combinabili liberamente.</div>';
     return scheda('1/3','1/3',h);
   },
@@ -1131,19 +1147,19 @@ REGISTRO.dieta={
     return scheda('3','1',h);
   },
   ricette:function(D){
-    /* la generazione e' di Alfred (AI): il bottone manda il comando in chat.
+    /* la generazione e' di Ada (AI): il bottone manda il comando in chat.
        Qui sotto le BOZZE vere (salute_ricette_lista) con Accetta → Spesa. */
     var bozze=(D.ricette||[]).filter(function(r){return r.stato==='bozza'||r.stato==='proposta';});
     var h='<div class="testa"><span class="tit">Genera ricette</span><span class="etk">COACH</span></div>'+
       '<input id="ricettaVoglia" class="campo" placeholder=\'Cosa ti va? es. "qualcosa con pollo e zucchine"\'>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap">'+['pollo','zucchine','veloce','senza forno'].map(function(t){return '<button class="chip" onclick="var i=document.getElementById(\'ricettaVoglia\');i.value=(i.value?i.value+\' \':\'\')+\''+t+'\'">'+t+'</button>';}).join('')+'</div>'+
-      '<button class="bott" onclick="generaRicette(this)">Genera (chiede ad Alfred)</button>'+
+      '<button class="bott" onclick="generaRicette(this)">Genera (chiede ad Ada)</button>'+
       '<div id="ricetteEsito" style="overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:6px">'+
       (bozze.length?bozze.slice(0,4).map(function(ric){return '<div style="border:1px solid var(--riga);border-radius:9px;padding:7px 9px">'+
         '<div style="color:var(--testo1);font:500 12px var(--font-ui)">'+esc(ric.titolo||('Ricetta '+ric.id))+'</div>'+
         '<div style="color:var(--testo3);font:400 11px/1.4 var(--font-ui)">'+esc((ric.voglia||ric.testo||'').slice(0,140))+'</div>'+
         '<button class="bott2" style="margin-top:5px;padding:4px" onclick="accettaRicetta('+ric.id+',this)">Accetta → Spesa</button></div>';}).join(''):
-      '<div class="nota">nessuna bozza in attesa: genera con Alfred</div>')+'</div>'+
+      '<div class="nota">nessuna bozza in attesa: genera con Ada</div>')+'</div>'+
       '<div class="nota">Le accettate finiscono in Spesa, sezione variabile.</div>';
     return scheda('3','2',h);
   },
@@ -1196,7 +1212,7 @@ function generaRicette(btn){
      la generazione e' un lavoro del coach, quindi passa dalla chat */
   var voglia=document.getElementById('ricettaVoglia').value.trim();
   mandaAdAlfred('Genera una ricetta '+(voglia?'con: '+voglia:'compatibile col piano di oggi')+'. Salvala in bozza tra le mie ricette.');
-  document.getElementById('ricetteEsito').innerHTML='<div class="nota">chiesto ad Alfred: la proposta arriva nella risposta e la bozza compare in questa scheda al prossimo aggiornamento.</div>';
+  document.getElementById('ricetteEsito').innerHTML='<div class="nota">chiesto ad Ada: la proposta arriva nella risposta e la bozza compare in questa scheda al prossimo aggiornamento.</div>';
 }
 function accettaRicetta(id,btn){
   /* contratto /api/ricette/stato: azione nel registro chiuso accetta|rifiuta|promuovi */
@@ -1319,9 +1335,9 @@ function motivoSpesa(r){
   return e;
 }
 function cambiaStatoRiga(id,rev,nuovo){
-  if(id==null){alert('questa voce non porta un id: si gestisce da Alfred');return Promise.reject(new Error('senza id'));}
+  if(id==null){alert('questa voce non porta un id: si gestisce da Ada');return Promise.reject(new Error('senza id'));}
   var giro=DATI.spesa&&DATI.spesa.giro;
-  if(!giro||giro.id==null){alert('nessun giro aperto: crealo dal catalogo master o con Alfred');return Promise.reject(new Error('senza giro'));}
+  if(!giro||giro.id==null){alert('nessun giro aperto: crealo dal catalogo master o con Ada');return Promise.reject(new Error('senza giro'));}
   return api('/api/lista_spesa/giro',{azione:'stato',giro:giro.id,alimento:id,rev:rev,stato:nuovo,operazione:nuovaChiave()})
     .then(function(r){
       if(!spesaScritta(r)){var err=new Error(motivoSpesa(r));err.esitoDominio=String((r&&r.esito)||'');throw err;}
@@ -1400,7 +1416,7 @@ function aggiungiSelezionate(btn){
 function condividiWhatsapp(){
   /* condivisibile SEMPRE: tutta la lista con lo stato di ogni voce */
   var righe=(DATI.spesa||{}).righe||[];
-  if(!righe.length){alert('La lista è vuota: componila dal catalogo master o con Alfred.');return;}
+  if(!righe.length){alert('La lista è vuota: componila dal catalogo master o con Ada.');return;}
   var simbolo={da_comprare:'▢',comprato:'✔',in_casa:'~'};
   var testo='Spesa:\n'+righe.map(function(r){return simbolo[statoRiga(r)]+' '+r.nome;}).join('\n');
   window.open('https://wa.me/?text='+encodeURIComponent(testo),'_blank');
@@ -1411,7 +1427,7 @@ function exportExcel(){mandaAdAlfred('Mandami l\'export della lista della spesa 
 var FILTRO_BRAIN='correnti';
 var TIPO_NUOVO='pensiero';
 /* Archivio temi: STRUTTURA VISIBILE CON DATI FINTI - il motore e' il compito
-   aperto su DIEGOOS (Alfred dopo ogni seduta), NON va implementato qui. */
+   aperto su DIEGOOS (Ada dopo ogni seduta), NON va implementato qui. */
 var TEMI_FINTI=[
   {tema:'Evitamento delle telefonate difficili',barre:[8,12,12,16,16,12,16,16],colore:'var(--attenzione)',tend:'in crescita',ultima:'8 set',stato:'presente'},
   {tema:'Pensieri notturni, sonno corto',barre:[16,16,12,12,12,8,12,8],colore:'var(--accento)',tend:'in calo',ultima:'8 set',stato:'presente'},
@@ -1429,7 +1445,7 @@ REGISTRO.brain={
     var h='<div class="testa"><span class="tit">Appunti</span><span class="etk">'+(tutti.correnti||[]).length+' CORRENTI</span></div>'+
       '<div style="display:flex;gap:5px;flex-wrap:wrap">'+filtri.map(function(fz){return '<button class="chip'+(FILTRO_BRAIN===fz[0]?' on':'')+'" onclick="FILTRO_BRAIN=\''+fz[0]+'\';RENDER.brain()">'+fz[1]+'</button>';}).join('')+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:0;flex:1">';
-    if(!lista.length) h+=muto('niente qui: scrivi a destra, o dettalo ad Alfred');
+    if(!lista.length) h+=muto('niente qui: scrivi a destra, o dettalo ad Ada');
     lista.forEach(function(a){
       h+='<div style="display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid var(--riga);padding-bottom:6px">'+
         '<span class="spunta'+(a.selezionato?' comprato':'')+'" style="margin-top:2px" onclick="this.classList.toggle(\'comprato\');APPUNTI_SEL[\''+a.id+'\']=this.classList.contains(\'comprato\');contaSelezionati()"></span>'+
@@ -1443,7 +1459,7 @@ REGISTRO.brain={
     var tipi=[['pensiero','Pensiero'],['sogno','Sogno'],['pattern','Pattern'],['da dire','Da dire']];
     var h='<div class="testa"><span class="tit">Nuovo appunto</span><span class="etk">TIPO</span></div>'+
       '<div style="display:flex;gap:5px;flex-wrap:wrap">'+tipi.map(function(t){return '<button class="chip'+(TIPO_NUOVO===t[0]?' on':'')+'" onclick="TIPO_NUOVO=\''+t[0]+'\';RENDER.brain()">'+t[1]+'</button>';}).join('')+'</div>'+
-      '<textarea id="nuovoAppunto" class="campo" rows="3" placeholder="Scrivi qui, o dettalo ad Alfred" style="resize:none"></textarea>'+
+      '<textarea id="nuovoAppunto" class="campo" rows="3" placeholder="Scrivi qui, o dettalo ad Ada" style="resize:none"></textarea>'+
       '<div style="display:flex;gap:6px;align-items:center"><button class="bott2" style="width:auto;padding:7px 18px" onclick="salvaAppunto(this)">Salva</button><span class="nota">si può fare anche in chat</span></div>'+
       '<div class="nota">Nessun titolo obbligatorio: una riga basta. La data la mette il sistema.</div>';
     return scheda('3','1/3',h);
@@ -1464,7 +1480,7 @@ REGISTRO.brain={
     return scheda('3','3',h);
   },
   archivio:function(D){
-    var h='<div class="testa"><span class="tit">Archivio · temi nel tempo</span><span class="etk">ALFRED, DOPO OGNI SEDUTA</span></div>'+
+    var h='<div class="testa"><span class="tit">Archivio · temi nel tempo</span><span class="etk">ADA, DOPO OGNI SEDUTA</span></div>'+
       '<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:hidden">';
     TEMI_FINTI.forEach(function(t){
       var pill=t.stato==='passato'?'border:1px solid var(--bordo);color:var(--testo4)':
@@ -1515,11 +1531,11 @@ REGISTRO.coach={
     return el;
   },
   ilcoach:function(D){
-    var nome=(D.contesto&&D.contesto.nome_coach)||'Alfred';
+    var nome=(D.contesto&&D.contesto.nome_coach)||'Ada';
     return scheda('3','1',
       '<div class="testa"><span class="tit">Il coach</span><span class="etk">NOME</span></div>'+
       '<div style="display:flex;align-items:center;gap:10px"><span class="sfera" style="width:32px;height:32px"><i class="rosa" style="filter:blur(6px)"></i><i class="blu" style="filter:blur(7px)"></i></span>'+
-      '<div style="flex:1"><div style="color:var(--testo1);font:500 15px var(--font-ui)">'+esc(nome)+'</div><div style="color:var(--testo4);font:400 10.5px var(--font-ui)">'+(nome==='Alfred'?'nome predefinito':'nome scelto da te')+'</div></div>'+
+      '<div style="flex:1"><div style="color:var(--testo1);font:500 15px var(--font-ui)">'+esc(nome)+'</div><div style="color:var(--testo4);font:400 10.5px var(--font-ui)">'+(nome==='Ada'?'nome predefinito':'nome scelto da te')+'</div></div>'+
       '<span style="color:var(--accento);font:500 11.5px var(--font-ui);cursor:pointer" onclick="cambiaNomeCoach()">Cambia</span></div>'+
       '<div class="nota">Un solo assistente per salute e moda: nessuna etichetta, nessun canale da scegliere.</div>');
   },
@@ -1546,7 +1562,7 @@ REGISTRO.coach={
 };
 var DEF_COACH=[{type:'conversazione',order:1},{type:'ilcoach',order:2},{type:'fonti',order:3},{type:'storico',order:4}];
 function cambiaNomeCoach(){
-  var n=prompt('Nome del coach (max 2 parole):',(DATI.contesto&&DATI.contesto.nome_coach)||'Alfred');
+  var n=prompt('Nome del coach (max 2 parole):',(DATI.contesto&&DATI.contesto.nome_coach)||'Ada');
   if(!n) return;
   mandaAdAlfred('Da oggi ti chiami '+n.trim()+': salva il nome del coach nel contesto.');
 }
@@ -1622,6 +1638,11 @@ function caricaTutto(){
   ]).then(function(r){
     DATI.contesto=ok(r[0])||{};
     DATI.dati182=Array.isArray(ok(r[1]))?ok(r[1]):((ok(r[1])||{}).giorni||[]);
+    /* REV GRAFICA 14/09: tutte le card assumono la serie in ordine
+       CRESCENTE di data (ult = ultimo elemento). L'API la mandava al
+       contrario e ogni "ultimo" era il piu' VECCHIO: le card mostravano
+       «18 mar · 124,5 kg» al posto di oggi. Si ordina QUI, una volta. */
+    DATI.dati182.sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));});
     DATI.semaforo=ok(r[2])||{}; DATI.tdee=ok(r[3])||{}; DATI.qualita=ok(r[4])||{};
     DATI.aderenza7=ok(r[5])||{}; DATI.aderenza28=ok(r[6])||{};
     DATI.box=ok(r[7])||{}; DATI.abitudini=normalizzaAbitudini(ok(r[8]));
@@ -1678,13 +1699,13 @@ function aggiornaContesto(){
 
 /* ═══ ALFRED — barra, risposta in vetro, seguiti, foto/allegati, voce ═══ */
 function mostraRisposta(testo,seguiti){
-  barraApri();   /* quando Alfred parla, la barra e la risposta sono in primo piano */
+  barraApri();   /* quando Ada parla, la barra e la risposta sono in primo piano */
   var box=document.getElementById('alfredRisposta');
   document.getElementById('alfredRispTesto').textContent=testo;
   var sg=document.getElementById('alfredSeguiti'); sg.innerHTML='';
   (seguiti||[]).slice(0,3).forEach(function(s){
     var b=document.createElement('button'); b.className='chip'; b.textContent=s;
-    b.onclick=function(){document.getElementById('alfredTesto').value=s;inviaAlfred();};
+    b.onclick=function(){document.getElementById('alfredTesto').value=s;inviaAda();};
     sg.appendChild(b);
   });
   var x=document.createElement('button'); x.className='chip'; x.textContent='chiudi';
@@ -1703,7 +1724,7 @@ function seguitiPer(tab,risposta){
   return s[tab]||s.oggi;
 }
 /* la barra si chiude nella pallina dopo 5 secondi che non la usi;
-   un tocco sulla sfera la riapre. Mentre Alfred lavora o risponde resta aperta. */
+   un tocco sulla sfera la riapre. Mentre Ada lavora o risponde resta aperta. */
 var TIMER_BARRA=null;
 function barraApri(){document.getElementById('barraAlfred').classList.remove('chiusa');barraArma();}
 function barraArma(){
@@ -1723,7 +1744,7 @@ document.getElementById('alfredTesto').addEventListener('focus',barraApri);
 document.getElementById('alfredTesto').addEventListener('input',barraApri);
 barraArma();
 var ALFRED_OCCUPATO=false;
-function inviaAlfred(){
+function inviaAda(){
   var i=document.getElementById('alfredTesto'); var q=i.value.trim(); if(!q||ALFRED_OCCUPATO) return;
   i.value=''; mandaAdAlfred(q);
 }
@@ -1776,7 +1797,7 @@ function inviaFile(file,tipo){
 }
 document.getElementById('fotoFile').addEventListener('change',function(){inviaFile(this.files[0],'image');this.value='';});
 document.getElementById('allegatoFile').addEventListener('change',function(){inviaFile(this.files[0],'file');this.value='';});
-document.getElementById('alfredTesto').addEventListener('keydown',function(e){if(e.key==='Enter')inviaAlfred();});
+document.getElementById('alfredTesto').addEventListener('keydown',function(e){if(e.key==='Enter')inviaAda();});
 /* trascina un file sulla barra */
 ['dragover','drop'].forEach(function(ev){document.getElementById('barraAlfred').addEventListener(ev,function(e){
   e.preventDefault(); if(ev==='drop'&&e.dataTransfer.files[0]){var f=e.dataTransfer.files[0];inviaFile(f,f.type.indexOf('image')===0?'image':'file');}});});
@@ -1790,20 +1811,20 @@ document.getElementById('micBtn').addEventListener('click',function(){
   document.getElementById('appfusto').classList.add('ascolta');
   var campo=document.getElementById('alfredTesto');
   RICON.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;campo.value=t;};
-  RICON.onend=function(){RICON=null;if(campo.value.trim())inviaAlfred();else document.getElementById('appfusto').classList.remove('ascolta');};
+  RICON.onend=function(){RICON=null;if(campo.value.trim())inviaAda();else document.getElementById('appfusto').classList.remove('ascolta');};
   RICON.start();
 });
 function apriCheck(){mandaAdAlfred('Apriamo il check serale adesso: fammi le domande.');}
 /* Il vendor dei grafici (handoff, cosi' com'e') disegna nel pannello espanso
    «Inserisci qui / Salva» senza motore dietro. Il motore glielo da' la pagina:
-   il tocco su Salva chiede il valore e lo passa ad Alfred (ogni azione UI ha
+   il tocco su Salva chiede il valore e lo passa ad Ada (ogni azione UI ha
    il suo comando in chat), mai un bottone che finge. */
 document.addEventListener('click',function(e){
   var dentro=e.target&&e.target.closest?e.target.closest('[data-chart-overlay]'):null;
   if(!dentro) return;
   var s=e.target.closest('span'); if(!s||s.textContent!=='Salva') return;
   var titolo=dentro.querySelector('span'); var nome=(titolo&&titolo.textContent)||'la serie';
-  var v=prompt('Valore di oggi per «'+nome+'» (lo registra Alfred):');
+  var v=prompt('Valore di oggi per «'+nome+'» (lo registra Ada):');
   if(v==null||!String(v).trim()) return;
   dentro.remove();
   mandaAdAlfred('Registra per oggi '+nome.toLowerCase()+': '+String(v).trim());
@@ -1917,9 +1938,9 @@ function apriAlfred(){
   document.getElementById('diario30').classList.remove('si');
   document.getElementById('vistaAlfred').classList.add('on');
   document.querySelectorAll('#rail .voce').forEach(function(v){v.classList.toggle('on',v.getAttribute('data-amb')==='alfred');});
-  document.querySelectorAll('#dockMobile .voce').forEach(function(v){v.classList.toggle('on',v.id==='dockAlfred');});
-  var mt=document.getElementById('mobTitolo'); if(mt) mt.textContent='Alfred';
-  var md=document.querySelector('#testata .modulo'); if(md) md.textContent='Alfred';
+  document.querySelectorAll('#dockMobile .voce').forEach(function(v){v.classList.toggle('on',v.id==='dockAda');});
+  var mt=document.getElementById('mobTitolo'); if(mt) mt.textContent='Ada';
+  var md=document.querySelector('#testata .modulo'); if(md) md.textContent='Ada';
   if(location.hash!=='#alfred') location.hash='alfred';
   caricaArchivioChat();
 }
@@ -1985,8 +2006,8 @@ function renderListaChat(){
     });
   }
   var libere=conv.filter(function(c){return !pinnata(c.chiave)&&!cartellaDi(c.chiave);});
-  h+='<div class="sez">CONVERSAZIONI</div>'+(libere.length?libere.map(riga).join(''):muto('parla con Alfred e lo storico si riempie'));
-  h+='<div class="nota" style="margin-top:6px">La memoria di Alfred è UNICA: ogni chat vede tutto.</div>';
+  h+='<div class="sez">CONVERSAZIONI</div>'+(libere.length?libere.map(riga).join(''):muto('parla con Ada e lo storico si riempie'));
+  h+='<div class="nota" style="margin-top:6px">La memoria di Ada è UNICA: ogni chat vede tutto.</div>';
   out.innerHTML=h;
 }
 function salvaOrgChat(){
@@ -2051,7 +2072,7 @@ var TIMER_SUGG=null;
 function suggerimentiFlash(tab){
   var box=document.getElementById('alfredSuggerimenti');
   box.innerHTML=seguitiPer(tab).map(function(sg){
-    return '<button class="chip" onclick="chiudiSuggerimenti();document.getElementById(\'alfredTesto\').value=this.textContent;inviaAlfred()">'+esc(sg)+'</button>';
+    return '<button class="chip" onclick="chiudiSuggerimenti();document.getElementById(\'alfredTesto\').value=this.textContent;inviaAda()">'+esc(sg)+'</button>';
   }).join('');
   box.classList.add('si');
   barraApri();
