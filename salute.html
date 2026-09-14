@@ -64,14 +64,14 @@ a{color:var(--accento);text-decoration:none}
 @keyframes onda{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
 
 /* ═══ COMPONENTI ═══ */
-.card{background:var(--vetro);backdrop-filter:var(--vetro-filtro);-webkit-backdrop-filter:var(--vetro-filtro);
-  border:1px solid var(--bordo);border-radius:var(--r-scheda);padding:12px 14px;
-  box-shadow:var(--luce-interna);transition:var(--transizione);
+.card{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--vetro);backdrop-filter:var(--vetro-filtro);-webkit-backdrop-filter:var(--vetro-filtro);
+  border:1px solid var(--bordo);border-radius:var(--r-scheda);padding:13px 15px;
+  box-shadow:var(--luce-interna),0 8px 24px rgba(0,0,0,.22);transition:var(--transizione);
   display:flex;flex-direction:column;gap:7px;min-height:0;min-width:0}
 .card:hover{transform:translateY(-3px) scale(1.008);box-shadow:var(--ombra-hover),inset 0 1px 0 rgba(255,255,255,.12)}
 .card:active{transform:translateY(-1px) scale(.997)}
 .testa{display:flex;align-items:center;justify-content:space-between;gap:9px}
-.testa .tit{color:var(--testo1);font:500 14px var(--font-ui)}
+.testa .tit{color:var(--testo1);font:600 14.5px var(--font-ui);letter-spacing:-.01em}
 .etk{color:var(--testo4);font:400 10px var(--font-mono);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .lettura{border:1px solid var(--bordo-forte);border-radius:8px;padding:3px 9px;color:var(--testo2);font:500 11px var(--font-mono);white-space:nowrap}
 .espandi{display:flex;color:var(--accento);cursor:pointer}
@@ -103,8 +103,9 @@ a{color:var(--accento);text-decoration:none}
 .spunta.comprato{background:var(--accento)}
 .spunta.celho{background:var(--accento-45)}
 .pillstato{border:1px solid var(--bordo);border-radius:var(--r-chip-s);padding:1px 8px;font:400 10px var(--font-ui);color:var(--testo4);white-space:nowrap}
-.msg-io{align-self:flex-end;max-width:78%;background:var(--accento);border-radius:14px;padding:9px 12px;color:var(--inchiostro-su-lime);font:400 12.5px/1.5 var(--font-ui)}
-.msg-coach{align-self:flex-start;max-width:78%;background:rgba(28,28,30,.68);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:9px 12px;color:var(--testo1);font:400 12.5px/1.5 var(--font-ui);white-space:pre-wrap}
+/* bolle 2026: raggio asimmetrico, gradiente sul lime, profondita' soft */
+.msg-io{align-self:flex-end;max-width:82%;background:linear-gradient(135deg,var(--accento),#8FE000);border-radius:18px 18px 5px 18px;padding:10px 14px;color:var(--inchiostro-su-lime);font:400 13px/1.5 var(--font-ui);box-shadow:0 4px 16px rgba(163,255,0,.18)}
+.msg-coach{align-self:flex-start;max-width:82%;background:rgba(255,255,255,.055);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-radius:18px 18px 18px 5px;padding:10px 14px;color:var(--testo1);font:400 13px/1.55 var(--font-ui);white-space:pre-wrap;box-shadow:0 2px 12px rgba(0,0,0,.25)}
 
 /* ═══ SHELL DESKTOP (>760px) ═══ */
 #sfondo{position:fixed;inset:0;background:var(--fondo-desktop)}
@@ -1186,7 +1187,9 @@ REGISTRO.dieta={
     var h='<div class="testa"><span class="tit">Ipotesi modificabili</span><span class="etk cliccabile" onclick="modificaIpotesi()">MODIFICA</span></div>';
     if(!ass.length) h+=muto('le assunzioni del modello arrivano con /api/nutrizione');
     else ass.slice(0,4).forEach(function(a){
-      h+='<div class="riga"><span class="k">'+esc(a.etichetta||a.chiave)+'</span><span class="v">'+esc(a.valore!=null?String(a.valore)+(a.unita?' '+a.unita:''):'—')+'</span></div>';});
+      /* V33: mai booleani inglesi a video - true/false diventano si'/no */
+      var vv=a.valore===true?'sì':(a.valore===false?'no':(a.valore!=null?String(a.valore)+(a.unita?' '+a.unita:''):'—'));
+      h+='<div class="riga"><span class="k">'+esc(a.etichetta||a.chiave)+'</span><span class="v">'+esc(vv)+'</span></div>';});
     h+='<div class="nota">Cambiarle ricalcola le stime, non il piano.</div>';
     return scheda('2','3',h);
   },
@@ -1480,8 +1483,10 @@ REGISTRO.brain={
     return scheda('3','3',h);
   },
   archivio:function(D){
-    var h='<div class="testa"><span class="tit">Archivio · temi nel tempo</span><span class="etk">ADA, DOPO OGNI SEDUTA</span></div>'+
-      '<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:hidden">';
+    /* V11 (review visione): i temi dimostrativi sembravano risultati veri -
+       il badge ESEMPIO sta su OGNI riga, non solo in una nota a pie' card */
+    var h='<div class="testa"><span class="tit">Archivio · temi nel tempo</span><span class="etk" style="color:var(--attenzione)">ESEMPIO · MOTORE IN COSTRUZIONE</span></div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:hidden;opacity:.55">';
     TEMI_FINTI.forEach(function(t){
       var pill=t.stato==='passato'?'border:1px solid var(--bordo);color:var(--testo4)':
         (t.stato==='presente'&&t.colore==='var(--accento)'?'border:1px solid rgba(163,255,0,.33);color:var(--accento)':'border:1px solid rgba(255,176,32,.33);color:var(--attenzione)');
@@ -1521,11 +1526,31 @@ function exportBrain(){
 REGISTRO.coach={
   conversazione:function(D){
     var msgs=D.chatStoria||[];
-    var h='<div class="testa"><span class="tit">Conversazione</span><span class="etk">OGGI</span></div>'+
+    /* REV 14/09 (V12/V13): la chat portava giorni diversi sotto un «OGGI»
+       fisso, bolle senza orario e messaggi di sistema travestiti da
+       risposte. Ora: separatori di giorno, ora per bolla, errori attenuati. */
+    var h='<div class="testa"><span class="tit">Conversazione</span><span class="etk">CON ADA</span></div>'+
       '<div id="chatScroll" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:0;flex:1;padding-right:2px">';
-    if(!msgs.length) h+=muto('la conversazione parte dalla barra qui sotto');
-    msgs.forEach(function(m){h+='<div class="'+(m.ruolo==='diego'?'msg-io':'msg-coach')+'">'+esc(m.testo.replace(/^\[[a-z]+\]\s*/i,''))+'</div>';});
-    h+='</div><div class="nota">I pasti si registrano solo qui, parlando. Foto e file si caricano dalla barra in basso.</div>';
+    if(!msgs.length) h+=muto('scrivi ad Ada nella barra qui in basso: la conversazione parte da lì');
+    var giornoPrec='';
+    msgs.forEach(function(m){
+      var ts=m.ts?new Date(m.ts):null;
+      var giorno=ts?ts.toLocaleDateString('it-IT',{timeZone:'Europe/Rome',weekday:'short',day:'numeric',month:'short'}):'';
+      if(giorno&&giorno!==giornoPrec){
+        h+='<div style="align-self:center;color:var(--testo4);font:500 10px var(--font-mono);text-transform:uppercase;letter-spacing:.08em;padding:6px 0 2px">'+esc(giorno)+'</div>';
+        giornoPrec=giorno;
+      }
+      var testo=m.testo.replace(/^\[[a-z:]+\]\s*/i,'');
+      var eSistema=/^\(nessuna risposta testuale\)|^\[TETTO DI SPESA\]|il giorno nominato e la data non combaciano/i.test(testo);
+      var ora=ts?ts.toLocaleTimeString('it-IT',{timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit'}):'';
+      if(eSistema){
+        h+='<div style="align-self:center;max-width:88%;color:var(--testo4);font:400 italic 11px var(--font-ui);text-align:center">'+esc(testo)+(ora?' · '+ora:'')+'</div>';
+      }else{
+        h+='<div class="'+(m.ruolo==='diego'?'msg-io':'msg-coach')+'">'+esc(testo)+
+          (ora?'<span style="display:block;text-align:right;font:400 9.5px var(--font-mono);opacity:.55;margin-top:3px">'+ora+'</span>':'')+'</div>';
+      }
+    });
+    h+='</div><div class="nota">Si scrive nella barra in basso (anche a voce); foto e file dal + della barra.</div>';
     var el=scheda('1/3','1/4',h);
     setTimeout(function(){var c=document.getElementById('chatScroll');if(c)c.scrollTop=c.scrollHeight;},0);
     return el;
@@ -1731,7 +1756,10 @@ function barraArma(){
   clearTimeout(TIMER_BARRA);
   TIMER_BARRA=setTimeout(function(){
     var i=document.getElementById('alfredTesto');
-    var occupata=ALFRED_OCCUPATO||i.value.trim()||document.activeElement===i||
+    /* V19 (review visione): nella tab Coach si SCRIVE - la barra li' non
+       si chiude mai nella pallina, o il campo di chat sparisce */
+    var inCoach=(typeof TAB_ATTIVA!=='undefined'&&TAB_ATTIVA==='coach')||location.hash==='#coach';
+    var occupata=inCoach||ALFRED_OCCUPATO||i.value.trim()||document.activeElement===i||
       document.getElementById('alfredRisposta').classList.contains('si');
     if(occupata){barraArma();return;}
     document.getElementById('barraAlfred').classList.add('chiusa');
