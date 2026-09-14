@@ -525,7 +525,9 @@ function montaBlocchi(tab,def){
   pane.innerHTML='';
   blocchiConfigurati(tab,def).forEach(function(b){
     try{
-      var el=REGISTRO[tab][b.type](DATI);
+      /* il 2° argomento porta la CONFIG della card (serve al tipo generico
+         «tracker»: codice/titolo scelti da Ada); i renderer storici lo ignorano */
+      var el=REGISTRO[tab][b.type](DATI,b);
       if(el){ if(b.area) el.style.gridArea=''; if(b.col) el.style.gridColumn=b.col; if(b.row) el.style.gridRow=b.row; el.setAttribute('data-blocco',b.type); pane.appendChild(el); }
     }catch(e){
       /* un blocco rotto non uccide la tab, ma NON sparisce in silenzio */
@@ -744,6 +746,8 @@ function numSettimana(iso){
   var d=new Date(iso+'T12:00:00'); var inizio=new Date(d.getFullYear(),0,1);
   return Math.ceil((((d-inizio)/86400000)+inizio.getDay()+1)/7);
 }
+/* la card generica tracker vale anche nella dash Oggi (stesso renderer) */
+REGISTRO.oggi.tracker=function(D,b){return REGISTRO.obiettivi.tracker(D,b);};
 var DEF_OGGI=[{type:'verdetto',order:1},{type:'tdee',order:2},{type:'tiles',order:3},{type:'kcal',order:4},{type:'allenamenti',order:5},{type:'heatmap',order:6},{type:'cuore',order:7},{type:'check',order:8},{type:'cheto',order:9},{type:'lasettimana',order:10}];
 
 /* ═══════════ TAB CORPO ═══════════ */
@@ -1008,6 +1012,29 @@ REGISTRO.obiettivi={
       h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:0"><span style="color:var(--testo4);font:400 10px var(--font-mono)">'+nomi[i]+'</span><span style="'+st+'"></span><span style="color:'+(g.tipo==='fatta'?'var(--testo2)':'var(--testo4)')+';font:400 9.5px var(--font-ui);text-align:center">'+esc(g.nome||g.tipo||(g.da_fare?'da fare':'—'))+'</span></div>';
     }
     return scheda('3','1',h+'</div><div class="nota" style="font-size:10px">pieno: fatto · vuoto: riposo · bordo lime: da fare</div>');
+  },
+  /* CARD GENERICA «tracker» (ordine Diego 14/09: la dash si AMPLIA a box).
+     Ada la aggiunge da chat scrivendo dash_salute_v2 con
+     {"type":"tracker","codice":"<codice abitudine>","titolo":"...","order":N}:
+     un box per QUALUNQUE tracker, anche creato un minuto prima. */
+  tracker:function(D,b){
+    b=b||{};
+    var lista=D.abitudini||[];
+    var cod=String(b.codice||'').toLowerCase();
+    var a=lista.find(function(x){return String(x.codice||'').toLowerCase()===cod;})
+        ||lista.find(function(x){return String(x.nome||'').toLowerCase().indexOf(cod)>=0;});
+    var titolo=b.titolo||(a&&a.nome)||b.codice||'Tracker';
+    var h='<div class="testa"><span class="tit">'+esc(titolo)+'</span><span class="etk">TRACKER</span></div>';
+    if(!cod) return scheda('3','1',h+muto('card tracker senza codice: dillo ad Ada e la sistema'));
+    if(!a)  return scheda('3','1',h+muto('tracker «'+esc(cod)+'» non trovato fra le abitudini: si crea o si corregge con Ada'));
+    var giorni=a.ultimi_7||a.settimana||[];
+    var fatte=a.volte_ultimi_7gg!=null?a.volte_ultimi_7gg:giorni.filter(function(v){return v===true||v==='fatta';}).length;
+    var q='';
+    for(var i=0;i<7;i++){var v=giorni[i]; q+='<span class="quadr'+((v===true||v==='fatta')?' si':'')+'" style="width:14px;height:14px"></span>';}
+    h+='<div style="color:var(--testo1);font:500 19px var(--font-mono);margin-top:6px">'+fatte+'<span style="font:400 11px var(--font-mono);color:var(--testo3)"> / 7 gg</span></div>'+
+       '<div style="display:flex;gap:4px;margin-top:6px">'+q+'</div>'+
+       (a.ancora?'<div class="nota">ancora: '+esc(a.ancora)+'</div>':'');
+    return scheda('3','1',h);
   },
   abitudini:function(D){
     var lista=D.abitudini||[];
