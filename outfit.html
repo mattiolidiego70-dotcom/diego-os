@@ -1,0 +1,128 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Outfit — Diego OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+ --fondo:#050505; --vetro:rgba(255,255,255,.06); --bordo:rgba(255,255,255,.12);
+ --accento:#A3FF00; --accento-tenue:rgba(163,255,0,.18); --accento-bordo:rgba(163,255,0,.4);
+ --attenzione:#ffb020;
+ --t1:#F5F5F7; --t2:#C7C7CC; --t3:#8E8E93; --t4:#6b6a68;
+ --r-card:16px; --r-chip:10px; --r-chip-s:6px;
+}
+*{box-sizing:border-box}
+::-webkit-scrollbar{display:none}
+html,body{scrollbar-width:none}
+body{margin:0;background:var(--fondo);color:var(--t1);font:15px/1.5 Sora,system-ui,sans-serif;
+ background-image:radial-gradient(120% 110% at 12% 4%, #A3FF0022 0%, #0d0d0d 55%, #050505 100%);
+ background-attachment:fixed;min-height:100dvh}
+.mono{font-family:"Spline Sans Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+#app{max-width:1180px;margin:0 auto;padding:26px 20px 150px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sotto{color:var(--t3);font-size:13px}
+.indietro{color:var(--t3);text-decoration:none;font-size:20px;line-height:1;padding:2px 8px;
+ border:1px solid var(--bordo);border-radius:var(--r-chip-s);background:var(--vetro)}
+.indietro:hover{color:var(--t1)}
+.tab{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 20px}
+.tab button{background:var(--vetro);border:1px solid var(--bordo);color:var(--t2);
+ border-radius:var(--r-chip);padding:8px 14px;font:500 13px Sora,sans-serif;cursor:pointer;
+ transition:.22s cubic-bezier(.2,.8,.2,1)}
+.tab button[aria-selected=true]{background:var(--accento-tenue);border-color:var(--accento-bordo);color:var(--t1)}
+.tab button:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--accento);outline-offset:2px}
+.card{background:var(--vetro);border:1px solid var(--bordo);border-radius:var(--r-card);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:blur(40px) saturate(180%);
+ padding:18px 20px;margin-bottom:16px;overflow:hidden}
+.testa{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px}
+.tit{font-weight:600;font-size:15px}
+.etk{font-family:"Spline Sans Mono",monospace;font-size:10px;text-transform:uppercase;
+ letter-spacing:.04em;color:var(--t4)}
+.prop{border-top:1px solid var(--bordo);padding:14px 0}
+.prop:first-of-type{border-top:0;padding-top:0}
+.prop h3{margin:0 0 6px;font-size:14px;font-weight:600;color:var(--t1)}
+.perche{color:var(--t2);font-size:13px;margin:0 0 8px}
+.meta{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,.05);border:1px solid var(--bordo);border-radius:var(--r-chip-s);
+ padding:2px 8px;font-size:11px;color:var(--t2)}
+.chip.acc{background:var(--accento-tenue);border-color:var(--accento-bordo);color:var(--t1)}
+.esplora{background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.42);color:#ffd89a}
+.capi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.capo{display:block;text-decoration:none;color:inherit;border:1px solid var(--bordo);
+ border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);
+ transition:.22s cubic-bezier(.2,.8,.2,1)}
+.capo:hover{transform:translateY(-3px) scale(1.008);box-shadow:0 16px 34px rgba(0,0,0,.5)}
+.capo img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#0d0d0d}
+.capo .d{padding:9px 10px}
+.capo .n{font-size:12px;color:var(--t1);line-height:1.35}
+.capo .s{font-size:10.5px;color:var(--t3);margin-top:3px}
+.avviso{color:var(--attenzione);font-size:12.5px;margin:8px 0 0}
+.vuoto{color:var(--t3);font-size:13px;padding:8px 0}
+footer{color:var(--t4);font-size:11.5px;margin-top:22px;line-height:1.6}
+@media(max-width:760px){#app{padding:16px 14px 150px}.capi{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
+</style></head><body>
+<div id="app">
+ <header><a class="indietro" href="salute.html" aria-label="torna a Diego OS">&larr;</a><h1>Outfit</h1><span class="sotto" id="sotto">cosa metterti, e con che cosa</span></header>
+ <div class="tab" role="tablist" id="tab"></div>
+ <div id="pane"></div>
+ <footer>
+  Le foto NON sono conservate: si caricano dal negozio al momento, e il link porta alla scheda originale.
+  Etichette dei capi prodotte da un modello e non ancora tarate sul giudizio di Diego (la vestibilità in
+  particolare); il metro umano conta <span class="mono">150</span> foto giudicate,
+  di cui <span class="mono">150</span> outfit.
+ </footer>
+</div>
+<script>
+const CONSIGLI={"lavoro_studio":{"copertura":"coperto","motivo":null,"limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[{"descrizione":"maglia girocollo grigio antracite, versione regular: sotto regular scuro in colonna, scarpa pulita","registro_sopra":"regular","registro_sotto":"regular","formalita":5,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"maglia girocollo grigio antracite, versione relaxed: sotto relaxed scuro in colonna, scarpa pulita","registro_sopra":"relaxed","registro_sotto":"relaxed","formalita":5,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"proposta esplorativa, non conosco ancora il tuo solito: maglia girocollo grigio antracite ma in palette calda (ruggine e cammello), sopra relaxed, sotto regular","registro_sopra":"relaxed","registro_sotto":"regular","formalita":5,"esplorazione":true,"perche":"","capi":[]}]},"cliente":{"copertura":"coperto","motivo":null,"limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[{"descrizione":"giacca destrutturata navy, versione regular: sotto regular scuro in colonna, scarpa pulita","registro_sopra":"regular","registro_sotto":"regular","formalita":6.5,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"giacca destrutturata navy, versione relaxed: sotto relaxed scuro in colonna, scarpa pulita","registro_sopra":"relaxed","registro_sotto":"relaxed","formalita":6.5,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"proposta esplorativa, non conosco ancora il tuo solito: giacca destrutturata navy ma in palette calda (ruggine e cammello), sopra relaxed, sotto regular","registro_sopra":"relaxed","registro_sotto":"regular","formalita":6.5,"esplorazione":true,"perche":"","capi":[]}]},"cena_fuori":{"copertura":"coperto","motivo":null,"limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[{"descrizione":"giacca destrutturata navy, versione regular: sotto regular scuro in colonna, scarpa pulita","registro_sopra":"regular","registro_sotto":"regular","formalita":6,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"giacca destrutturata navy, versione relaxed: sotto relaxed scuro in colonna, scarpa pulita","registro_sopra":"relaxed","registro_sotto":"relaxed","formalita":6,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"proposta esplorativa, non conosco ancora il tuo solito: giacca destrutturata navy ma in palette calda (ruggine e cammello), sopra relaxed, sotto regular","registro_sopra":"relaxed","registro_sotto":"regular","formalita":6,"esplorazione":true,"perche":"","capi":[]}]},"psicologa":{"copertura":"coperto","motivo":null,"limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[{"descrizione":"maglia girocollo grigio antracite, versione regular: sotto regular scuro in colonna, scarpa pulita","registro_sopra":"regular","registro_sotto":"regular","formalita":4,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"maglia girocollo grigio antracite, versione relaxed: sotto relaxed scuro in colonna, scarpa pulita","registro_sopra":"relaxed","registro_sotto":"relaxed","formalita":4,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"proposta esplorativa, non conosco ancora il tuo solito: maglia girocollo grigio antracite ma in palette calda (ruggine e cammello), sopra relaxed, sotto regular","registro_sopra":"relaxed","registro_sotto":"regular","formalita":4,"esplorazione":true,"perche":"","capi":[]}]},"recitazione":{"copertura":"coperto","motivo":null,"limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[{"descrizione":"maglia girocollo grigio antracite, versione regular: sotto regular scuro in colonna, scarpa pulita","registro_sopra":"regular","registro_sotto":"regular","formalita":3,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"maglia girocollo grigio antracite, versione relaxed: sotto relaxed scuro in colonna, scarpa pulita","registro_sopra":"relaxed","registro_sotto":"relaxed","formalita":3,"esplorazione":false,"perche":"","capi":[]},{"descrizione":"proposta esplorativa, non conosco ancora il tuo solito: maglia girocollo grigio antracite ma in palette calda (ruggine e cammello), sopra relaxed, sotto regular","registro_sopra":"relaxed","registro_sotto":"regular","formalita":3,"esplorazione":true,"perche":"","capi":[]}]},"serata_amici":{"copertura":"fuori","motivo":"il preset kb/08 per \"serata_amici\" vale per sera: senza l'ora dichiarata non lo applico. E la domanda utile da fare.","limiti":["non ho il tuo peso aggiornato: i consigli non tengono conto della variazione","non ho le tue misure: la vestibilità consigliata è generica","non ho altezza e peso insieme: salto le regole di proporzione"],"proposte":[]}}, CAPI={"lavoro_studio":[{"url":"https://cdn.shopify.com/s/files/1/0726/6762/7786/files/DSC_7779.jpg?v=1744377500","negozio":"ironheart.co.uk","capi":["giacca camicia in velluto a coste","pantaloni"],"colori":["marrone","nero"],"stile":["casual","smart_casual"],"archetipo":["casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U794_2.jpg?v=1788335302","negozio":"massimoalba.com","capi":["blazer velluto a coste","camicia","pantaloni velluto a coste"],"colori":["marrone","azzurro"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U861_2.jpg?v=1788354215","negozio":"massimoalba.com","capi":["blazer","pantaloni","camicia","stivaletti"],"colori":["verde scuro","grigio","azzurro chiaro"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U861_3.jpg?v=1788355370","negozio":"massimoalba.com","capi":["blazer","camicia","pantaloni"],"colori":["verde scuro","azzurro","bianco"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0272/3338/6538/files/OSMS162A-BRE01WHI_BROOK_SHIRT_BRECON-WHITE0380.jpg?v=1740052543","negozio":"oliverspencer.co.uk","capi":["camicia","pantalone","mocassino"],"colori":["bianco","blu_navy","nero"],"stile":["smart_casual"],"archetipo":["casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0272/3338/6538/files/OSMS162A-BRE01WHI_5BROOK_SHIRT_BRECON-WHITE0383-2.jpg?v=1740052543","negozio":"oliverspencer.co.uk","capi":["camicia","chino"],"colori":["bianco","blu_navy"],"stile":["casual","smart_casual"],"archetipo":["casual_classic"],"vestibilita":["regular","relaxed"],"pieno":true,"mancanti":[]}],"cliente":[],"cena_fuori":[{"url":"https://cdn.shopify.com/s/files/1/2116/8679/files/000053860007.jpg?v=1757087950","negozio":"jpressonline.com","capi":["blazer","polo a righe","camicia","chino","cintura"],"colori":["grigio","bordeaux","verde","beige"],"stile":["informale_elegante"],"archetipo":["sartoriale","casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U794_2.jpg?v=1788335302","negozio":"massimoalba.com","capi":["blazer velluto a coste","camicia","pantaloni velluto a coste"],"colori":["marrone","azzurro"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U861_2.jpg?v=1788354215","negozio":"massimoalba.com","capi":["blazer","pantaloni","camicia","stivaletti"],"colori":["verde scuro","grigio","azzurro chiaro"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U861_3.jpg?v=1788355370","negozio":"massimoalba.com","capi":["blazer","camicia","pantaloni"],"colori":["verde scuro","azzurro","bianco"],"stile":["smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U570_4.jpg?v=1788341416","negozio":"massimoalba.com","capi":["giacca_velluto_a_coste","pantaloni_velluto_a_coste","stivaletti_chelsea"],"colori":["blu_navy","marrone"],"stile":["informale_elegante","smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U570_3.jpg?v=1788340398","negozio":"massimoalba.com","capi":["giacca","camicia","pantaloni"],"colori":["blu_navy","azzurro","bianco"],"stile":["informale_elegante","smart_casual"],"archetipo":["sartoriale"],"vestibilita":["relaxed","non_valutabile"],"pieno":true,"mancanti":[]}],"psicologa":[{"url":"https://cdn.shopify.com/s/files/1/0726/6762/7786/files/DSC_7781.jpg?v=1744377853","negozio":"ironheart.co.uk","capi":["overshirt in velluto a coste","maglia","pantaloni"],"colori":["marrone","nero"],"stile":["casual"],"archetipo":["casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0726/6762/7786/files/DSC_7779.jpg?v=1744377500","negozio":"ironheart.co.uk","capi":["giacca camicia in velluto a coste","pantaloni"],"colori":["marrone","nero"],"stile":["casual","smart_casual"],"archetipo":["casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/2116/8679/files/000053860007.jpg?v=1757087950","negozio":"jpressonline.com","capi":["blazer","polo a righe","camicia","chino","cintura"],"colori":["grigio","bordeaux","verde","beige"],"stile":["informale_elegante"],"archetipo":["sartoriale","casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0831/9103/files/F2_M_Luxe_Jersey_Rugby_Polo_Balsam_Green_14450-Final-Web.jpg?v=1786479193","negozio":"marinelayer.com","capi":["polo","chino"],"colori":["verde","grigio","panna"],"stile":["casual"],"archetipo":["casual_classic"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U570_4.jpg?v=1788341416","negozio":"massimoalba.com","capi":["giacca_velluto_a_coste","pantaloni_velluto_a_coste","stivaletti_chelsea"],"colori":["blu_navy","marrone"],"stile":["informale_elegante","smart_casual"],"archetipo":["sartoriale"],"vestibilita":["regular","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0660/1146/3895/files/P30U0SLOOP_T3252_U570_3.jpg?v=1788340398","negozio":"massimoalba.com","capi":["giacca","camicia","pantaloni"],"colori":["blu_navy","azzurro","bianco"],"stile":["informale_elegante","smart_casual"],"archetipo":["sartoriale"],"vestibilita":["relaxed","non_valutabile"],"pieno":true,"mancanti":[]}],"recitazione":[{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/products/0007_3_5d73dea3-2abc-4b9d-8b10-08079f7e5074.jpg?v=1685533890","negozio":"representclo.com","capi":["t-shirt stampata","pantaloni","sneaker","occhiali da sole","collana"],"colori":["nero","grigio"],"stile":["informale_elegante"],"archetipo":["strong"],"vestibilita":["oversize","regular"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/products/0029_SCALED__0048_SS23MODELECOM1207_0033_SS23MODELECOM1406_0008_SS23MODELECOM1207_0099_SS23MODELECOM1244.jpg?v=1685534064","negozio":"representclo.com","capi":["t-shirt oversize stampata","pantaloni sartoriali con pinces","collana a catena"],"colori":["bianco","beige","grigio scuro"],"stile":["smart_casual","informale_elegante"],"archetipo":["strong"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]}],"serata_amici":[{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/WEB_0015__0030_247PANT-BLACK2.jpg?v=1779351010","negozio":"representclo.com","capi":["t-shirt","pantaloni cargo","sneaker"],"colori":["nero","bianco"],"stile":["sport_casa"],"archetipo":["casual_fashion"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/WEB_0044__0011_247SHORT-BLACK2.jpg?v=1779351006","negozio":"representclo.com","capi":["t-shirt","bermuda_cargo","sneaker","calzini"],"colori":["nero","bianco","beige"],"stile":["sport_casa","casual"],"archetipo":["casual_fashion","strong"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/RepresentOwnersClubT-Shirt-Black00004.jpg?v=1774861380","negozio":"representclo.com","capi":["t-shirt","jeans"],"colori":["nero","bianco"],"stile":["casual"],"archetipo":["casual_fashion"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/RepresentOwnersClubT-Shirt-Black00006.jpg?v=1774861380","negozio":"representclo.com","capi":["t-shirt","jeans","sneaker"],"colori":["nero","grigio"],"stile":["casual"],"archetipo":["strong"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/RepresentOwnersClubT-Shirt-Black00007.jpg?v=1774861380","negozio":"representclo.com","capi":["t-shirt","jeans","sneaker","occhiali","bracciale"],"colori":["nero","grigio_scuro"],"stile":["casual"],"archetipo":["underground_tendenza"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]},{"url":"https://cdn.shopify.com/s/files/1/0587/5816/8785/files/0000_RepresentOwnersClubHoodie-Black00017.jpg?v=1774861380","negozio":"representclo.com","capi":["felpa con cappuccio","t-shirt","jeans","sneaker"],"colori":["nero","bianco"],"stile":["casual"],"archetipo":["strong"],"vestibilita":["oversize","relaxed"],"pieno":true,"mancanti":[]}]};
+const NOMI={lavoro_studio:"lavoro",cliente:"cliente",cena_fuori:"cena fuori",psicologa:"psicologa",recitazione:"recitazione",serata_amici:"serata amici"};
+const esc=(s)=>String(s??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let corrente=Object.keys(CONSIGLI)[0];
+function tab(){
+ document.getElementById('tab').innerHTML=Object.keys(CONSIGLI).map((o)=>
+  '<button role="tab" data-o="'+o+'" aria-selected="'+(o===corrente)+'">'+esc(NOMI[o]||o)+'</button>').join('');
+}
+function proposta(p){
+ const tag=[];
+ if(p.registro_sopra)tag.push('<span class="chip">sopra '+esc(p.registro_sopra)+'</span>');
+ if(p.registro_sotto)tag.push('<span class="chip">sotto '+esc(p.registro_sotto)+'</span>');
+ if(p.formalita!=null)tag.push('<span class="chip mono">formalità '+esc(p.formalita)+'</span>');
+ if(p.esplorazione)tag.push('<span class="chip esplora">fuori dal tuo solito</span>');
+ return '<div class="prop"><h3>'+esc(p.descrizione)+'</h3>'+
+  (p.perche?'<p class="perche">'+esc(p.perche)+'</p>':'')+
+  '<div class="meta">'+tag.join('')+'</div></div>';
+}
+function capo(c){
+ const nome=(c.capi||[]).join(', ')||'outfit';
+ const sotto=[(c.stile||[]).join('|'),(c.colori||[]).slice(0,2).join(', ')].filter(Boolean).join(' · ');
+ return '<a class="capo" href="'+esc(c.url)+'" target="_blank" rel="noreferrer noopener">'+
+  '<img loading="lazy" src="'+esc(c.url)+'" alt="outfit da '+esc(c.negozio)+'">'+
+  '<div class="d"><div class="n">'+esc(nome)+'</div><div class="s">'+esc(sotto)+'</div>'+
+  '<div class="s">'+esc(c.negozio)+'</div></div></a>';
+}
+function rendi(){
+ const c=CONSIGLI[corrente], k=CAPI[corrente]||[];
+ let h='<div class="card"><div class="testa"><span class="tit">Cosa metterti</span>'+
+  '<span class="etk">motore · '+esc(corrente)+'</span></div>';
+ if(c.copertura==='coperto'&&c.proposte.length) h+=c.proposte.map(proposta).join('');
+ else{
+  h+='<div class="vuoto">Il motore non propone nulla per questa occasione, e non inventa.</div>';
+  if(c.motivo)h+='<p class="avviso">'+esc(c.motivo)+'</p>';
+ }
+ if(c.limiti&&c.limiti.length)h+='<p class="avviso">'+c.limiti.map(esc).join(' · ')+'</p>';
+ h+='</div>';
+ h+='<div class="card"><div class="testa"><span class="tit">Capi veri che ci stanno</span>'+
+  '<span class="etk">indice · '+k.length+' trovati</span></div>';
+ if(k.length){
+  h+='<div class="capi">'+k.map(capo).join('')+'</div>';
+  if(k.some((x)=>!x.pieno))h+='<p class="avviso">Alcuni non soddisfano tutti i criteri: è dichiarato, non nascosto.</p>';
+  h+='<p class="avviso">Vestibilità non ancora tarata sul tuo metro: leggila come indicazione, non come misura.</p>';
+ }else h+='<div class="vuoto">L\'indice non ha ancora capi per questa occasione. Non ne invento: si amplia l\'indice e ricompaiono qui.</div>';
+ h+='</div>';
+ document.getElementById('pane').innerHTML=h;
+ tab();
+}
+document.getElementById('tab').addEventListener('click',(e)=>{
+ const b=e.target.closest('button[data-o]'); if(!b)return; corrente=b.dataset.o; rendi();
+});
+rendi();
+</script></body></html>
