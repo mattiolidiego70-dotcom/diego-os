@@ -639,12 +639,19 @@ REGISTRO.oggi={
     /* il target NON si inventa: o dal box, o dall'obiettivo allenamenti, o resta muto */
     var obAll=((D.obiettivi&&D.obiettivi.lista)||[]).find(function(o){return o.chiave==='allenamenti';});
     var targ=b.target!=null?b.target:(b.target_settimana!=null?b.target_settimana:(obAll&&obAll.target!=null?obAll.target:'—'));
+    /* V14 (review visione): contatori pieni e tacche tutte grigie si
+       CONTRADDICEVANO. Senza dettaglio per giorno, le tacche si riempiono
+       dai contatori (prime N verdi) e la nota lo dichiara. */
+    var senzaDettaglio=!giorni.some(function(g){return g&&(g.tipo||g.da_fare);});
+    var nFatte=Number(b.fatte)||0;
     var tacche='';
     for(var i=0;i<7;i++){
       var g=giorni[i]||{}; var cl='tacca'+(g.tipo==='fatta'?' si':(g.da_fare?' dafare':''));
+      if(senzaDettaglio&&i<nFatte) cl='tacca si';
       tacche+='<span class="'+cl+'" style="height:17px"></span>';
     }
-    var conti=(b.fatte!=null?b.fatte+' fatte':'')+(b.saltate!=null?' · '+b.saltate+' saltate':'')+(b.riposi!=null?' · '+b.riposi+' riposi':'')+(b.da_fare!=null?' · '+b.da_fare+' da fare':'');
+    var conti=(b.fatte!=null?b.fatte+' fatte':'')+(b.saltate!=null?' · '+b.saltate+' saltate':'')+(b.riposi!=null?' · '+b.riposi+' riposi':'')+(b.da_fare!=null?' · '+b.da_fare+' da fare':'')+
+      (senzaDettaglio&&nFatte>0?' · senza dettaglio per giorno':'');
     return scheda('3','3',
       '<div class="testa" style="color:var(--accento)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 9v6M8 7v10M16 7v10M20 9v6M8 12h8"/></svg><span class="etk">SETTIMANA</span></div>'+
       '<div style="color:var(--testo1);font:500 19px var(--font-mono);margin-top:7px">'+fatte+' / '+targ+'</div>'+
@@ -767,11 +774,16 @@ REGISTRO.corpo={
       return {nome:k.replace('circ_',''),val:e.ultima,data:e.data,lettura:e.lettura};})
       .filter(function(v){return v.val!=null;})
       .sort(function(a,b){return String(b.data||'').localeCompare(String(a.data||''));});
-    var f=D.dati182||[], u=f[f.length-1]||{};
-    var h='<div class="testa"><span class="tit">Ultima presa</span><span class="etk">'+(voci[0]&&voci[0].data?dataIT(voci[0].data).toUpperCase():'—')+'</span></div>'+
+    /* V10 (review visione): peso/bodyfat vengono da dati182, le
+       circonferenze dal trend misure - la data in testata copriva TUTTO e
+       mischiava le fonti. Ogni valore porta la SUA data. */
+    var f=D.dati182||[], u=null;
+    for(var iu=f.length-1;iu>=0;iu--){ if(f[iu]&&f[iu].weight_kg!=null){u=f[iu];break;} }
+    u=u||{};
+    var h='<div class="testa"><span class="tit">Ultima presa</span><span class="etk">MISURE '+(voci[0]&&voci[0].data?dataIT(voci[0].data).toUpperCase():'—')+'</span></div>'+
       '<div style="display:flex;gap:16px">'+
-        '<div><div style="color:var(--testo3);font:400 10.5px var(--font-ui)">Peso</div><div style="color:var(--testo1);font:500 20px var(--font-mono)">'+fmt(u.weight_kg,1)+'</div></div>'+
-        '<div><div style="color:var(--testo3);font:400 10.5px var(--font-ui)">Body fat</div><div style="color:var(--testo1);font:500 20px var(--font-mono)">'+(u.body_fat_pct!=null?fmt(u.body_fat_pct,1)+'%':'—')+'</div></div></div>'+
+        '<div><div style="color:var(--testo3);font:400 10.5px var(--font-ui)">Peso'+(u.date?' · '+esc(dataIT(u.date)):'')+'</div><div style="color:var(--testo1);font:500 20px var(--font-mono)">'+fmt(u.weight_kg,1)+'</div></div>'+
+        '<div><div style="color:var(--testo3);font:400 10.5px var(--font-ui)">Body fat'+(u.date?' · '+esc(dataIT(u.date)):'')+'</div><div style="color:var(--testo1);font:500 20px var(--font-mono)">'+(u.body_fat_pct!=null?fmt(u.body_fat_pct,1)+'%':'—')+'</div></div></div>'+
       '<div style="display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0">';
     if(!voci.length) h+=muto('nessuna presa nel trend (entrano solo le misure del giovedì)');
     else voci.slice(0,6).forEach(function(p){h+='<div class="riga"><span class="k">'+esc(p.nome)+' · '+esc(dataIT(p.data||''))+'</span><span style="color:var(--testo2);font:400 11px var(--font-mono)">'+fmt(p.val,1)+' cm</span></div>';});
