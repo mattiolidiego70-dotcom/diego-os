@@ -1848,7 +1848,18 @@ function montaAbbinamenti(){
       nota.textContent='nessun abbinamento per questa occasione: il motore non ha trovato niente che passi le regole, e non invento';
       return;
     }
-    nota.textContent=ab.length+' abbinamenti, ognuno con il voto del motore e il perche';
+    /* Un'occasione con meno di tre proposte lo DICE. Il motore ha scartato
+       quello che non passava, e l'app non deve far contare le card a Diego
+       per accorgersene: per la giornata col cliente, su 40.000 terne provate
+       ne passano due, perche' nel catalogo non c'e' quasi niente di
+       abbastanza formale. Si dichiara, non si riempie. */
+    var perOcc={};
+    ab.forEach(function(x){ perOcc[x.occasione]=(perOcc[x.occasione]||0)+1; });
+    var scarse=Object.keys(perOcc).filter(function(k){ return perOcc[k]<3; });
+    nota.textContent=ab.length+' abbinamenti, ognuno con il voto del motore e il perche'
+      + (scarse.length ? ('. Sotto le tre proposte: '
+          + scarse.map(function(k){ return k.replace(/_/g,' ')+' ('+perOcc[k]+')'; }).join(', ')
+          + ' — il motore ha scartato il resto, e non riempio') : '');
     ab.forEach(function(a){
       var c=document.createElement('div'); c.className='card'; c.style.gridColumn='span 4';
       var hh=document.createElement('div'); hh.className='testa';
