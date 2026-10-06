@@ -1811,6 +1811,13 @@ var RENDER={
    giornata col cliente il motore ha scartato 40.000 terne su 40.000,
    perche' nel catalogo non c'e' niente di abbastanza formale. */
 var OCC_ATTIVA='';
+/* UNA RISPOSTA VECCHIA NON SCRIVE SU UN PANNELLO NUOVO.
+   Trovato il 06/10 cliccando l'app come utente: entrando in Outfit il
+   pannello si disegna due volte (una dal cambio sezione, una dal cambio tab)
+   e la risposta della PRIMA chiamata si attaccava al pannello gia' ridisegnato:
+   65 card dove dovevano essere 33. E' la stessa famiglia della guardia R12-3
+   che l'app aveva gia' sulla conversazione di Ada. */
+var GEN_OUTFIT=0;
 function montaAbbinamenti(){
   var p=document.querySelector('.pane[data-pane="abbinamenti"]');
   if(!p) return;
@@ -1826,7 +1833,9 @@ function montaAbbinamenti(){
   var nota=document.createElement('div'); nota.className='nota'; nota.textContent='Caricamento…';
   testa.appendChild(nota); p.appendChild(testa);
 
+  var mia=++GEN_OUTFIT;
   api('/api/abbinamenti'+(OCC_ATTIVA?('?occasione='+encodeURIComponent(OCC_ATTIVA)):'')).then(function(d){
+    if(mia!==GEN_OUTFIT) return;   /* un'altra richiesta e' partita dopo: questa non scrive */
     var occ=(d&&d.occasioni)||[];
     ['tutte'].concat(occ).forEach(function(o){
       var b=document.createElement('button'); b.className='tab'+(((o==='tutte')===(!OCC_ATTIVA))&&(o==='tutte'||o===OCC_ATTIVA)?' on':'');
@@ -1866,13 +1875,41 @@ function montaAbbinamenti(){
         r1.textContent=capo.titolo||'(senza titolo)';
         var r2=document.createElement('div');
         r2.style.cssText='color:var(--testo3);font:400 11px var(--font-ui)';
-        r2.textContent=capo.ruolo+' · '+(capo.sottocategoria||'?')+(capo.registro?(' · '+capo.registro):'')+' · '+capo.prezzo+' EUR';
+        var tg=(capo.taglie||[]).filter(function(x){return x;});
+        r2.textContent=capo.ruolo+' · '+(capo.sottocategoria||'?')+(capo.registro?(' · '+capo.registro):'')+' · '+capo.prezzo+' EUR'
+          +(tg.length?(' · taglie '+tg.slice(0,8).join(' ')):' · taglie non dichiarate');
         box.appendChild(r1); box.appendChild(r2); riga.appendChild(box);
         c.appendChild(riga);
       });
+      /* Il giudizio: due bottoni, e quello che scrivi resta. Non cambia il
+         voto del motore — un "non mi piace" e' un dato, non una regola. */
+      var voto=document.createElement('div');
+      voto.style.cssText='display:flex;gap:8px;align-items:center;padding-top:9px;border-top:1px solid var(--riga);margin-top:6px';
+      var esito=document.createElement('span');
+      esito.style.cssText='color:var(--testo4);font:400 11px var(--font-ui);margin-left:auto';
+      esito.textContent=(a.mi_piace||a.non_mi_piace)?('giudizi: '+(a.mi_piace||0)+' su, '+(a.non_mi_piace||0)+' giu'):'non ancora giudicato';
+      [['mi piace',true],['non mi piace',false]].forEach(function(par){
+        var b=document.createElement('button');
+        b.type='button'; b.className='tab';
+        b.textContent=par[0];
+        b.onclick=function(){
+          b.disabled=true; esito.textContent='…';
+          api('/api/giudizio',{outfit:a.id,mi_piace:par[1]}).then(function(r){
+            esito.textContent = (r&&r.ok)
+              ? ('segnato · giudizi su questo: '+(r.giudizi_su_questo||1))
+              : ('non segnato: '+((r&&r.errore)||'errore'));
+          }).catch(function(e){
+            esito.textContent='non segnato: '+(e&&e.message?e.message:'errore');
+          }).finally(function(){ b.disabled=false; });
+        };
+        voto.appendChild(b);
+      });
+      voto.appendChild(esito);
+      c.appendChild(voto);
       p.appendChild(c);
     });
   }).catch(function(e){
+    if(mia!==GEN_OUTFIT) return;
     nota.textContent='gli abbinamenti non rispondono: '+(e&&e.message?e.message:'errore');
   });
 }
@@ -1898,7 +1935,9 @@ function montaAcquisti(){
   testa.appendChild(sotto);
   p.appendChild(testa);
 
+  var miaA=++GEN_OUTFIT;
   api('/api/outfit?quanti=3&tetto='+encodeURIComponent(OUTFIT_TETTO)).then(function(d){
+    if(miaA!==GEN_OUTFIT) return;
     if(!d||!d.proposte||!d.proposte.length){
       sotto.textContent='nessuna proposta: con questo tetto non ci sono abbastanza capi';
       return;
@@ -1935,6 +1974,7 @@ function montaAcquisti(){
       p.appendChild(c);
     });
   }).catch(function(e){
+    if(miaA!==GEN_OUTFIT) return;
     sotto.textContent='la fonte degli outfit non risponde: '+(e&&e.message?e.message:'errore');
   });
 }
